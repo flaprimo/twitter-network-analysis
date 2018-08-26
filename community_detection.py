@@ -88,7 +88,7 @@ def handle_lone_nodes(df_nodes, action='remove'):
         print('## REMOVE LONE NODES')
         df_edges = pd.read_csv(config.IO.csvEdges_PP, dtype=config.IO.csvEdges_dtype)
 
-        df_edges_together = df_edges[df_edges.Source.isin(df_nodes.index) | df_edges.Target.isin(df_nodes.index)]
+        df_edges_together = df_edges[df_edges.Source.isin(df_nodes.index) & df_edges.Target.isin(df_nodes.index)]
         df_edges_together.to_csv(config.IO.csvEdges_CD, index=False)
 
         print(f'  shape before: {df_edges.shape}\n'

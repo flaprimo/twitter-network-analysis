@@ -11,7 +11,7 @@ def main():
     #       f'(top 10 per community)')
     # for c_label, c in c_subgraphs:
     #     print(f'community {c_label}: {compute_h_index(c)[:10]}')
-    print(compute_h_index(c_subgraphs[3][1])[:10])
+    # print(compute_h_index(c_subgraphs[3][1])[:10])
 
 
 def load_graph():
@@ -20,14 +20,13 @@ def load_graph():
     df_nodes = pd.read_csv(config.IO.csvNodes_CD, index_col='Id', dtype=config.IO.csvNodes_dtype)
     df_edges = pd.read_csv(config.IO.csvEdges_CD, dtype=config.IO.csvEdges_dtype)
 
-    # remove nodes not belonging to a community
-    print(df_edges.shape)
-    df_edges = df_edges[df_edges.Source.isin(df_nodes.index) & df_edges.Target.isin(df_nodes.index)]
-    print(df_edges.shape)
-
     print('## Load dataframes\n'
-          f'NODES\n  shape: {df_nodes.shape}\n  dataframe:\n{df_nodes.head(5).to_string()}\n\n'
-          f'EDGES\n  shape: {df_edges.shape}\n  dataframe:\n{df_edges.head(5).to_string()}\n\n')
+          f'NODES\n'
+          f'  shape: {df_nodes.shape}\n'
+          f'  dataframe (first 5 rows):\n{df_nodes.head(5).to_string()}\n'
+          f'EDGES\n'
+          f'  shape: {df_edges.shape}\n'
+          f'  dataframe (first 5 rows):\n{df_edges.head(5).to_string()}\n\n')
 
     g = nx.from_pandas_edgelist(df_edges,
                                 source='Source', target='Target', edge_attr=['Weight'],
@@ -37,7 +36,9 @@ def load_graph():
         nx.set_node_attributes(g, pd.Series(df_nodes[c]).to_dict(), c)
 
     print(f'## Load graph\n'
-          f'  number of nodes: {len(g)}\n  nodes (first 3):\n {list(g.nodes(data=True))[:3]}\n\n')
+          f'  number of nodes: {len(g)}\n'
+          f'  number of edges: {g.number_of_edges()}\n'
+          f'  nodes (first 3):\n {list(g.nodes(data=True))[:3]}\n\n')
 
     return g
 
@@ -47,6 +48,8 @@ def get_community_labels(g):
 
 
 def get_community_subgraphs(g):
+    print('# GET COMMUNITY SUBGRAPHS')
+
     communities = get_community_labels(g)
     c_subgraphs = []
 
@@ -60,6 +63,11 @@ def get_community_subgraphs(g):
                 n[1].pop(com, None)
 
         c_subgraphs.append((c, c_subgraph))
+
+    print(f'  number of communities: {len(communities)}\n'
+          f'  community list: {communities}\n'
+          f'  communities (only first 3 nodes for each community shown):'
+          f'{[(c[0], list(c[1].nodes(data=True))[:3]) for c in c_subgraphs]}\n\n')
 
     return c_subgraphs
 
@@ -91,3 +99,7 @@ def h_index(citations):
         else:
             break
     return h
+
+
+if __name__ == '__main__':
+    main()

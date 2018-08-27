@@ -1,5 +1,6 @@
 import networkx as nx
 import pandas as pd
+import tqdm
 import config
 
 
@@ -7,11 +8,7 @@ def main():
     g = load_graph()
     c_subgraphs = get_community_subgraphs(g)
 
-    # print('# H-INDEX'
-    #       f'(top 10 per community)')
-    # for c_label, c in c_subgraphs:
-    #     print(f'community {c_label}: {compute_h_index(c)[:10]}')
-    # print(compute_h_index(c_subgraphs[3][1])[:10])
+    h_index_list = get_hindex(c_subgraphs)
 
 
 def load_graph():
@@ -38,7 +35,7 @@ def load_graph():
     print(f'## Load graph\n'
           f'  number of nodes: {len(g)}\n'
           f'  number of edges: {g.number_of_edges()}\n'
-          f'  nodes (first 3):\n {list(g.nodes(data=True))[:3]}\n\n')
+          f'  nodes (first 2):\n {list(g.nodes(data=True))[:2]}\n\n')
 
     return g
 
@@ -53,7 +50,7 @@ def get_community_subgraphs(g):
     communities = get_community_labels(g)
     c_subgraphs = []
 
-    for c in communities:
+    for c in tqdm.tqdm(communities, ncols=35, bar_format='Exec: {l_bar}{bar}'):
         c_nodes = [x for x, y in g.nodes(data=True) if y[c]]
         c_subgraph = nx.DiGraph(g.subgraph(c_nodes))
 
@@ -66,39 +63,45 @@ def get_community_subgraphs(g):
 
     print(f'  number of communities: {len(communities)}\n'
           f'  community list: {communities}\n'
-          f'  communities (only first 3 nodes for each community shown):'
-          f'{[(c[0], list(c[1].nodes(data=True))[:3]) for c in c_subgraphs]}\n\n')
+          f'  communities (only first node for each community is shown):'
+          f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
 
     return c_subgraphs
 
 
-def compute_h_index(g):
-    g_hindex = []
+def get_hindex(c_subgraphs):
+    print('# H-INDEX')
 
-    for n in g.nodes:
-        print(n)
-
-    # for n in g.nodes:
-    #     edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
-    #     g_hindex.append((n, h_index(edges)))
-
-    return sorted(g_hindex, key=lambda x: x[1])
+    def get_subgraph_hindex(g):
+        for n in g.nodes:
+            edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
+            g.node[n]['hindex'] = compute_hindex(edges)
 
 
-#  from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
-def h_index(citations):
-    """
-    :type citations: List[int]
-    :rtype: int
-    """
-    citations.sort(reverse=True)
-    h = 0
-    for x in citations:
-        if x >= h + 1:
-            h += 1
-        else:
-            break
-    return h
+    # from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
+    def compute_hindex(citations):
+        """
+        :type citations: List[int]
+        :rtype: int
+        """
+        citations.sort(reverse=True)
+        h = 0
+        for x in citations:
+            if x >= h + 1:
+                h += 1
+            else:
+                break
+        return h
+
+    print('  h index (show first 10 nodes per community):')
+    c_hindex_list = []
+    for c_label, c in c_subgraphs:
+        get_subgraph_hindex(c)
+        c_hindex = nx.get_node_attributes(c, 'hindex')
+        c_hindex = sorted(c_hindex.items(), key=lambda x: x[1], reverse=True)
+        print(f'  {c_label}: {c_hindex[:10]}')
+
+    return c_hindex_list
 
 
 if __name__ == '__main__':

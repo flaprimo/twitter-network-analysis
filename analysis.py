@@ -1,6 +1,6 @@
 import networkx as nx
 import pandas as pd
-import tqdm
+from tqdm import tqdm
 import config
 
 
@@ -8,7 +8,8 @@ def main():
     g = load_graph()
     c_subgraphs = get_community_subgraphs(g)
 
-    h_index_list = get_hindex(c_subgraphs)
+    c_hindex_list = get_hindex(c_subgraphs)
+    c_indegree_list = get_indegree(c_subgraphs)
 
 
 def load_graph():
@@ -50,7 +51,7 @@ def get_community_subgraphs(g):
     communities = get_community_labels(g)
     c_subgraphs = []
 
-    for c in tqdm.tqdm(communities, ncols=35, bar_format='Exec: {l_bar}{bar}'):
+    for c in tqdm(communities):
         c_nodes = [x for x, y in g.nodes(data=True) if y[c]]
         c_subgraph = nx.DiGraph(g.subgraph(c_nodes))
 
@@ -72,14 +73,13 @@ def get_community_subgraphs(g):
 def get_hindex(c_subgraphs):
     print('# H-INDEX')
 
-    def get_subgraph_hindex(g):
+    def compute_subgraph_hindex(g):
         for n in g.nodes:
             edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
-            g.node[n]['hindex'] = compute_hindex(edges)
-
+            g.node[n]['hindex'] = alg_hindex(edges)
 
     # from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
-    def compute_hindex(citations):
+    def alg_hindex(citations):
         """
         :type citations: List[int]
         :rtype: int
@@ -93,15 +93,41 @@ def get_hindex(c_subgraphs):
                 break
         return h
 
-    print('  h index (show first 10 nodes per community):')
     c_hindex_list = []
     for c_label, c in c_subgraphs:
-        get_subgraph_hindex(c)
+        compute_subgraph_hindex(c)
         c_hindex = nx.get_node_attributes(c, 'hindex')
         c_hindex = sorted(c_hindex.items(), key=lambda x: x[1], reverse=True)
-        print(f'  {c_label}: {c_hindex[:10]}')
+        c_hindex_list.append((c_label, c_hindex))
+
+    print(f'  h index (show first 10 nodes per community):')
+    for c_label, c in c_hindex_list:
+        print(f'  {c_label}: {c[:10]}')
+    print('\n')
 
     return c_hindex_list
+
+
+def get_indegree(c_subgraphs):
+    print('# IN-DEGREE')
+
+    def compute_subgraph_indegree(g):
+        for n in g.nodes:
+            g.node[n]['indegree'] = g.in_degree(n)
+
+    c_indegree_list = []
+    for c_label, c in c_subgraphs:
+        compute_subgraph_indegree(c)
+        c_indegree = nx.get_node_attributes(c, 'indegree')
+        c_indegree = sorted(c_indegree.items(), key=lambda x: x[1], reverse=True)
+        c_indegree_list.append((c_label, c_indegree))
+
+    print('  indegree (show first 10 nodes per community):')
+    for c_label, c in c_indegree_list:
+        print(f'  {c_label}: {c[:10]}')
+    print('\n')
+
+    return c_indegree_list
 
 
 if __name__ == '__main__':

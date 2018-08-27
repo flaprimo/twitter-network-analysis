@@ -16,6 +16,8 @@ def main():
     c_hindex_list = iter_metric_c(c_subgraphs, add_hindex, 'hindex')
     c_indegree_list = iter_metric_c(c_subgraphs, add_indegree, 'indegree')
 
+    communities_to_dataframe(c_subgraphs).to_csv(config.IO.csvNodes_A)
+
 
 def load_graph():
     print('# LOAD GRAPH')
@@ -108,15 +110,11 @@ def get_pquality(g, g_subgraphs):
     ]
     df_scores = pd.DataFrame(m1, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
 
+    df_scores.to_csv(config.IO.csvQualityMetrics_A, float_format='%.3f')
+
     print(f'summary of partition metrics:\n{df_scores.to_string()}\n\n')
 
     return df_scores
-
-
-def pq_summary(g, g_subgraphs):
-
-
-    return df
 
 
 def add_hindex(g):
@@ -161,6 +159,27 @@ def iter_metric_c(c_subgraphs, metric, metric_name):
     print('\n')
 
     return c_metric_list
+
+
+def communities_to_dataframe(c_subgraphs):
+    print('# COMMUNITIES TO DATAFRAME')
+
+    def nodes_to_dataframe(g):
+        return pd.DataFrame.from_dict(dict(g.nodes(data=True))).transpose()
+
+    df_nodes = pd.DataFrame()
+
+    for c_label, c in c_subgraphs:
+        df_c = nodes_to_dataframe(c)
+        df_c[c_label] = True
+        df_nodes = df_nodes.append(df_c, sort=False)
+
+    df_nodes = df_nodes.fillna(False)
+
+    print(f'  shape: {df_nodes.shape}\n'
+          f'  dataframe (first 5 rows):\n{df_nodes.head(5).to_string()}\n\n')
+
+    return df_nodes
 
 
 if __name__ == '__main__':

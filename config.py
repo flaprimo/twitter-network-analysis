@@ -30,6 +30,9 @@ class IO:
     communitiesOutput_CD = outputDir + 'community_detection/communities.txt'
     csvNodes_CD = outputDir + 'community_detection/nodes.csv'
     csvEdges_CD = outputDir + 'community_detection/edges.csv'
+    # output analysis
+    csvQualityMetrics_A = outputDir + 'analysis/quality_metrics.csv'
+    csvNodes_A = outputDir + 'analysis/nodes.csv'
 
 
 class DEMON:

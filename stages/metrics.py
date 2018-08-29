@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 class Metrics:
     def __init__(self, config, nodes, edges):
         self.config = config
+        self.communities = list(nodes.columns)
         self.g = nx.from_pandas_edgelist(edges,
                                          source='Source', target='Target', edge_attr=['Weight'],
                                          create_using=nx.DiGraph())
-        for c in nodes.columns:
+        for c in self.communities:
             nx.set_node_attributes(self.g, pd.Series(nodes[c]).to_dict(), c)
         self.c_subgraphs = self.__get_community_subgraphs()
         self.scores = {}
@@ -27,27 +28,23 @@ class Metrics:
         self.__iter_metric_c(self.__add_hindex, 'hindex')
         self.__iter_metric_c(self.__add_indegree, 'indegree')
 
-    def __get_community_labels(self):
-        return list(list(self.g.nodes(data=True))[:1][0][1].keys())
-
     def __get_community_subgraphs(self):
-        communities = self.__get_community_labels()
         c_subgraphs = []
 
-        for c in tqdm(communities):
+        for c in tqdm(self.communities):
             c_nodes = [x for x, y in self.g.nodes(data=True) if y[c]]
             c_subgraph = nx.DiGraph(self.g.subgraph(c_nodes))
 
             # remove node attributes to keep memory low
             for n in c_subgraph.nodes(data=True):
-                for com in communities:
+                for com in self.communities:
                     n[1].pop(com, None)
 
             c_subgraphs.append((c, c_subgraph))
 
         logging.info('get community subgraphs\n'
-                     f'  number of communities: {len(communities)}\n'
-                     f'  community list: {communities}\n'
+                     f'  number of communities: {len(self.communities)}\n'
+                     f'  community list: {self.communities}\n'
                      f'  communities (only first node for each community is shown):'
                      f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
 
@@ -92,10 +89,6 @@ class Metrics:
     def __add_hindex(g):
         # from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
         def alg_hindex(citations):
-            """
-            :type citations: List[int]
-            :rtype: int
-            """
             citations.sort(reverse=True)
             h = 0
             for x in citations:
@@ -105,50 +98,43 @@ class Metrics:
                     break
             return h
 
+        hindex = []
         for n in g.nodes:
             edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
-            g.node[n]['hindex'] = alg_hindex(edges)
+            hindex.append((n, alg_hindex(edges)))
+
+        return hindex
 
     @staticmethod
     def __add_indegree(g):
-        for n in g.nodes:
-            g.node[n]['indegree'] = g.in_degree(n)
+        return [(n, g.in_degree(n)) for n in g.nodes]
 
     def __iter_metric_c(self, metric, metric_name):
         c_metric_list = []
         for c_label, c in self.c_subgraphs:
-            metric(c)
-            c_metric = nx.get_node_attributes(c, metric_name)
-            c_metric = sorted(c_metric.items(), key=lambda x: x[1], reverse=True)
-            c_metric_list.append((c_label, c_metric))
+            c_metric = pd.DataFrame(data=metric(c), columns=['Id', metric_name]).set_index('Id') \
+                .sort_values(by=[metric_name], ascending=False)
+            c_metric[c_label] = True
+            c_metric_list.append(c_metric)
 
-        communities = [f'  {c_label}: {c[:10]}\n' for c_label, c in c_metric_list]
-        logging.info('execute {metric_name.upper()} metric\n'
-                     f'(show first 10 nodes per community):\n{communities}\n')
+        self.scores[metric_name] = pd.concat(c_metric_list, sort=False).fillna(False)
 
-        self.scores[metric_name] = c_metric_list
+        logging.info(f'executed {metric_name.upper()} metric\n'
+                     f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name])}\n')
 
-    def communities_to_dataframe(self):
-        df_nodes = pd.DataFrame()
+    def metric_top(self, metric_name, n=10):
+        df_top = self.scores[metric_name]
+        df_top_list = [(c_label, df_top[df_top[c_label]][metric_name].head(n)) for c_label in self.communities]
 
-        for c_label, c in self.c_subgraphs:
-            df_c = helper.nodes_to_dataframe(c)
-            df_c[c_label] = True
-            df_nodes = df_nodes.append(df_c, sort=False)
+        logging.info(f'top {n} for {metric_name.upper()}\n' +
+                     ''.join([f'{c[0]}\n{helper.df_tostring(c[1], 10)}\n' for c in df_top_list]))
 
-        df_nodes = df_nodes.fillna(False)
-
-        logger.info('communities to dataframe\n'
-                    f'  path: {self.config.get_path("pp", "edges", "csv")}\n' +
-                    helper.df_tostring(df_nodes))
-
-        return df_nodes
+        return df_top_list
 
     def save(self):
-        communities_path = self.config.get_path('m', 'nodes', 'csv')
-        communities = self.communities_to_dataframe()
-        communities.to_csv(communities_path)
-
-        logger.info('save csv\n'
-                    f'  path: {communities_path}\n' +
-                    helper.df_tostring(communities))
+        for metric_name, metric_df in self.scores.items():
+            path = self.config.get_path('m', metric_name)
+            metric_df.to_csv(path)
+            logger.info(f'save {metric_name} csv\n'
+                        f'  path: {path}\n' +
+                        helper.df_tostring(metric_df))

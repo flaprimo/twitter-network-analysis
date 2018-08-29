@@ -92,11 +92,11 @@ class CommunityDetection:
             rm_lone_edges()
 
     def save(self):
-        self.nodes.to_csv(self.config.get_path('cd', 'nodes', 'csv'))
-        self.edges.to_csv(self.config.get_path('cd', 'edges', 'csv'), index=False)
+        self.nodes.to_csv(self.config.get_path('cd', 'nodes'))
+        self.edges.to_csv(self.config.get_path('cd', 'edges'), index=False)
 
         logger.info('save csv\n'
-                    f'  path: {self.config.get_path("cd", "nodes", "csv")}\n' +
+                    f'  path: {self.config.get_path("cd", "nodes")}\n' +
                     helper.df_tostring(self.nodes) +
-                    f'  path: {self.config.get_path("cd", "edges", "csv")}\n' +
+                    f'  path: {self.config.get_path("cd", "edges")}\n' +
                     helper.df_tostring(self.edges))

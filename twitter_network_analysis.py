@@ -1,7 +1,3 @@
-# import preprocessing
-# import community_detection
-# import analysis
-
 import logging
 from stages import PreProcessing, CommunityDetection, Metrics
 from config import Config
@@ -41,6 +37,9 @@ def main():
         metrics = Metrics(config, nodes, edges)
         metrics.execute()
         metrics.save()
+
+        metrics.metric_top('hindex')
+        metrics.metric_top('indegree')
 
 
 if __name__ == '__main__':

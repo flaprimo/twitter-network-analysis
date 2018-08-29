@@ -36,8 +36,8 @@ class PreProcessing:
                     helper.df_tostring(self.edges))
 
     def save(self):
-        self.edges.to_csv(self.config.get_path('pp', 'edges', 'csv'), index=False)
+        self.edges.to_csv(self.config.get_path('pp', 'edges'), index=False)
 
         logger.info('save csv\n'
-                    f'  path: {self.config.get_path("pp", "edges", "csv")}\n' +
+                    f'  path: {self.config.get_path("pp", "edges")}\n' +
                     helper.df_tostring(self.edges))

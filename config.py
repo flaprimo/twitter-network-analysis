@@ -1,40 +1,47 @@
-class IO:
-    # base dirs
-    outputDir = 'output/'
-    dataDir = 'data/'
-
-    # input
-    csvData = dataDir + 'll.csv'
-    csvData_dtype = {
-        'cod': str,
-        'user_from_name': str,
-        'user_from_fav_count': 'uint8',
-        'user_rt_fav_count': 'uint8',
-        'user_to_name': str,
-        'text': str,
-        'weights': 'uint8'
-    }
-
-    # output
-    csvNodes_dtype = {
-        'Id': str
-    }
-    csvEdges_dtype = {
-        'Source': str,
-        'Target': str,
-        'Weight': 'uint8'
-    }
-    # output preprocessing
-    csvEdges_PP = outputDir + 'preprocessing/edges.csv'
-    # output community_detection
-    communitiesOutput_CD = outputDir + 'community_detection/communities.txt'
-    csvNodes_CD = outputDir + 'community_detection/nodes.csv'
-    csvEdges_CD = outputDir + 'community_detection/edges.csv'
-    # output analysis
-    csvQualityMetrics_A = outputDir + 'analysis/quality_metrics.csv'
-    csvNodes_A = outputDir + 'analysis/nodes.csv'
+import os
 
 
-class DEMON:
-    epsilon = 0.25
-    min_community_size = 3
+class Config:
+    def __init__(self, demon=None, keep_lone_nodes=False, data_file='ll.csv'):
+        self.base_dir = {
+            'input': 'data',
+            'output': 'output'
+        }
+
+        self.data_type = {
+            'csv_data': {
+                'cod': str,
+                'user_from_name': str,
+                'user_from_fav_count': 'uint8',
+                'user_rt_fav_count': 'uint8',
+                'user_to_name': str,
+                'text': str,
+                'weights': 'uint8'
+            },
+            'csv_nodes': {
+                'Id': str
+            },
+            'csv_edges': {
+                'Source': str,
+                'Target': str,
+                'Weight': 'uint8'
+            }
+        }
+
+        self.data_path = f'{self.base_dir["input"]}/{data_file}'
+
+        self.keep_lone_nodes = keep_lone_nodes
+
+        if demon:
+            self.demon = demon
+            self.prefix = f'_e{self.demon["epsilon"]}_mcs{self.demon["min_community_size"]}'
+        else:
+            self.prefix = ''
+
+    def get_path(self, stage, file_name, file_type='csv'):
+        directory = f'{self.base_dir["output"]}/{stage}'
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        return f'{directory}/{file_name}{self.prefix}.{file_type}'

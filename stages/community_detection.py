@@ -18,7 +18,7 @@ class CommunityDetection:
                                              create_using=nx.DiGraph())
 
     def execute(self):
-        logging.info('PRE-PROCESSING')
+        logging.info('COMMUNITY DETECTION')
         self.__execute_demon()
         self.__load_demon_communities()
         self.__handle_lone_nodes()

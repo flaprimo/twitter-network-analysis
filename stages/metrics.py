@@ -120,9 +120,9 @@ class Metrics:
         self.scores[metric_name] = pd.concat(c_metric_list, sort=False).fillna(False)
 
         logging.info(f'executed {metric_name.upper()} metric\n'
-                     f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name])}\n')
+                     f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name], 5)}\n')
 
-    def metric_top(self, metric_name, n=10):
+    def metric_top_values(self, metric_name, n=10):
         df_top = self.scores[metric_name]
         df_top_list = [(c_label, df_top[df_top[c_label]][metric_name].head(n)) for c_label in self.communities]
 
@@ -131,10 +131,35 @@ class Metrics:
 
         return df_top_list
 
+    @staticmethod
+    def metric_top(communities):
+        ranked_list = [c.index.rename(c_label).to_frame().reset_index(drop=True) for c_label, c in communities]
+        ranked_df = pd.concat(ranked_list, axis=1)
+
+        logging.info(f'top users for each community\n' +
+                     helper.df_tostring(ranked_df, 10))
+
+        return ranked_df
+
+    @staticmethod
+    def compare_metric_top(p1, p2, method='kendall'):
+        m = np.zeros((p1.shape[1], p2.shape[1]))
+
+        for c1 in p1:
+            for c2 in p2:
+                m[int(c1[2:])][int(c2[2:])] = p1[c1].corr(p2[c2], method)
+
+        scores = pd.DataFrame(m, index=p1.columns, columns=p2.columns)
+
+        logging.info(f'executed {method} ranking on top users for each community\n' +
+                     helper.df_tostring(scores))
+
+        return scores
+
     def save(self):
         for metric_name, metric_df in self.scores.items():
             path = self.config.get_path('m', metric_name)
             metric_df.to_csv(path)
             logger.info(f'save {metric_name} csv\n'
                         f'  path: {path}\n' +
-                        helper.df_tostring(metric_df))
+                        helper.df_tostring(metric_df, 5))

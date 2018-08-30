@@ -1,9 +1,9 @@
 import pandas as pd
 
 
-def df_tostring(df, rows=5):
+def df_tostring(df, rows=None):
     return f'  shape: {df.shape}\n' \
-           f'  dataframe (first 5 rows):\n{df.head(rows).to_string()}\n'
+           f'  dataframe ({"first " + str(rows) + " rows" if rows else "all rows"}):\n{df.head(rows).to_string()}\n'
 
 
 def nodes_to_dataframe(g):

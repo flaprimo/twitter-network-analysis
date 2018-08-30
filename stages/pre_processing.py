@@ -22,7 +22,7 @@ class PreProcessing:
                           inplace=True)
 
         logger.info('drop columns\n' +
-                    helper.df_tostring(self.edges))
+                    helper.df_tostring(self.edges, 5))
 
     def __merge_duplicates(self):
         self.edges.Source = self.edges.Source.str.lower()
@@ -33,11 +33,11 @@ class PreProcessing:
 
         logger.info('merge duplicates\n'
                     f'  number of duplicates: {df_edges_duplicates.shape}\n' +
-                    helper.df_tostring(self.edges))
+                    helper.df_tostring(self.edges, 5))
 
     def save(self):
         self.edges.to_csv(self.config.get_path('pp', 'edges'), index=False)
 
         logger.info('save csv\n'
                     f'  path: {self.config.get_path("pp", "edges")}\n' +
-                    helper.df_tostring(self.edges))
+                    helper.df_tostring(self.edges, 5))

@@ -63,7 +63,7 @@ class CommunityDetection:
         self.nodes = combine.groupby(df_communities.index).sum()
 
         logger.info('load demon communities\n' +
-                    helper.df_tostring(self.nodes))
+                    helper.df_tostring(self.nodes, 5))
 
     def __handle_lone_nodes(self):
         def add_lone_nodes():
@@ -73,7 +73,7 @@ class CommunityDetection:
 
             logger.info('add lone nodes\n'
                         f'  lone nodes number: {all_nodes.shape[0] - self.nodes.shape[0]}\n' +
-                        helper.df_tostring(self.nodes))
+                        helper.df_tostring(self.nodes, 5))
 
         def rm_lone_edges():
             edges_before = self.edges
@@ -84,7 +84,7 @@ class CommunityDetection:
                         f'  shape before: {edges_before.shape}\n'
                         f'  shape after: {self.edges.shape}\n'
                         f'  lone edges number: {edges_before.shape[0] - self.edges.shape[0]}\n' +
-                        helper.df_tostring(self.edges))
+                        helper.df_tostring(self.edges, 5))
 
         if self.config.keep_lone_nodes:
             add_lone_nodes()
@@ -97,6 +97,6 @@ class CommunityDetection:
 
         logger.info('save csv\n'
                     f'  path: {self.config.get_path("cd", "nodes")}\n' +
-                    helper.df_tostring(self.nodes) +
+                    helper.df_tostring(self.nodes, 5) +
                     f'  path: {self.config.get_path("cd", "edges")}\n' +
-                    helper.df_tostring(self.edges))
+                    helper.df_tostring(self.edges, 5))

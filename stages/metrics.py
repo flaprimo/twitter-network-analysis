@@ -10,23 +10,57 @@ logger = logging.getLogger(__name__)
 
 
 class Metrics:
-    def __init__(self, config, nodes, edges):
+    def __init__(self, config, nodes=None, edges=None):
         self.config = config
-        self.communities = list(nodes.columns)
-        self.g = nx.from_pandas_edgelist(edges,
-                                         source='Source', target='Target', edge_attr=['Weight'],
-                                         create_using=nx.DiGraph())
-        for c in self.communities:
-            nx.set_node_attributes(self.g, pd.Series(nodes[c]).to_dict(), c)
+        logging.info(f'METRICS: {self.config.data_filename} - '
+                     f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
+        self.edges = edges if edges else self.__load_edges()
+        self.nodes = nodes if nodes else self.__load_nodes()
+
+        self.communities = list(self.nodes.columns)
+        self.g = self.__get_graph()
         self.c_subgraphs = self.__get_community_subgraphs()
         self.scores = {}
 
     def execute(self):
-        logging.info('METRICS')
-
+        logging.info('execute')
         self.__pquality()
         self.__iter_metric_c(self.__add_hindex, 'hindex')
         self.__iter_metric_c(self.__add_indegree, 'indegree')
+
+    def __load_edges(self):
+        edges_path = self.config.get_path('cd', 'edges')
+        edges = pd.read_csv(edges_path,
+                            dtype=self.config.data_type['csv_edges'])
+
+        logger.info('load edges csv')
+        logger.debug(f'edges file path: {edges_path}\n' +
+                     helper.df_tostring(edges, 5))
+
+        return edges
+
+    def __load_nodes(self):
+        nodes_path = self.config.get_path('cd', 'nodes')
+        nodes = pd.read_csv(nodes_path,
+                            dtype=self.config.data_type['csv_nodes'],
+                            index_col='Id')
+
+        logger.info('load nodes csv')
+        logger.debug(f'  nodes file path: {nodes_path}\n' +
+                     helper.df_tostring(nodes, 5))
+
+        return nodes
+
+    def __get_graph(self):
+        graph = nx.from_pandas_edgelist(self.edges,
+                                        source='Source', target='Target', edge_attr=['Weight'],
+                                        create_using=nx.DiGraph())
+        for c in self.communities:
+            nx.set_node_attributes(graph, pd.Series(self.nodes[c]).to_dict(), c)
+
+        logger.info('get graph')
+
+        return graph
 
     def __get_community_subgraphs(self):
         c_subgraphs = []
@@ -42,11 +76,11 @@ class Metrics:
 
             c_subgraphs.append((c, c_subgraph))
 
-        logging.info('get community subgraphs\n'
-                     f'  number of communities: {len(self.communities)}\n'
-                     f'  community list: {self.communities}\n'
-                     f'  communities (only first node for each community is shown):'
-                     f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
+        logging.info('get community subgraphs')
+        logging.debug(f'  number of communities: {len(self.communities)}\n'
+                      f'  community list: {self.communities}\n'
+                      f'  communities (only first node for each community is shown):'
+                      f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
 
         return c_subgraphs
 
@@ -82,8 +116,8 @@ class Metrics:
 
         self.scores['pquality'] = pd.DataFrame(m, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
 
-        logging.info('get partition quality metrics\n'
-                     f'summary of partition metrics:\n{self.scores["pquality"].to_string()}\n\n')
+        logging.info('get partition quality metrics')
+        logging.debug(f'summary of partition metrics:\n{self.scores["pquality"].to_string()}\n\n')
 
     @staticmethod
     def __add_hindex(g):
@@ -119,15 +153,15 @@ class Metrics:
 
         self.scores[metric_name] = pd.concat(c_metric_list, sort=False).fillna(False)
 
-        logging.info(f'executed {metric_name.upper()} metric\n'
-                     f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name], 5)}\n')
+        logging.info(f'executed {metric_name.upper()} metric')
+        logging.debug(f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name], 5)}\n')
 
     def metric_top_values(self, metric_name, n=10):
         df_top = self.scores[metric_name]
         df_top_list = [(c_label, df_top[df_top[c_label]][metric_name].head(n)) for c_label in self.communities]
 
-        logging.info(f'top {n} for {metric_name.upper()}\n' +
-                     ''.join([f'{c[0]}\n{helper.df_tostring(c[1], 10)}\n' for c in df_top_list]))
+        logging.info(f'top {n} for {metric_name.upper()}')
+        logging.debug(''.join([f'{c[0]}\n{helper.df_tostring(c[1], 10)}\n' for c in df_top_list]))
 
         return df_top_list
 
@@ -136,8 +170,8 @@ class Metrics:
         ranked_list = [c.index.rename(c_label).to_frame().reset_index(drop=True) for c_label, c in communities]
         ranked_df = pd.concat(ranked_list, axis=1)
 
-        logging.info(f'top users for each community\n' +
-                     helper.df_tostring(ranked_df, 10))
+        logging.info('top users for each community')
+        logging.debug(helper.df_tostring(ranked_df, 10))
 
         return ranked_df
 
@@ -151,8 +185,8 @@ class Metrics:
 
         scores = pd.DataFrame(m, index=p1.columns, columns=p2.columns)
 
-        logging.info(f'executed {method} ranking on top users for each community\n' +
-                     helper.df_tostring(scores))
+        logging.info(f'executed {method} ranking on top users for each community')
+        logging.debug(helper.df_tostring(scores))
 
         return scores
 
@@ -160,6 +194,7 @@ class Metrics:
         for metric_name, metric_df in self.scores.items():
             path = self.config.get_path('m', metric_name)
             metric_df.to_csv(path)
-            logger.info(f'save {metric_name} csv\n'
-                        f'  path: {path}\n' +
-                        helper.df_tostring(metric_df, 5))
+
+            logger.info(f'save {metric_name} csv')
+            logger.debug(f'  metric file path: {path}\n' +
+                         helper.df_tostring(metric_df, 5))

@@ -3,5 +3,6 @@
 /.idea
 /.ipynb_checkpoints
 
-/data/ll.csv
+/data/*
+!/data/twitter.example.csv
 /output/*

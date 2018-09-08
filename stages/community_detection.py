@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class CommunityDetection:
     def __init__(self, config, edges=None):
         self.config = config
-        logging.info(f'COMMUNITY DETECTION: {self.config.data_filename} - '
+        logger.info(f'COMMUNITY DETECTION: {self.config.data_filename} - '
                      f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
         self.edges = edges if edges else self.__load_edges()
         self.graph = nx.from_pandas_edgelist(self.edges,
@@ -20,7 +20,7 @@ class CommunityDetection:
                                              create_using=nx.DiGraph())
 
     def execute(self):
-        logging.info(f'execute')
+        logger.info(f'execute')
         self.__execute_demon()
         self.__load_demon_communities()
         self.__handle_lone_nodes()

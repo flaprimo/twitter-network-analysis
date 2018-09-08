@@ -8,12 +8,12 @@ logger = logging.getLogger(__name__)
 class PreProcessing:
     def __init__(self, config):
         self.config = config
-        logging.info(f'PRE-PROCESSING: {self.config.data_filename}')
+        logger.info(f'PRE-PROCESSING: {self.config.data_filename}')
         self.edges = pd.read_csv(self.config.data_path,
                                  dtype=self.config.data_type['csv_data'])
 
     def execute(self):
-        logging.info(f'execute')
+        logger.info(f'execute')
         self.__drop_columns()
         self.__merge_duplicates()
 

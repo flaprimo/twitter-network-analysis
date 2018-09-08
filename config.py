@@ -34,6 +34,8 @@ class Config:
 
         self.keep_lone_nodes = keep_lone_nodes
 
+        self.comparison = f'{self.base_dir["input"]}/comparison/{data_filename}.csv'
+
         if demon:
             self.demon = demon
             self.postfix = f'_e{self.demon["epsilon"]}_mcs{self.demon["min_community_size"]}'

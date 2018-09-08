@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class Metrics:
     def __init__(self, config, nodes=None, edges=None):
         self.config = config
-        logging.info(f'METRICS: {self.config.data_filename} - '
+        logger.info(f'METRICS: {self.config.data_filename} - '
                      f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
         self.edges = edges if edges else self.__load_edges()
         self.nodes = nodes if nodes else self.__load_nodes()
@@ -23,7 +23,7 @@ class Metrics:
         self.scores = {}
 
     def execute(self):
-        logging.info('execute')
+        logger.info('execute')
         self.__pquality()
         self.__iter_metric_c(self.__add_hindex, 'hindex')
         self.__iter_metric_c(self.__add_indegree, 'indegree')
@@ -76,8 +76,8 @@ class Metrics:
 
             c_subgraphs.append((c, c_subgraph))
 
-        logging.info('get community subgraphs')
-        logging.debug(f'  number of communities: {len(self.communities)}\n'
+        logger.info('get community subgraphs')
+        logger.debug(f'  number of communities: {len(self.communities)}\n'
                       f'  community list: {self.communities}\n'
                       f'  communities (only first node for each community is shown):'
                       f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
@@ -116,8 +116,8 @@ class Metrics:
 
         self.scores['pquality'] = pd.DataFrame(m, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
 
-        logging.info('get partition quality metrics')
-        logging.debug(f'summary of partition metrics:\n{self.scores["pquality"].to_string()}\n\n')
+        logger.info('get partition quality metrics')
+        logger.debug(f'summary of partition metrics:\n{self.scores["pquality"].to_string()}\n\n')
 
     @staticmethod
     def __add_hindex(g):
@@ -153,15 +153,15 @@ class Metrics:
 
         self.scores[metric_name] = pd.concat(c_metric_list, sort=False).fillna(False)
 
-        logging.info(f'executed {metric_name.upper()} metric')
-        logging.debug(f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name], 5)}\n')
+        logger.info(f'executed {metric_name.upper()} metric')
+        logger.debug(f'(show first 5 nodes per community):\n{helper.df_tostring(self.scores[metric_name], 5)}\n')
 
     def metric_top_values(self, metric_name, n=10):
         df_top = self.scores[metric_name]
         df_top_list = [(c_label, df_top[df_top[c_label]][metric_name].head(n)) for c_label in self.communities]
 
-        logging.info(f'top {n} for {metric_name.upper()}')
-        logging.debug(''.join([f'{c[0]}\n{helper.df_tostring(c[1], 10)}\n' for c in df_top_list]))
+        logger.info(f'top {n} for {metric_name.upper()}')
+        logger.debug(''.join([f'{c[0]}\n{helper.df_tostring(c[1], 10)}\n' for c in df_top_list]))
 
         return df_top_list
 
@@ -170,8 +170,8 @@ class Metrics:
         ranked_list = [c.index.rename(c_label).to_frame().reset_index(drop=True) for c_label, c in communities]
         ranked_df = pd.concat(ranked_list, axis=1)
 
-        logging.info('top users for each community')
-        logging.debug(helper.df_tostring(ranked_df, 10))
+        logger.info('top users for each community')
+        logger.debug(helper.df_tostring(ranked_df, 10))
 
         return ranked_df
 
@@ -183,12 +183,14 @@ class Metrics:
             for c2 in p2:
                 m[int(c1[2:])][int(c2[2:])] = p1[c1].corr(p2[c2], method)
 
-        scores = pd.DataFrame(m, index=p1.columns, columns=p2.columns)
+        scores_matrix = pd.DataFrame(m, index=p1.columns, columns=p2.columns)
+        scores_list = scores_matrix.unstack().sort_values(ascending=False)
 
-        logging.info(f'executed {method} ranking on top users for each community')
-        logging.debug(helper.df_tostring(scores))
+        logger.info(f'executed {method} ranking on top users for each community')
+        logger.debug(helper.df_tostring(scores_matrix))
+        logger.debug(scores_list)
 
-        return scores
+        return scores_matrix, scores_list
 
     def save(self):
         for metric_name, metric_df in self.scores.items():

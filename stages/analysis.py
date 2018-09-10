@@ -33,6 +33,8 @@ class Analysis:
         plt.figure(figsize=(15, 15))
         ax = sns.heatmap(hm, mask=mask, annot=True, cbar=False)\
             .set_title(f'{metric_name} for {p1_label} vs {p2_label}')
+        plt.xlabel(p2_label)
+        plt.ylabel(p1_label)
         plt.show()
 
     @staticmethod

@@ -72,8 +72,9 @@ class CommunityDetection:
         # Merge users from different communities together
         dummies = pd.get_dummies(df_communities['community'], prefix="C", dtype=bool)
         combine = pd.concat([df_communities, dummies], axis=1)
+        combine = combine.groupby(df_communities.index).sum()
 
-        self.nodes = combine.groupby(df_communities.index).sum()
+        self.nodes = combine.reindex(sorted(combine.columns, key=lambda x: int(x.split('_')[1])), axis=1)
 
         logger.info('load demon communities')
         logger.debug(helper.df_tostring(self.nodes, 5))

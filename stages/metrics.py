@@ -223,7 +223,20 @@ class Metrics:
             deg_dist_cum = cum_sum / self.g.number_of_nodes()
             cum_sum_list.append((d, round(deg_dist_cum, 2)))
 
+        logger.info('executed cumulated sum degree distribution')
+        logger.debug(cum_sum_list)
+
         return cum_sum_list
+
+    def communities_size(self):
+        df = pd.DataFrame([(c_name, c_graph.number_of_nodes()) for c_name, c_graph in self.c_subgraphs],
+                          columns=['community', 'number of nodes'], dtype='uint8') \
+            .sort_values(by=['number of nodes'], ascending=False).reset_index(drop=True)
+
+        logger.info('executed community size')
+        logger.debug(helper.df_tostring(df))
+
+        return df
 
     def save(self):
         for metric_name, metric_df in self.scores.items():

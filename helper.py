@@ -12,4 +12,4 @@ def nodes_to_dataframe(g):
 
 # [0.25, 0.5, 0.75] -> [(0.25, 0.5), (0.25, 0.75), (0.5, 0.75)]
 def pairwise_combinations(l):
-    return [(x, e) for i, x in enumerate(l[:-1]) for e in l[i+1:]]
+    return [(x, e) for i, x in enumerate(l[:-1]) for e in l[i + 1:]]

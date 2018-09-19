@@ -13,7 +13,7 @@ class Metrics:
     def __init__(self, config, nodes=None, edges=None):
         self.config = config
         logger.info(f'METRICS: {self.config.data_filename} - '
-                     f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
+                    f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
         self.edges = edges if edges else self.__load_edges()
         self.nodes = nodes if nodes else self.__load_nodes()
 
@@ -78,9 +78,9 @@ class Metrics:
 
         logger.info('get community subgraphs')
         logger.debug(f'  number of communities: {len(self.communities)}\n'
-                      f'  community list: {self.communities}\n'
-                      f'  communities (only first node for each community is shown):'
-                      f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
+                     f'  community list: {self.communities}\n'
+                     f'  communities (only first node for each community is shown):'
+                     f'{[(c[0], list(c[1].nodes(data=True))[1]) for c in c_subgraphs]}\n\n')
 
         return c_subgraphs
 
@@ -191,6 +191,39 @@ class Metrics:
         logger.debug(scores_list)
 
         return scores_matrix, scores_list
+
+    def graph_info(self):
+        logger.info('graph info')
+
+        df = pd.DataFrame(data={
+            '# nodes': self.g.number_of_nodes(),
+            '# edges': self.g.number_of_edges(),
+            'avg degree': sum([x[1] for x in self.g.degree()]) / self.g.number_of_nodes(),
+            'avg weighted degree': sum([x[1] for x in self.g.degree(weight='Weight')]) / self.g.number_of_nodes(),
+            'density': nx.density(self.g),
+            'connected': nx.is_weakly_connected(self.g),
+            'strongly conn components': nx.number_strongly_connected_components(self.g),
+            'avg clustering': nx.average_clustering(self.g),
+            'assortativity': nx.degree_assortativity_coefficient(self.g)
+        }, index=[0]).round(4)
+
+        return df
+
+    def cumsum_deg_dist(self):
+        import collections
+
+        deg_list = sorted([d for n, d in self.g.degree()], reverse=False)  # degree sequence
+        deg_count = collections.Counter(deg_list)
+        deg, cnt = zip(*deg_count.items())
+
+        cum_sum_list = []
+        cum_sum = self.g.number_of_nodes()
+        for i, d in enumerate(deg):
+            cum_sum -= cnt[i]
+            deg_dist_cum = cum_sum / self.g.number_of_nodes()
+            cum_sum_list.append((d, round(deg_dist_cum, 2)))
+
+        return cum_sum_list
 
     def save(self):
         for metric_name, metric_df in self.scores.items():

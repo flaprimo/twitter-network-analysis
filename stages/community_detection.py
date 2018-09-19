@@ -13,7 +13,7 @@ class CommunityDetection:
     def __init__(self, config, edges=None):
         self.config = config
         logger.info(f'COMMUNITY DETECTION: {self.config.data_filename} - '
-                     f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
+                    f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
         self.edges = edges if edges else self.__load_edges()
         self.graph = nx.from_pandas_edgelist(self.edges,
                                              source='Source', target='Target', edge_attr=['Weight'],
@@ -32,7 +32,7 @@ class CommunityDetection:
 
         logger.info('load csv')
         logger.debug(f'edges file path: {edges_path}\n' +
-                    helper.df_tostring(edges, 5))
+                     helper.df_tostring(edges, 5))
 
         return edges
 

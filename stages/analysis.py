@@ -132,11 +132,25 @@ class Analysis:
             #     .set_title('Cumulated sum of degree distribution')
             cum_sum = list(m_list.values())[0].cumsum_deg_dist()
             sns.lineplot(x=[x[1] for x in cum_sum], y=stats.zscore([x[0] for x in cum_sum]), ax=ax, label=data_fn) \
-                .set_title('Cumulated sum of degree distribution')
+                .set_title('Cumulative sum of degree distribution')
 
         ax.axhline(0, ls='--')
-        plt.xlabel('Cumulated sum of degrees')
+        plt.xlabel('Cumulative sum of degrees')
         plt.ylabel('Number of nodes (normalized with z-score)')
         plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    @staticmethod
+    def plot_community_size(m):
+        comm_size = m.communities_size()
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.barplot(data=comm_size.sort_values(by='number of nodes', axis=1), label=comm_size.columns,
+                    palette='hls', ax=ax).set_title(f'Community size for e={m.config.demon["epsilon"]}')
+
+        plt.xlabel('Communities')
+        plt.ylabel('Number of nodes')
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha="right")
         plt.tight_layout()
         plt.show()

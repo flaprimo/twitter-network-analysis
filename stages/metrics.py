@@ -229,9 +229,8 @@ class Metrics:
         return cum_sum_list
 
     def communities_size(self):
-        df = pd.DataFrame([(c_name, c_graph.number_of_nodes()) for c_name, c_graph in self.c_subgraphs],
-                          columns=['community', 'number of nodes'], dtype='uint8') \
-            .sort_values(by=['number of nodes'], ascending=False).reset_index(drop=True)
+        df = pd.DataFrame({c_name: c_graph.number_of_nodes() for c_name, c_graph in self.c_subgraphs},
+                          dtype='uint8', index=['number of nodes'])
 
         logger.info('executed community size')
         logger.debug(helper.df_tostring(df))

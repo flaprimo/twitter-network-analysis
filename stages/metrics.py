@@ -3,7 +3,7 @@ import networkx as nx
 import numpy as np
 import pquality.PartitionQuality as Pq
 import logging
-from tqdm import tqdm
+from tqdm import tqdm_notebook as tqdm
 import helper
 
 logger = logging.getLogger(__name__)
@@ -192,19 +192,20 @@ class Metrics:
 
         return scores_matrix, scores_list
 
-    def graph_info(self):
+    @staticmethod
+    def graph_info(g):
         logger.info('graph info')
 
         df = pd.DataFrame(data={
-            '# nodes': self.g.number_of_nodes(),
-            '# edges': self.g.number_of_edges(),
-            'avg degree': sum([x[1] for x in self.g.degree()]) / self.g.number_of_nodes(),
-            'avg weighted degree': sum([x[1] for x in self.g.degree(weight='Weight')]) / self.g.number_of_nodes(),
-            'density': nx.density(self.g),
-            'connected': nx.is_weakly_connected(self.g),
-            'strongly conn components': nx.number_strongly_connected_components(self.g),
-            'avg clustering': nx.average_clustering(self.g),
-            'assortativity': nx.degree_assortativity_coefficient(self.g)
+            '# nodes': g.number_of_nodes(),
+            '# edges': g.number_of_edges(),
+            'avg degree': sum([x[1] for x in g.degree()]) / g.number_of_nodes(),
+            'avg weighted degree': sum([x[1] for x in g.degree(weight='Weight')]) / g.number_of_nodes(),
+            'density': nx.density(g),
+            'connected': nx.is_weakly_connected(g),
+            'strongly conn components': nx.number_strongly_connected_components(g),
+            'avg clustering': nx.average_clustering(g),
+            'assortativity': nx.degree_assortativity_coefficient(g)
         }, index=[0]).round(4)
 
         return df

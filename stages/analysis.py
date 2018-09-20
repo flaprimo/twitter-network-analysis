@@ -4,6 +4,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import logging
+from tqdm import tqdm_notebook as tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -154,3 +155,18 @@ class Analysis:
         ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha="right")
         plt.tight_layout()
         plt.show()
+
+    @staticmethod
+    def describe_communities(m_list):
+        c_list = []
+
+        for c_name, c in tqdm(m_list.c_subgraphs):
+            c_info = Metrics.graph_info(c)
+            c_info.insert(0, 'community', c_name)
+            c_list.append(c_info)
+
+        df = pd.concat(c_list, ignore_index=True).set_index('community', drop=True)
+
+        return df
+
+

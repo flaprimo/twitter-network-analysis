@@ -25,8 +25,8 @@ class Metrics:
     def execute(self):
         logger.info('execute')
         self.__pquality()
-        self.__iter_metric_c(self.__add_hindex, 'hindex')
-        self.__iter_metric_c(self.__add_indegree, 'indegree')
+        self.__iter_metric_c(self.__hindex, 'hindex')
+        self.__iter_metric_c(self.__indegree, 'indegree')
 
     def __load_edges(self):
         edges_path = self.config.get_path('cd', 'edges')
@@ -65,6 +65,8 @@ class Metrics:
     def __get_community_subgraphs(self):
         c_subgraphs = []
 
+        print(f'get community subgraphs for '
+              f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
         for c in tqdm(self.communities):
             c_nodes = [x for x, y in self.g.nodes(data=True) if y[c]]
             c_subgraph = nx.DiGraph(self.g.subgraph(c_nodes))
@@ -85,34 +87,30 @@ class Metrics:
         return c_subgraphs
 
     def __pquality(self):
-        n_cut, ied, aid, fomd, ex, cr, cond, nedges, modf, aodf, flake, tpr = ([] for _ in range(12))
-
-        for c_label, community in tqdm(self.c_subgraphs):
-            n_cut.append(Pq.normalized_cut(self.g, community))
-            ied.append(Pq.internal_edge_density(community))
-            aid.append(Pq.average_internal_degree(community))
-            fomd.append(Pq.fraction_over_median_degree(community))
-            ex.append(Pq.expansion(self.g, community))
-            cr.append(Pq.cut_ratio(self.g, community))
-            nedges.append(Pq.edges_inside(community))
-            cond.append(Pq.conductance(self.g, community))
-            modf.append(Pq.max_odf(self.g, community))
-            aodf.append(Pq.avg_odf(self.g, community))
-            flake.append(Pq.flake_odf(self.g, community))
-
-        m = [
-            ['Internal Density', min(ied), max(ied), np.mean(ied), np.std(ied)],
-            ['Edges inside', min(nedges), max(nedges), np.mean(nedges), np.std(nedges)],
-            ['Average Degree', min(aid), max(aid), np.mean(aid), np.std(aid)],
-            ['FOMD', min(fomd), max(fomd), np.mean(fomd), np.std(fomd)],
-            ['Expansion', min(ex), max(ex), np.mean(ex), np.std(ex)],
-            ['Cut Ratio', min(cr), max(cr), np.mean(cr), np.std(cr)],
-            ['Conductance', min(cond), max(cond), np.mean(cond), np.std(cond)],
-            ['Normalized Cut', min(n_cut), max(n_cut), np.mean(n_cut), np.std(n_cut)],
-            ['Maximum-ODF', min(modf), max(modf), np.mean(modf), np.std(modf)],
-            ['Average-ODF', min(aodf), max(aodf), np.mean(aodf), np.std(aodf)],
-            ['Flake-ODF', min(flake), max(flake), np.mean(flake), np.std(flake)]
+        pq = [
+            ('Normalized Cut', Pq.normalized_cut, 2, []),
+            ('Edges inside', Pq.internal_edge_density, 1, []),
+            ('Average Degree', Pq.average_internal_degree, 1, []),
+            ('FOMD', Pq.fraction_over_median_degree, 1, []),
+            ('Expansion', Pq.expansion, 2, []),
+            ('Cut Ratio', Pq.cut_ratio, 2, []),
+            ('Edges inside', Pq.edges_inside, 1, []),
+            ('Conductance', Pq.conductance, 2, []),
+            ('Maximum-ODF', Pq.max_odf, 2, []),
+            ('Average-ODF', Pq.avg_odf, 2, []),
+            ('Flake-ODF', Pq.flake_odf, 2, [])
         ]
+
+        print(f'get pquality for '
+              f'e:{self.config.demon["epsilon"]} mcs:{self.config.demon["min_community_size"]}')
+        m = []
+        tqdm_pq = tqdm(pq)
+        for func in tqdm_pq:
+            tqdm_pq.set_description(func[0])
+            tqdm_pq.refresh()
+            for c_label, community in self.c_subgraphs:
+                func[3].append(func[1](self.g, community) if func[2] == 2 else func[1](community))
+            m.append([func[0], min(func[3]), max(func[3]), np.mean(func[3]), np.std(func[3])])
 
         self.scores['pquality'] = pd.DataFrame(m, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
 
@@ -120,7 +118,7 @@ class Metrics:
         logger.debug(f'summary of partition metrics:\n{self.scores["pquality"].to_string()}\n\n')
 
     @staticmethod
-    def __add_hindex(g):
+    def __hindex(g):
         # from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
         def alg_hindex(citations):
             citations.sort(reverse=True)
@@ -140,7 +138,7 @@ class Metrics:
         return hindex
 
     @staticmethod
-    def __add_indegree(g):
+    def __indegree(g):
         return [(n, g.in_degree(n)) for n in g.nodes]
 
     def __iter_metric_c(self, metric, metric_name):

@@ -18,8 +18,9 @@ class PreProcessing:
         self.__merge_duplicates()
 
     def __drop_columns(self):
-        columns_todrop = ['cod', 'user_from_fav_count', 'user_rt_fav_count', 'text']
-        self.edges = self.edges.drop(columns=columns_todrop, axis=1)
+        columns_tokeep = ['user_from_name', 'user_to_name', 'weights']
+        columns_todrop = [c for c in self.edges.columns.values if c not in columns_tokeep]
+        self.edges = self.edges[columns_tokeep]
         self.edges.rename(columns={'user_from_name': 'Source', 'user_to_name': 'Target', 'weights': 'Weight'},
                           inplace=True)
 

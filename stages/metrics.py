@@ -179,7 +179,9 @@ class Metrics:
 
         for c1 in p1:
             for c2 in p2:
-                m[int(c1[2:])][int(c2[2:])] = p1[c1].corr(p2[c2], method)
+                c1_name = int(c1[2:])
+                c2_name = int(c2[2:])
+                m[c1_name][c2_name] = p1[c1].corr(p2[c2], method)
 
         scores_matrix = pd.DataFrame(m, index=p1.columns, columns=p2.columns)
         scores_list = scores_matrix.unstack().sort_values(ascending=False)

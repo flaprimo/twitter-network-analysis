@@ -1,5 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
-from pipeline_manager import PipelineManager
+from pipeline.pipeline_manager import PipelineManager
 from config import Config
 import logging
 import time

@@ -1,4 +1,5 @@
-from stages2 import PreProcessing, CommunityDetection
+from .pre_processing import PreProcessing
+from .community_detection import CommunityDetection
 import logging
 
 logger = logging.getLogger(__name__)

@@ -21,11 +21,12 @@ class Config:
                 'weights': 'uint8'
             },
             'csv_nodes': {
-                'Id': str
+                'Username': str,
+                'Community': 'uint16'
             },
             'csv_edges': {
-                'Source': str,
-                'Target': str,
+                'Source': 'uint32',
+                'Target': 'uint32',
                 'Weight': 'uint8'
             }
         }
@@ -42,7 +43,7 @@ class Config:
         else:
             self.postfix = ''
 
-    def get_path(self, stage, file_name, file_type='csv', has_postfix=True):
+    def get_path(self, stage, file_name, file_type='csv', has_postfix=False):
         directory = f'{self.base_dir["output"]}/{stage}'
 
         if not os.path.exists(directory):

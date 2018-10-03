@@ -1,8 +1,6 @@
 from stages2 import PreProcessing, CommunityDetection
-from config import Config
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -21,10 +19,4 @@ class PipelineManager:
         cd = CommunityDetection(self.config, pp_output)
         cd_output = cd.execute()
 
-
-def main():
-    PipelineManager(Config(data_filename='ll'))
-
-
-if __name__ == "__main__":
-    main()
+        logger.info(f'END pipeline for {self.config.data_filename}')

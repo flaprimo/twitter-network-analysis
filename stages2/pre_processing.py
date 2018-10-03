@@ -24,6 +24,8 @@ class PreProcessing:
 
             self.__save_output()
 
+        logger.info(f'END for {self.config.data_filename}')
+
         return self.output
 
     def __load_input(self, stage_input):

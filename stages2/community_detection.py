@@ -27,6 +27,8 @@ class CommunityDetection:
                 self.__remove_lone_nodes(self.output['graph'], self.input['nodes'], self.input['edges'])
             self.__save_output()
 
+        logger.info(f'END for {self.config.data_filename}')
+
         return self.output
 
     def __load_input(self, stage_input):
@@ -92,7 +94,7 @@ class CommunityDetection:
 
     @staticmethod
     def __find_communities(graph):
-        im = infomap.Infomap('--two-level --directed')
+        im = infomap.Infomap('--two-level --directed --silent')
         im_network = im.network()
 
         for e in graph.edges(data=True):

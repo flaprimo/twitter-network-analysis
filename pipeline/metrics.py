@@ -21,6 +21,7 @@ class Metrics:
         logger.info(f'EXEC for {self.config.data_filename}')
 
         if not self.output:
+            self.output['graph_summary'] = self.__graph_summary(self.input['graph'])
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
             self.__save_output()
 
@@ -52,6 +53,7 @@ class Metrics:
         logger.info('load output')
         try:
             output = {
+                'graph_summary': pd.read_csv(self.config.get_path(self.stage_prefix, 'graph_summary')),
                 'pquality': pd.read_csv(self.config.get_path(self.stage_prefix, 'pquality'), index_col='Index')
             }
             logger.debug(f'output present, not executing stage')
@@ -63,13 +65,36 @@ class Metrics:
             return {}
 
     def __save_output(self):
+        graph_summary_path = self.config.get_path(self.stage_prefix, 'graph_summary')
         pquality_path = self.config.get_path(self.stage_prefix, 'pquality')
 
+        self.output['graph_summary'].to_csv(graph_summary_path, index=False)
         self.output['pquality'].to_csv(pquality_path)
 
         logger.info('save output')
-        logger.debug(f'nodes file path: {pquality_path}\n' +
+        logger.debug(f'graph summary file path: {graph_summary_path}\n' +
+                     helper.df_tostring(self.output['graph_summary']) +
+                     f'pquality file path: {pquality_path}\n' +
                      helper.df_tostring(self.output['pquality']))
+
+    @staticmethod
+    def __graph_summary(graph):
+        summary_df = pd.DataFrame(data={
+            '# nodes': graph.number_of_nodes(),
+            '# edges': graph.number_of_edges(),
+            'avg degree': sum([x[1] for x in graph.degree()]) / graph.number_of_nodes(),
+            'avg weighted degree': sum([x[1] for x in graph.degree(weight='Weight')]) / graph.number_of_nodes(),
+            'density': nx.density(graph),
+            'connected': nx.is_weakly_connected(graph),
+            'strongly conn components': nx.number_strongly_connected_components(graph),
+            'avg clustering': nx.average_clustering(graph),
+            'assortativity': nx.degree_assortativity_coefficient(graph)
+        }, index=[0]).round(4)
+
+        logger.info('graph summary')
+        logger.debug(f'summary of partition metrics:\n{summary_df.to_string()}\n\n')
+
+        return summary_df
 
     @staticmethod
     def __get_pquality(graph, nodes):

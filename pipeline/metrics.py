@@ -23,6 +23,7 @@ class Metrics:
         if not self.output:
             self.output['graph_summary'] = self.__graph_summary(self.input['graph'])
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
+            self.output['cumsum_deg_dist'] = self.__cumsum_deg_dist(self.input['graph'])
             self.__save_output()
 
         logger.info(f'END for {self.config.data_filename}')
@@ -54,7 +55,8 @@ class Metrics:
         try:
             output = {
                 'graph_summary': pd.read_csv(self.config.get_path(self.stage_prefix, 'graph_summary')),
-                'pquality': pd.read_csv(self.config.get_path(self.stage_prefix, 'pquality'), index_col='Index')
+                'pquality': pd.read_csv(self.config.get_path(self.stage_prefix, 'pquality'), index_col='Index'),
+                'cumsum_deg_dist': pd.read_csv(self.config.get_path(self.stage_prefix, 'cumsum_deg_dist'))
             }
             logger.debug(f'output present, not executing stage')
 
@@ -67,15 +69,19 @@ class Metrics:
     def __save_output(self):
         graph_summary_path = self.config.get_path(self.stage_prefix, 'graph_summary')
         pquality_path = self.config.get_path(self.stage_prefix, 'pquality')
+        cumsum_deg_dist_path = self.config.get_path(self.stage_prefix, 'cumsum_deg_dist')
 
         self.output['graph_summary'].to_csv(graph_summary_path, index=False)
         self.output['pquality'].to_csv(pquality_path)
+        self.output['cumsum_deg_dist'].to_csv(cumsum_deg_dist_path)
 
         logger.info('save output')
         logger.debug(f'graph summary file path: {graph_summary_path}\n' +
                      helper.df_tostring(self.output['graph_summary']) +
                      f'pquality file path: {pquality_path}\n' +
-                     helper.df_tostring(self.output['pquality']))
+                     helper.df_tostring(self.output['pquality']) +
+                     f'cumulated sum of degree distribution file path: {cumsum_deg_dist_path}\n' +
+                     helper.df_tostring(self.output['cumsum_deg_dist']))
 
     @staticmethod
     def __graph_summary(graph):
@@ -126,3 +132,25 @@ class Metrics:
         logger.debug(f'summary of partition metrics:\n{pquality_df.to_string()}\n\n')
 
         return pquality_df
+
+    @staticmethod
+    def __cumsum_deg_dist(graph):
+        import collections
+
+        deg_list = sorted([d for n, d in graph.degree()], reverse=False)
+        deg, cnt = zip(*collections.Counter(deg_list).items())
+
+        cumsum = sum(cnt)
+        nodes_len = graph.number_of_nodes()
+
+        cumsum_deg_dist_list = []
+        for i, (d, c) in enumerate(zip(deg, cnt)):
+            cumsum_deg_dist_list.append((d, cumsum / nodes_len))
+            cumsum -= c
+
+        cumsum_deg_dist_df = pd.DataFrame(cumsum_deg_dist_list, columns=['degree', 'cumsum of the number of nodes']).set_index('degree')
+
+        logger.info('cumulated sum of degree')
+        logger.debug(helper.df_tostring(cumsum_deg_dist_df))
+
+        return cumsum_deg_dist_df

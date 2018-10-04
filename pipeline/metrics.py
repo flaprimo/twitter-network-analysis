@@ -2,7 +2,8 @@ import pandas as pd
 import networkx as nx
 import logging
 import helper
-import infomap
+import numpy as np
+import pquality.PartitionQuality as Pq
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,7 @@ class Metrics:
         logger.info(f'EXEC for {self.config.data_filename}')
 
         if not self.output:
-            self.output['graph'] = self.__get_graph(self.input['edges'], self.input['nodes'])
-            self.output['graph'] = self.__find_communities(self.output['graph'])
-            self.output['nodes'] = self.__add_community_to_nodes(self.output['graph'], self.input['nodes'])
-            self.output['graph'], self.output['nodes'], self.output['edges'] = \
-                self.__remove_lone_nodes(self.output['graph'], self.input['nodes'], self.input['edges'])
+            self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
             self.__save_output()
 
         logger.info(f'END for {self.config.data_filename}')
@@ -33,27 +30,29 @@ class Metrics:
 
     def __load_input(self, stage_input):
         logger.info('load input')
-        if helper.check_input(['edges', 'nodes'], stage_input):
+        if helper.check_input(['graph', 'nodes', 'edges'], stage_input):
             logger.debug(f'input present')
             return stage_input
         else:
             logger.debug(f'input not present, loading input')
+
+            graph = nx.read_gexf(self.config.get_path(self.prev_stage_prefix, 'graph', 'gexf'), int)
+            for n in graph.nodes(data=True):
+                n[1].pop('label', None)
+
             return {
-                'edges': pd.read_csv(self.config.get_path(self.prev_stage_prefix, 'edges'),
-                                     dtype=self.config.data_type['csv_edges']),
+                'graph': graph,
                 'nodes': pd.read_csv(self.config.get_path(self.prev_stage_prefix, 'nodes'),
                                      dtype=self.config.data_type['csv_nodes'], index_col=0),
+                'edges': pd.read_csv(self.config.get_path(self.prev_stage_prefix, 'edges'),
+                                     dtype=self.config.data_type['csv_edges'])
             }
 
     def __load_output(self):
         logger.info('load output')
         try:
             output = {
-                'graph': nx.read_gexf(self.config.get_path(self.stage_prefix, 'graph', 'gexf')),
-                'nodes': pd.read_csv(self.config.get_path(self.stage_prefix, 'nodes'),
-                                     dtype=self.config.data_type['csv_nodes']),
-                'edges': pd.read_csv(self.config.get_path(self.stage_prefix, 'edges'),
-                                     dtype=self.config.data_type['csv_nodes'])
+                'pquality': pd.read_csv(self.config.get_path(self.stage_prefix, 'pquality'), index_col='Index')
             }
             logger.debug(f'output present, not executing stage')
 
@@ -64,18 +63,41 @@ class Metrics:
             return {}
 
     def __save_output(self):
-        graph_path = self.config.get_path(self.stage_prefix, 'graph', 'gexf')
-        nodes_path = self.config.get_path(self.stage_prefix, 'nodes')
-        edges_path = self.config.get_path(self.stage_prefix, 'edges')
+        pquality_path = self.config.get_path(self.stage_prefix, 'pquality')
 
-        nx.write_gexf(self.output['graph'], graph_path)
-        self.output['nodes'].to_csv(nodes_path)
-        self.output['edges'].to_csv(edges_path, index=False)
+        self.output['pquality'].to_csv(pquality_path)
 
         logger.info('save output')
-        logger.debug(f'nodes file path: {nodes_path}\n' +
-                     helper.df_tostring(self.output['nodes'], 5) +
-                     f'edges file path: {nodes_path}\n' +
-                     helper.df_tostring(self.output['edges'], 5) +
-                     f'graph file path: {graph_path}\n' +
-                     helper.graph_tostring(self.output['graph'], 3, 3))
+        logger.debug(f'nodes file path: {pquality_path}\n' +
+                     helper.df_tostring(self.output['pquality']))
+
+    @staticmethod
+    def __get_pquality(graph, nodes):
+        communities = [graph.subgraph(tuple(v.values)) for k, v in nodes.groupby('Community').groups.items()]
+
+        pqualities = [
+            ('Internal Density', Pq.internal_edge_density, 1, []),
+            ('Edges inside', Pq.internal_edge_density, 1, []),
+            ('Normalized Cut', Pq.normalized_cut, 2, []),
+            ('Average Degree', Pq.average_internal_degree, 1, []),
+            ('FOMD', Pq.fraction_over_median_degree, 1, []),
+            ('Expansion', Pq.expansion, 2, []),
+            ('Cut Ratio', Pq.cut_ratio, 2, []),
+            ('Conductance', Pq.conductance, 2, []),
+            ('Maximum-ODF', Pq.max_odf, 2, []),
+            ('Average-ODF', Pq.avg_odf, 2, []),
+            ('Flake-ODF', Pq.flake_odf, 2, [])
+        ]
+
+        m = []
+        for pq in pqualities:
+            for c in communities:
+                pq[3].append(pq[1](graph, c) if pq[2] == 2 else pq[1](c))
+            m.append([pq[0], min(pq[3]), max(pq[3]), np.mean(pq[3]), np.std(pq[3])])
+
+        pquality_df = pd.DataFrame(m, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
+
+        logger.info('get partition quality metrics')
+        logger.debug(f'summary of partition metrics:\n{pquality_df.to_string()}\n\n')
+
+        return pquality_df

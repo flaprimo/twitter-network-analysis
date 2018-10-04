@@ -48,8 +48,12 @@ class CommunityDetection:
     def __load_output(self):
         logger.info('load output')
         try:
+            graph = nx.read_gexf(self.config.get_path(self.stage_prefix, 'graph', 'gexf'), int)
+            for n in graph.nodes(data=True):
+                n[1].pop('label', None)
+
             output = {
-                'graph': nx.read_gexf(self.config.get_path(self.stage_prefix, 'graph', 'gexf')),
+                'graph': graph,
                 'nodes': pd.read_csv(self.config.get_path(self.stage_prefix, 'nodes'),
                                      dtype=self.config.data_type['csv_nodes']),
                 'edges': pd.read_csv(self.config.get_path(self.stage_prefix, 'edges'),

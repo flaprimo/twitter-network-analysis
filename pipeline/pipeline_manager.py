@@ -14,11 +14,18 @@ class PipelineManager:
 
     def execute(self):
         logger.info(f'EXEC pipeline for {self.config.data_filename}')
+        data_input_format = {
+            'data': {
+                'type': 'pandas',
+                'path': self.config.data_path,
+                'r_kwargs': {'dtype': self.config.data_type['csv_data']},
+                'w_kwargs': {}
+            }
+        }
+        pp = PreProcessing(self.config, stage_input_format=data_input_format)
+        pp_output, pp_output_format = pp.execute()
 
-        pp = PreProcessing(self.config)
-        pp_output = pp.execute()
-
-        cd = CommunityDetection(self.config, pp_output)
+        cd = CommunityDetection(self.config, pp_output, pp_output_format)
         cd_output = cd.execute()
 
         m = Metrics(self.config, cd_output)

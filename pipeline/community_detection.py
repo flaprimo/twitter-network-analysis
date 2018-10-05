@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class CommunityDetection:
-    def __init__(self, config, stage_input=None):
+    def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
         self.prev_stage_prefix = 'pp'
         self.stage_prefix = 'cd'

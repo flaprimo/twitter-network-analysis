@@ -1,16 +1,32 @@
 import pandas as pd
 import logging
 import helper
+from .pipeline_io import PipelineIO
 
 logger = logging.getLogger(__name__)
 
 
 class PreProcessing:
-    def __init__(self, config, stage_input=None):
+    def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.stage_prefix = 'pp'
-        self.input = self.__load_input(stage_input)
-        self.output = self.__load_output()
+        self.input = PipelineIO.load_input(['data'], stage_input, stage_input_format)
+        self.output_prefix = 'pp'
+        self.output_format = {
+            'edges': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'edges'),
+                'r_kwargs': {'dtype': self.config.data_type['csv_edges']},
+                'w_kwargs': {'index': False}
+            },
+            'nodes': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'nodes'),
+                'r_kwargs': {'dtype': self.config.data_type['csv_nodes'],
+                             'index_col': 0},
+                'w_kwargs': {}
+            }
+        }
+        self.output = PipelineIO.load_output(self.output_format)
         logger.info(f'INIT for {self.config.data_filename}')
 
     def execute(self):
@@ -22,53 +38,11 @@ class PreProcessing:
             self.output['nodes'] = self.__get_nodes(self.output['edges'])
             self.output['edges'] = self.__rename_edges(self.output['nodes'], self.output['edges'])
 
-            self.__save_output()
+            PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.data_filename}')
 
-        return self.output
-
-    def __load_input(self, stage_input):
-        logger.info('load input')
-        if helper.check_input(['data'], stage_input):
-            logger.debug(f'input present')
-            return stage_input
-        else:
-            logger.debug(f'input not present, loading input')
-            return {
-                'data': pd.read_csv(self.config.data_path,
-                                    dtype=self.config.data_type['csv_data'])
-            }
-
-    def __load_output(self):
-        logger.info('load output')
-        try:
-            output = {
-                'edges': pd.read_csv(self.config.get_path(self.stage_prefix, 'edges'),
-                                     dtype=self.config.data_type['csv_edges']),
-                'nodes': pd.read_csv(self.config.get_path(self.stage_prefix, 'nodes'),
-                                     dtype=self.config.data_type['csv_nodes'], index_col=0)
-            }
-            logger.debug(f'output present, not executing stage')
-
-            return output
-        except IOError as e:
-            logger.debug(f'output not present, executing stage: {e}')
-
-            return {}
-
-    def __save_output(self):
-        edges_path = self.config.get_path(self.stage_prefix, 'edges')
-        nodes_path = self.config.get_path(self.stage_prefix, 'nodes')
-
-        self.output['edges'].to_csv(edges_path, index=False)
-        self.output['nodes'].to_csv(nodes_path)
-
-        logger.info('save output')
-        logger.debug(f'edges file path: {edges_path}\n' +
-                     helper.df_tostring(self.output['edges'], 5) +
-                     f'nodes file path: {nodes_path}\n' +
-                     helper.df_tostring(self.output['nodes'], 5))
+        return self.output, self.output_format
 
     @staticmethod
     def __drop_columns(edges):

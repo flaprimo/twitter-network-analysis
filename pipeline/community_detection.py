@@ -106,10 +106,7 @@ class CommunityDetection:
 
         im.run()
 
-        communities = {}
-        for node in im.iterLeafNodes():
-            communities[node.physicalId] = node.moduleIndex()
-
+        communities = {node.physicalId: node.moduleIndex() for node in im.iterLeafNodes()}
         nx.set_node_attributes(graph, values=communities, name='Community')
 
         logger.info('find communities')

@@ -26,7 +26,7 @@ class PipelineManager:
         pp_output, pp_output_format = pp.execute()
 
         cd = CommunityDetection(self.config, pp_output, pp_output_format)
-        cd_output = cd.execute()
+        cd_output, cd_output_format = cd.execute()
 
         m = Metrics(self.config, cd_output)
         m_output = m.execute()

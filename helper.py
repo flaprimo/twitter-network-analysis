@@ -21,9 +21,3 @@ def nodes_to_dataframe(g):
 # [0.25, 0.5, 0.75] -> [(0.25, 0.5), (0.25, 0.75), (0.5, 0.75)]
 def pairwise_combinations(l):
     return [(x, e) for i, x in enumerate(l[:-1]) for e in l[i + 1:]]
-
-
-def check_input(input_list, stage_input):
-    return stage_input is not None and \
-           isinstance(stage_input, dict) and \
-           all(i in stage_input for i in input_list)

@@ -54,7 +54,7 @@ class PipelineIO:
             else:
                 raise ValueError('error: unknown file type')
 
-            debug_output += f'{o_name} file path: {o_format}\n' + o_debug
+            debug_output += f'{o_name} file path: {o_format["path"]}\n' + o_debug
 
         return debug_output
 

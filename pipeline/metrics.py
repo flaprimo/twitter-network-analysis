@@ -4,17 +4,56 @@ import logging
 import helper
 import numpy as np
 import pquality.PartitionQuality as Pq
+from .pipeline_io import PipelineIO
 
 logger = logging.getLogger(__name__)
 
 
 class Metrics:
-    def __init__(self, config, stage_input=None):
+    def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.prev_stage_prefix = 'cd'
-        self.stage_prefix = 'm'
-        self.input = self.__load_input(stage_input)
-        self.output = self.__load_output()
+        self.input = PipelineIO.load_input(['graph', 'edges', 'nodes'], stage_input, stage_input_format)
+        self.output_prefix = 'm'
+        self.output_format = {
+            'graph_summary': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'graph_summary'),
+                'r_kwargs': {},
+                'w_kwargs': {'index': False}
+            },
+            'partition_summary': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'partition_summary'),
+                'r_kwargs': {},
+                'w_kwargs': {}
+            },
+            'pquality': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'pquality'),
+                'r_kwargs': {},
+                'w_kwargs': {}
+            },
+            'cumsum_deg_dist': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'cumsum_deg_dist'),
+                'r_kwargs': {},
+                'w_kwargs': {}
+            },
+            'nodes': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'nodes'),
+                'r_kwargs': {'dtype': self.config.data_type['csv_nodes'],
+                             'index_col': 0},
+                'w_kwargs': {}
+            },
+            'graph': {
+                'type': 'networkx',
+                'path': self.config.get_path(self.output_prefix, 'graph', 'gexf'),
+                'r_kwargs': {'node_type': int},
+                'w_kwargs': {}
+            }
+        }
+        self.output = PipelineIO.load_output(self.output_format)
         logger.info(f'INIT for {self.config.data_filename}')
 
     def execute(self):
@@ -26,84 +65,12 @@ class Metrics:
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
             self.output['cumsum_deg_dist'] = self.__cumsum_deg_dist(self.input['graph'])
             self.output['graph'], self.output['nodes'] = self.__node_metrics(self.input['graph'], self.input['nodes'])
-            self.__save_output()
+
+            PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.data_filename}')
 
-        return self.output
-
-    def __load_input(self, stage_input):
-        logger.info('load input')
-        if helper.check_input(['graph', 'nodes', 'edges'], stage_input):
-            logger.debug(f'input present')
-            return stage_input
-        else:
-            logger.debug(f'input not present, loading input')
-
-            graph = nx.read_gexf(self.config.get_path(self.prev_stage_prefix, 'graph', 'gexf'), int)
-            for n in graph.nodes(data=True):
-                n[1].pop('label', None)
-
-            return {
-                'graph': graph,
-                'nodes': pd.read_csv(self.config.get_path(self.prev_stage_prefix, 'nodes'),
-                                     dtype=self.config.data_type['csv_nodes'], index_col=0),
-                'edges': pd.read_csv(self.config.get_path(self.prev_stage_prefix, 'edges'),
-                                     dtype=self.config.data_type['csv_edges'])
-            }
-
-    def __load_output(self):
-        logger.info('load output')
-        try:
-            graph = nx.read_gexf(self.config.get_path(self.stage_prefix, 'graph', 'gexf'), int)
-            for n in graph.nodes(data=True):
-                n[1].pop('label', None)
-
-            output = {
-                'graph_summary': pd.read_csv(self.config.get_path(self.stage_prefix, 'graph_summary')),
-                'partition_summary': pd.read_csv(self.config.get_path(self.stage_prefix, 'partition_summary')),
-                'pquality': pd.read_csv(self.config.get_path(self.stage_prefix, 'pquality'), index_col='Index'),
-                'cumsum_deg_dist': pd.read_csv(self.config.get_path(self.stage_prefix, 'cumsum_deg_dist')),
-                'graph': graph,
-                'nodes': pd.read_csv(self.config.get_path(self.stage_prefix, 'nodes'),
-                                     dtype=self.config.data_type['csv_nodes']),
-            }
-            logger.debug(f'output present, not executing stage')
-
-            return output
-        except IOError as e:
-            logger.debug(f'output not present, executing stage: {e}')
-
-            return {}
-
-    def __save_output(self):
-        graph_summary_path = self.config.get_path(self.stage_prefix, 'graph_summary')
-        partition_summary_path = self.config.get_path(self.stage_prefix, 'partition_summary')
-        pquality_path = self.config.get_path(self.stage_prefix, 'pquality')
-        cumsum_deg_dist_path = self.config.get_path(self.stage_prefix, 'cumsum_deg_dist')
-        nodes_path = self.config.get_path(self.stage_prefix, 'nodes')
-        graph_path = self.config.get_path(self.stage_prefix, 'graph', 'gexf')
-
-        self.output['graph_summary'].to_csv(graph_summary_path, index=False)
-        self.output['partition_summary'].to_csv(partition_summary_path)
-        self.output['pquality'].to_csv(pquality_path)
-        self.output['cumsum_deg_dist'].to_csv(cumsum_deg_dist_path)
-        self.output['nodes'].to_csv(nodes_path)
-        nx.write_gexf(self.output['graph'], graph_path)
-
-        logger.info('save output')
-        logger.debug(f'graph summary file path: {graph_summary_path}\n' +
-                     helper.df_tostring(self.output['graph_summary']) +
-                     f'partition summary file path: {partition_summary_path}\n' +
-                     helper.df_tostring(self.output['partition_summary'], 5) +
-                     f'pquality file path: {pquality_path}\n' +
-                     helper.df_tostring(self.output['pquality']) +
-                     f'cumulated sum of degree distribution file path: {cumsum_deg_dist_path}\n' +
-                     helper.df_tostring(self.output['cumsum_deg_dist'], 5) +
-                     f'nodes file path: {nodes_path}\n' +
-                     helper.df_tostring(self.output['nodes'], 5) +
-                     f'graph file path: {graph_path}\n' +
-                     helper.graph_tostring(self.output['graph'], 3, 3))
+        return self.output, self.output_format
 
     @staticmethod
     def __graph_summary(graph):

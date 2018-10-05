@@ -36,9 +36,9 @@ class Orchestrator:
 
 
 def main():
-    # datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
-    #             'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
-    datasets = ['kdd']
+    datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
+                'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
+    # datasets = ['kdd']
     o = Orchestrator(datasets)
     o.execute()
 

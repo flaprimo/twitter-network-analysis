@@ -28,7 +28,7 @@ class PipelineManager:
         cd = CommunityDetection(self.config, pp_output, pp_output_format)
         cd_output, cd_output_format = cd.execute()
 
-        m = Metrics(self.config, cd_output)
-        m_output = m.execute()
+        m = Metrics(self.config, cd_output, cd_output_format)
+        m_output, m_output_format = m.execute()
 
         logger.info(f'END pipeline for {self.config.data_filename}')

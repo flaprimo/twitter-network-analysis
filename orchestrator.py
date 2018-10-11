@@ -1,6 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
-from pipeline.pipeline_manager import PipelineManager
-from config import Config
+from pipelines.cd import PipelineManager
+from pipelines.cd.cd_config import Config
 import logging
 import time
 
@@ -9,16 +9,16 @@ logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, datasets):
+    def __init__(self, datasets, cd_config):
         self.datasets = datasets
-        self.configs = [Config(data_filename=d) for d in datasets]
+        self.configs = [Config(d, cd_config) for d in datasets]
         logger.info(f'INIT orchestrator for {self.datasets}')
 
     def execute(self):
         start_time = time.time()
         logger.info(f'EXEC orchestrator for {self.datasets}')
 
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=1) as executor:
             results = list(executor.map(self.pipeline, self.configs))
 
         for r in results:
@@ -39,7 +39,13 @@ def main():
     datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
                 'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
     # datasets = ['kdd']
-    o = Orchestrator(datasets)
+    # cd_config = ('infomap', {})
+    cd_config = ('demon', {
+        'epsilon': 0.25,
+        'min_community_size': 3
+    })
+
+    o = Orchestrator(datasets, cd_config)
     o.execute()
 
 

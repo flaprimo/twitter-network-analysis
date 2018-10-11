@@ -4,7 +4,7 @@ import logging
 import helper
 import numpy as np
 import pquality.PartitionQuality as Pq
-from .pipeline_io import PipelineIO
+from pipelines.pipeline_io import PipelineIO
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +42,8 @@ class Metrics:
             'nodes': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_nodes'],
-                             'index_col': 0},
-                'w_kwargs': {}
+                'r_kwargs': {'dtype': self.config.data_type['csv_nodes']},
+                'w_kwargs': {'index': False}
             },
             'graph': {
                 'type': 'networkx',
@@ -100,21 +99,23 @@ class Metrics:
 
     @staticmethod
     def __partition_summary(graph, nodes):
-        communities = [(k, graph.subgraph(tuple(v.values))) for k, v in nodes.groupby('Community').groups.items()]
+        communities = [(k, graph.subgraph(tuple(v.values)))
+                       for k, v in nodes.set_index('user_id').groupby('community').groups.items()]
 
         c_summary_list = []
         for c_name, c_graph in communities:
             c_summary_df = Metrics.__graph_summary(c_graph)
-            c_summary_df['Community'] = c_name
+            c_summary_df['community'] = c_name
             c_summary_list.append(c_summary_df)
 
-        partition_summary_df = pd.concat(c_summary_list).set_index('Community')
+        partition_summary_df = pd.concat(c_summary_list).set_index('community')
 
         return partition_summary_df
 
     @staticmethod
     def __get_pquality(graph, nodes):
-        communities = [graph.subgraph(tuple(v.values)) for k, v in nodes.groupby('Community').groups.items()]
+        communities = [graph.subgraph(tuple(v.values))
+                       for k, v in nodes.set_index('user_id').groupby('community').groups.items()]
 
         pqualities = [
             ('Internal Density', Pq.internal_edge_density, 1, []),
@@ -169,10 +170,10 @@ class Metrics:
     @staticmethod
     def __node_metrics(graph, nodes):
         def indegree(g):
-            return [(n, g.in_degree(n)) for n in g.nodes]
+            return [{'user_id': n, 'indegree': g.in_degree(n)} for n in g.nodes]
 
         def indegree_centrality(g):
-            return [(n, ic) for n, ic in nx.in_degree_centrality(g).items()]
+            return [{'user_id': n, 'indegree_centrality': ic} for n, ic in nx.in_degree_centrality(g).items()]
 
         def hindex(g):
             # from https://github.com/kamyu104/LeetCode/blob/master/Python/h-index.py
@@ -189,30 +190,28 @@ class Metrics:
             hindex_list = []
             for n in g.nodes:
                 edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
-                hindex_list.append((n, alg_hindex(edges)))
+                hindex_list.append({'user_id': n, 'hindex': alg_hindex(edges)})
 
             return hindex_list
 
-        communities = [graph.subgraph(tuple(v.values)) for k, v in nodes.groupby('Community').groups.items()]
+        communities = [(k, graph.subgraph(tuple(v.values)))
+                       for k, v in nodes.set_index('user_id').groupby('community').groups.items()]
 
-        nm_metrics = [
-            ('indegree', indegree, []),
-            ('indegree centrality', indegree_centrality, []),
-            ('hindex', hindex, []),
-        ]
+        nm_metrics = [indegree, indegree_centrality, hindex]
 
-        for nm_name, nm_func, nm_values in nm_metrics:
-            for c in communities:
-                nm_values.extend(nm_func(c))
+        for nm_func in nm_metrics:
+            results = []
+            for c_name, c_graph in communities:
+                results.extend([{**n, 'community': c_name} for n in nm_func(c_graph)])
 
-            nm_attr_name = f'Comm relative {nm_name}'
-
-            # update nodes
-            nm_df = pd.DataFrame(nm_values, columns=['index', nm_attr_name]).set_index('index')
-            nodes = nodes.join(nm_df)
+            nodes = pd.merge(nodes, pd.DataFrame(results),
+                             left_on=['user_id', 'community'], right_on=['user_id', 'community'])
 
             # update graph
-            nm_attr = {n_id: n_value for n_id, n_value in nm_values}
-            nx.set_node_attributes(graph, values=nm_attr, name=nm_attr_name)
+            # nm_attr = {n_id: n_value for n_id, n_value in nm_values}
+            # nx.set_node_attributes(graph, values=nm_attr, name=nm_attr_name)
+        nodes.sort_values(by=['user_id', 'community'], inplace=True)
+        logger.info('apply metrics')
+        logger.debug(helper.df_tostring(nodes, 5))
 
         return graph, nodes

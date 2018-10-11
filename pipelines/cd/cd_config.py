@@ -2,12 +2,14 @@ import os
 
 
 class Config:
-    def __init__(self, demon=None, keep_lone_nodes=False, data_filename='ll'):
+    def __init__(self, data_filename, cd_config):
         self.data_filename = data_filename
+
+        self.cd_config = cd_config
 
         self.base_dir = {
             'input': 'data',
-            'output': 'output'
+            'output': 'output/cd'
         }
 
         self.data_type = {
@@ -33,20 +35,15 @@ class Config:
 
         self.data_path = f'{self.base_dir["input"]}/{data_filename}.csv'
 
-        self.keep_lone_nodes = keep_lone_nodes
-
         self.comparison = f'{self.base_dir["input"]}/comparison/{data_filename}.csv'
 
-        if demon:
-            self.demon = demon
-            self.postfix = f'_e{self.demon["epsilon"]}_mcs{self.demon["min_community_size"]}'
-        else:
-            self.postfix = ''
+        postfix_args = '-'.join(f'{arg_name}{arg_value}' for arg_name, arg_value in self.cd_config[1].items())
+        self.postfix = f'__{self.cd_config[0]}{f"({postfix_args})" if postfix_args else ""}'
 
-    def get_path(self, stage, file_name, file_type='csv', has_postfix=False):
+    def get_path(self, stage, file_name, file_type='csv', has_postfix=True):
         directory = f'{self.base_dir["output"]}/{stage}'
 
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        return f'{directory}/{self.data_filename}_{file_name}{self.postfix if has_postfix else ""}.{file_type}'
+        return f'{directory}/{self.data_filename}__{file_name}{self.postfix if has_postfix else ""}.{file_type}'

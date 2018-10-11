@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 import helper
-from .pipeline_io import PipelineIO
+from pipelines.pipeline_io import PipelineIO
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class PreProcessing:
     @staticmethod
     def __get_nodes(edges):
         nodes = pd.concat([edges.Source, edges.Target], axis=0).drop_duplicates() \
-            .reset_index(drop=True).to_frame('Username')
+            .reset_index(drop=True).to_frame('user_name')
 
         logger.info('get nodes')
         logger.debug(f'nodes: {nodes.shape}\n' +
@@ -84,7 +84,7 @@ class PreProcessing:
 
     @staticmethod
     def __rename_edges(nodes, edges):
-        nodes_dict = {v: k for k, v in nodes.to_dict()['Username'].items()}
+        nodes_dict = {v: k for k, v in nodes.to_dict()['user_name'].items()}
         edges.Source = edges.Source.map(nodes_dict.get)
         edges.Target = edges.Target.map(nodes_dict.get)
 

@@ -18,7 +18,17 @@ class PipelineManager:
             'data': {
                 'type': 'pandas',
                 'path': self.config.data_path,
-                'r_kwargs': {'dtype': self.config.data_type['csv_data']},
+                'r_kwargs': {
+                    'dtype': {
+                        'cod': str,
+                        'user_from_name': str,
+                        'user_from_fav_count': 'uint16',
+                        'user_rt_fav_count': 'uint16',
+                        'user_to_name': str,
+                        'text': str,
+                        'weights': 'uint16'
+                    }
+                },
                 'w_kwargs': {}
             }
         }
@@ -32,3 +42,5 @@ class PipelineManager:
         m_output, m_output_format = m.execute()
 
         logger.info(f'END pipeline for {self.config.data_filename}')
+
+        return m_output, m_output_format

@@ -18,31 +18,81 @@ class Metrics:
             'graph_summary': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'graph_summary'),
-                'r_kwargs': {},
+                'r_kwargs': {
+                    'dtype': {
+                        'no_nodes': 'uint16',
+                        'no_edges': 'uint16',
+                        'avg_degree': 'float32',
+                        'avg_weighted_degree': 'float32',
+                        'density': 'float32',
+                        'connected': bool,
+                        'strongly_conn_components': 'uint16',
+                        'avg_clustering': 'float32',
+                        'assortativity': 'float32'
+                    }
+                },
                 'w_kwargs': {'index': False}
             },
             'partition_summary': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'partition_summary'),
-                'r_kwargs': {},
+                'r_kwargs': {
+                    'dtype': {
+                        'community': 'uint16',
+                        'no_nodes': 'uint16',
+                        'no_edges': 'uint16',
+                        'avg_degree': 'float32',
+                        'avg_weighted_degree': 'float32',
+                        'density': 'float32',
+                        'connected': bool,
+                        'strongly_conn_components': 'uint16',
+                        'avg_clustering': 'float32',
+                        'assortativity': 'float32'
+                    },
+                    'index_col': 'community'
+                },
                 'w_kwargs': {}
             },
             'pquality': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'pquality'),
-                'r_kwargs': {},
+                'r_kwargs': {
+                    'dtype': {
+                        'index': str,
+                        'min': 'float32',
+                        'max': 'float32',
+                        'avg': 'float32',
+                        'std': 'float32'
+                    },
+                    'index_col': 'index'
+                },
                 'w_kwargs': {}
             },
             'cumsum_deg_dist': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'cumsum_deg_dist'),
-                'r_kwargs': {},
+                'r_kwargs': {
+                    'dtype': {
+                        'degree': 'uint32',
+                        'cumsum_of_the_no_of_nodes': 'float32'
+                    },
+                    'index_col': 'degree'
+                },
                 'w_kwargs': {}
             },
             'nodes': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_nodes']},
+                'r_kwargs': {
+                    'dtype': {
+                        'community': 'uint16',
+                        'user_id': 'uint32',
+                        'user_name': str,
+                        'indegree': 'float32',
+                        'indegree_centrality': 'float32',
+                        'hindex': 'uint16'
+                    }
+                },
                 'w_kwargs': {'index': False}
             },
             'graph': {
@@ -81,14 +131,14 @@ class Metrics:
                 return None
 
         summary_df = pd.DataFrame(data={
-            '# nodes': graph.number_of_nodes(),
-            '# edges': graph.number_of_edges(),
-            'avg degree': sum([x[1] for x in graph.degree()]) / graph.number_of_nodes(),
-            'avg weighted degree': sum([x[1] for x in graph.degree(weight='Weight')]) / graph.number_of_nodes(),
+            'no_nodes': graph.number_of_nodes(),
+            'no_edges': graph.number_of_edges(),
+            'avg_degree': sum([x[1] for x in graph.degree()]) / graph.number_of_nodes(),
+            'avg_weighted_degree': sum([x[1] for x in graph.degree(weight='weight')]) / graph.number_of_nodes(),
             'density': nx.density(graph),
             'connected': nx.is_weakly_connected(graph),
-            'strongly conn components': nx.number_strongly_connected_components(graph),
-            'avg clustering': nx.average_clustering(graph),
+            'strongly_conn_components': nx.number_strongly_connected_components(graph),
+            'avg_clustering': nx.average_clustering(graph),
             'assortativity': assortativity(graph)
         }, index=[0]).round(4)
 
@@ -118,17 +168,17 @@ class Metrics:
                        for k, v in nodes.set_index('user_id').groupby('community').groups.items()]
 
         pqualities = [
-            ('Internal Density', Pq.internal_edge_density, 1, []),
-            ('Edges inside', Pq.internal_edge_density, 1, []),
-            ('Normalized Cut', Pq.normalized_cut, 2, []),
-            ('Average Degree', Pq.average_internal_degree, 1, []),
-            ('FOMD', Pq.fraction_over_median_degree, 1, []),
-            ('Expansion', Pq.expansion, 2, []),
-            ('Cut Ratio', Pq.cut_ratio, 2, []),
-            ('Conductance', Pq.conductance, 2, []),
-            ('Maximum-ODF', Pq.max_odf, 2, []),
-            ('Average-ODF', Pq.avg_odf, 2, []),
-            ('Flake-ODF', Pq.flake_odf, 2, [])
+            ('internal_density', Pq.internal_edge_density, 1, []),
+            ('edges_inside', Pq.internal_edge_density, 1, []),
+            ('normalized_cut', Pq.normalized_cut, 2, []),
+            ('avg_degree', Pq.average_internal_degree, 1, []),
+            ('fomd', Pq.fraction_over_median_degree, 1, []),
+            ('expansion', Pq.expansion, 2, []),
+            ('cut_ratio', Pq.cut_ratio, 2, []),
+            ('conductance', Pq.conductance, 2, []),
+            ('max_odf', Pq.max_odf, 2, []),
+            ('avg_odf', Pq.avg_odf, 2, []),
+            ('flake_odf', Pq.flake_odf, 2, [])
         ]
 
         m = []
@@ -137,7 +187,7 @@ class Metrics:
                 pq_values.append(pq_func(graph, c) if pq_arg_len == 2 else pq_func(c))
             m.append([pq_name, min(pq_values), max(pq_values), np.mean(pq_values), np.std(pq_values)])
 
-        pquality_df = pd.DataFrame(m, columns=['Index', 'min', 'max', 'avg', 'std']).set_index('Index')
+        pquality_df = pd.DataFrame(m, columns=['index', 'min', 'max', 'avg', 'std']).set_index('index')
 
         logger.info('get partition quality metrics')
         logger.debug(f'summary of partition metrics:\n{pquality_df.to_string()}\n\n')
@@ -160,7 +210,7 @@ class Metrics:
             cumsum -= c
 
         cumsum_deg_dist_df = pd.DataFrame(cumsum_deg_dist_list,
-                                          columns=['degree', 'cumsum of the number of nodes']).set_index('degree')
+                                          columns=['degree', 'cumsum_of_the_no_of_nodes']).set_index('degree')
 
         logger.info('cumulated sum of degree')
         logger.debug(helper.df_tostring(cumsum_deg_dist_df, 5))
@@ -189,7 +239,7 @@ class Metrics:
 
             hindex_list = []
             for n in g.nodes:
-                edges = [e[2]['Weight'] for e in g.in_edges(n, data=True)]
+                edges = [e[2]['weight'] for e in g.in_edges(n, data=True)]
                 hindex_list.append({'user_id': n, 'hindex': alg_hindex(edges)})
 
             return hindex_list

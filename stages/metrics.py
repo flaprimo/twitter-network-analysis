@@ -29,7 +29,7 @@ class Metrics:
         self.__iter_metric_c(self.__indegree, 'indegree')
 
     def __load_edges(self):
-        edges_path = self.config.get_path('cd', 'edges')
+        edges_path = self.config.get_path('community_detection', 'edges')
         edges = pd.read_csv(edges_path,
                             dtype=self.config.data_type['csv_edges'])
 
@@ -40,7 +40,7 @@ class Metrics:
         return edges
 
     def __load_nodes(self):
-        nodes_path = self.config.get_path('cd', 'nodes')
+        nodes_path = self.config.get_path('community_detection', 'nodes')
         nodes = pd.read_csv(nodes_path,
                             dtype=self.config.data_type['csv_nodes'],
                             index_col='Id')

@@ -64,11 +64,11 @@ class PipelineIO:
         if stage_input is not None and \
                 isinstance(stage_input, dict) and \
                 all(i in stage_input for i in stage_input_expected):
-            logger.debug(f'input present')
+            logger.debug('input present')
             return stage_input
 
         else:
-            logger.debug(f'input not present, loading input')
+            logger.debug('input not present, loading input')
             return PipelineIO.__read_files(input_format)
 
     @staticmethod
@@ -76,7 +76,7 @@ class PipelineIO:
         logger.info('load output')
         try:
             output = PipelineIO.__read_files(output_format)
-            logger.debug(f'output present, not executing stage')
+            logger.debug('output present, not executing stage')
             return output
 
         except IOError as e:

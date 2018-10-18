@@ -15,14 +15,25 @@ class PreProcessing:
             'edges': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'edges'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_edges']},
+                'r_kwargs': {
+                    'dtype': {
+                        'source_id': 'uint32',
+                        'target_id': 'uint32',
+                        'weight': 'uint16'
+                    },
+                },
                 'w_kwargs': {'index': False}
             },
             'nodes': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_nodes'],
-                             'index_col': 0},
+                'r_kwargs': {
+                    'dtype': {
+                        'user_id': 'uint32',
+                        'user_name': str
+                    },
+                    'index_col': 'user_id'
+                },
                 'w_kwargs': {}
             }
         }
@@ -49,7 +60,7 @@ class PreProcessing:
         columns_tokeep = ['user_from_name', 'user_to_name', 'weights']
         columns_todrop = [c for c in edges.columns.values if c not in columns_tokeep]
         edges = edges[columns_tokeep]
-        edges = edges.rename(columns={'user_from_name': 'Source', 'user_to_name': 'Target', 'weights': 'Weight'})
+        edges = edges.rename(columns={'user_from_name': 'source_id', 'user_to_name': 'target_id', 'weights': 'weight'})
 
         logger.info('drop columns')
         logger.debug(f'dropped columns: {columns_todrop}\n' +
@@ -59,11 +70,11 @@ class PreProcessing:
 
     @staticmethod
     def __merge_duplicates(edges):
-        edges.Source = edges.Source.str.lower()
-        edges.Target = edges.Target.str.lower()
+        edges.source_id = edges.source_id.str.lower()
+        edges.target_id = edges.target_id.str.lower()
 
-        df_edges_duplicates = edges[edges.duplicated(subset=['Source', 'Target'], keep='first')]
-        edges = edges.groupby(['Source', 'Target']).sum().reset_index()
+        df_edges_duplicates = edges[edges.duplicated(subset=['source_id', 'target_id'], keep='first')]
+        edges = edges.groupby(['source_id', 'target_id']).sum().reset_index()
 
         logger.info('merge duplicates columns')
         logger.debug(f'number of duplicates: {df_edges_duplicates.shape}\n' +
@@ -73,8 +84,9 @@ class PreProcessing:
 
     @staticmethod
     def __get_nodes(edges):
-        nodes = pd.concat([edges.Source, edges.Target], axis=0).drop_duplicates() \
+        nodes = pd.concat([edges.source_id, edges.target_id], axis=0).drop_duplicates() \
             .reset_index(drop=True).to_frame('user_name')
+        nodes.index.names = ['user_id']
 
         logger.info('get nodes')
         logger.debug(f'nodes: {nodes.shape}\n' +
@@ -85,8 +97,8 @@ class PreProcessing:
     @staticmethod
     def __rename_edges(nodes, edges):
         nodes_dict = {v: k for k, v in nodes.to_dict()['user_name'].items()}
-        edges.Source = edges.Source.map(nodes_dict.get)
-        edges.Target = edges.Target.map(nodes_dict.get)
+        edges.source_id = edges.source_id.map(nodes_dict.get)
+        edges.target_id = edges.target_id.map(nodes_dict.get)
 
         logger.info('rename edges')
         logger.debug(f'renamed edges: {edges.shape}\n' +

@@ -37,7 +37,7 @@ class CommunityDetection:
         return edges
 
     def __execute_demon(self):
-        path_communities = self.config.get_path('cd', 'communities', 'txt')
+        path_communities = self.config.get_path('community_detection', 'communities', 'txt')
 
         if not os.path.isfile(path_communities):
             logger.info('execute DEMON')
@@ -54,7 +54,7 @@ class CommunityDetection:
     def __load_demon_communities(self):
         def parse_demon_communities():
             communities = []
-            with open(self.config.get_path('cd', 'communities', 'txt'), 'r') as f:
+            with open(self.config.get_path('community_detection', 'communities', 'txt'), 'r') as f:
                 for i, line in enumerate(f):
                     c = line.split("\t", 1)[0]
                     u = re.findall("'([^']*)'", line)
@@ -106,8 +106,8 @@ class CommunityDetection:
             rm_lone_edges()
 
     def save(self):
-        nodes_path = self.config.get_path('cd', 'nodes')
-        edges_path = self.config.get_path('cd', 'edges')
+        nodes_path = self.config.get_path('community_detection', 'nodes')
+        edges_path = self.config.get_path('community_detection', 'edges')
 
         self.nodes.to_csv(nodes_path)
         self.edges.to_csv(edges_path, index=False)

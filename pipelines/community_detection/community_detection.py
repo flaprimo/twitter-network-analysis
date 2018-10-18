@@ -18,13 +18,25 @@ class CommunityDetection:
             'edges': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'edges'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_edges']},
+                'r_kwargs': {
+                    'dtype': {
+                        'source_id': 'uint32',
+                        'target_id': 'uint32',
+                        'weight': 'uint16'
+                    }
+                },
                 'w_kwargs': {'index': False}
             },
             'nodes': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_nodes']},
+                'r_kwargs': {
+                    'dtype': {
+                        'community': 'uint16',
+                        'user_id': 'uint32',
+                        'user_name': str
+                    },
+                },
                 'w_kwargs': {'index': False}
             },
             'graph': {
@@ -36,7 +48,12 @@ class CommunityDetection:
             'communities': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'communities'),
-                'r_kwargs': {'dtype': self.config.data_type['csv_nodes']},
+                'r_kwargs': {
+                    'dtype': {
+                        'community': 'uint16',
+                        'user_id': 'uint32'
+                    },
+                },
                 'w_kwargs': {'index': False}
             }
         }
@@ -64,7 +81,7 @@ class CommunityDetection:
     @staticmethod
     def __get_graph(edges, nodes):
         graph = nx.from_pandas_edgelist(edges,
-                                        source='Source', target='Target', edge_attr=['Weight'],
+                                        source='source_id', target='target_id', edge_attr=['weight'],
                                         create_using=nx.DiGraph())
         nx.set_node_attributes(graph, pd.Series(nodes.user_name).to_dict(), 'user_name')
 
@@ -97,7 +114,7 @@ class CommunityDetection:
             im_network = im.network()
 
             for e in g.edges(data=True):
-                im_network.addLink(e[0], e[1], e[2]['Weight'])
+                im_network.addLink(e[0], e[1], e[2]['weight'])
 
             im.run()
 
@@ -121,14 +138,7 @@ class CommunityDetection:
         if communities.empty:
             communities = pd.DataFrame({'user_id': graph.nodes})
             communities['community'] = communities.user_id
-            print('HEY')
-            print(helper.df_tostring(communities))
 
-        # try:
-        #     len_communities = communities.community.nunique()
-        # except AttributeError:
-        #     print('HEY')
-        #     len_communities = 0
         logger.debug(f'found {communities.community.nunique()} communities\n' +
                      helper.df_tostring(communities, 5))
 
@@ -141,7 +151,7 @@ class CommunityDetection:
         lone_nodes = list(nodes_total - nodes_to_keep)
 
         nodes = nodes.drop(nodes.index[lone_nodes])
-        edges = edges[~(edges.Source.isin(lone_nodes) | edges.Target.isin(lone_nodes))]
+        edges = edges[~(edges.source_id.isin(lone_nodes) | edges.target_id.isin(lone_nodes))]
         graph.remove_nodes_from(lone_nodes)
 
         logger.info('remove lone nodes')

@@ -63,8 +63,8 @@ class PreProcessing:
         edges = edges.rename(columns={'user_from_name': 'source_id', 'user_to_name': 'target_id', 'weights': 'weight'})
 
         logger.info('drop columns')
-        logger.debug(f'dropped columns: {columns_todrop}\n'
-                     + helper.df_tostring(edges, 5))
+        logger.debug(f'dropped columns: {columns_todrop}\n' +
+                     helper.df_tostring(edges, 5))
 
         return edges
 
@@ -77,8 +77,8 @@ class PreProcessing:
         edges = edges.groupby(['source_id', 'target_id']).sum().reset_index()
 
         logger.info('merge duplicates columns')
-        logger.debug(f'number of duplicates: {df_edges_duplicates.shape}\n'
-                     + helper.df_tostring(edges, 5))
+        logger.debug(f'number of duplicates: {df_edges_duplicates.shape}\n' +
+                     helper.df_tostring(edges, 5))
 
         return edges
 
@@ -89,8 +89,8 @@ class PreProcessing:
         nodes.index.names = ['user_id']
 
         logger.info('get nodes')
-        logger.debug(f'nodes: {nodes.shape}\n'
-                     + helper.df_tostring(nodes, 5))
+        logger.debug(f'nodes: {nodes.shape}\n' +
+                     helper.df_tostring(nodes, 5))
 
         return nodes
 
@@ -101,7 +101,7 @@ class PreProcessing:
         edges.target_id = edges.target_id.map(nodes_dict.get)
 
         logger.info('rename edges')
-        logger.debug(f'renamed edges: {edges.shape}\n'
-                     + helper.df_tostring(edges, 5))
+        logger.debug(f'renamed edges: {edges.shape}\n' +
+                     helper.df_tostring(edges, 5))
 
         return edges

@@ -1,4 +1,5 @@
 # Twitter network analysis
+<a href='https://travis-ci.org/flaprimo/UniversityBot'><img src='https://secure.travis-ci.org/flaprimo/twitter-network-analysis.png?branch=master'></a>
 Directed network analysis, from a twitter csv data source to analysis and metric applications.
 
 ## Steps

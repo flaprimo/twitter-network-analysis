@@ -4,7 +4,7 @@ import demon as d
 import logging
 import helper
 import infomap
-from pipelines.pipeline_io import PipelineIO
+from datasources.pipeline_io import PipelineIO
 
 logger = logging.getLogger(__name__)
 

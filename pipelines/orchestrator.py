@@ -24,14 +24,16 @@ class Orchestrator:
                           for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs))}
 
         # PROFILING
-        p_results = {c.data_filename: self.p_pipeline(c, cd_results[c.data_filename])
-                     for c in self.p_configs}
+        # p_results = {c.data_filename: self.p_pipeline(c, cd_results[c.data_filename])
+        #              for c in self.p_configs}
 
-        for r in p_results:
-            print(r)
+        # for r in p_results:
+        #     print(r)
 
         logger.info(f'END orchestrator for {self.datasets}')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')
+
+        return cd_results
 
     @staticmethod
     def cd_pipeline(config):
@@ -47,9 +49,9 @@ class Orchestrator:
 
 
 def main():
-    # datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
-    #             'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
-    datasets = ['kdd']
+    datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
+                'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
+    # datasets = ['kdd']
     # cd_config = ('infomap', {})
     cd_config = ('demon', {
         'epsilon': 0.25,

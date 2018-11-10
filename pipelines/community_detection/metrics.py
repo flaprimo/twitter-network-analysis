@@ -4,7 +4,7 @@ import logging
 import helper
 import numpy as np
 import pquality.PartitionQuality as Pq
-from datasources.pipeline_io import PipelineIO
+from datasources import PipelineIO
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 import logging
-from datasources.pipeline_io import PipelineIO
+from datasources import PipelineIO
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 import helper
-from datasources.pipeline_io import PipelineIO
+from datasources import PipelineIO
 
 logger = logging.getLogger(__name__)
 

@@ -50,8 +50,10 @@ pytz==2018.7
 pyzmq==17.1.2
 qtconsole==4.4.2
 requests==2.20.0
+requests-cache==0.4.13
 scipy==1.1.0
 seaborn==0.9.0
+selenium==3.141.0
 Send2Trash==1.5.0
 simplegeneric==0.8.1
 six==1.11.0

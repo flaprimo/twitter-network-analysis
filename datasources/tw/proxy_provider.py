@@ -45,7 +45,7 @@ class ProxyProvider:
     def __get_proxy_list(self):
         try:
             proxy_list = self.__read_proxy_list()
-            if datetime.now()-proxy_list['date'] > self.expires:
+            if datetime.now() - proxy_list['date'] > self.expires:
                 # download new list and write it on file
                 proxy_list = self.__fetch_proxy_list()
         except (OSError, IOError):

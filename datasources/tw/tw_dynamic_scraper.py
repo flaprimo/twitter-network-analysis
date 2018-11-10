@@ -5,7 +5,7 @@ from urllib.parse import quote
 class TwDynamicScraper:
     def __init__(self, base_url, proxy_provider):
         self.proxy_provider = proxy_provider
-        self.base_url = base_url+'search'
+        self.base_url = base_url + 'search'
 
     def query(self, hashtags, other_params=None, language=''):
         # get query url

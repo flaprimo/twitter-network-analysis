@@ -18,7 +18,7 @@ class Tw:
         self.configs = Tw.load_config(config_file_path)
 
         # load tw apis
-        self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path+'proxy_list.json')
+        self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path + 'proxy_list.json')
         self.tw_static_scraper = TwStaticScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
         self.tw_dynamic_scraper = TwDynamicScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
 
@@ -44,6 +44,8 @@ def main():
 
     hashtags = '#kdd'
     q = tw.tw_dynamic_scraper.query(hashtags)
+
+    print(q)
 
 
 if __name__ == "__main__":

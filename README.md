@@ -1,5 +1,5 @@
 # Twitter network analysis
-<a href='https://travis-ci.org/flaprimo/twitter-network-analysis'><img src='https://secure.travis-ci.org/flaprimo/twitter-network-analysis.png?branch=infomap'></a>
+<a href='https://travis-ci.org/flaprimo/twitter-network-analysis'><img src='https://secure.travis-ci.org/flaprimo/twitter-network-analysis.png?branch=master'></a>
 
 Directed network analysis, from Twitter data source to analysis and metric applications.
 

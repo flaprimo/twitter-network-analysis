@@ -1,0 +1,17 @@
+language: python
+
+python:
+  - 3.6
+
+install:
+  - pip install flake8
+
+notifications:
+  email: false
+
+#branches:
+#  only:
+#- master
+
+script:
+- flake8 . --max-line-length=120 --ignore=F401,W504

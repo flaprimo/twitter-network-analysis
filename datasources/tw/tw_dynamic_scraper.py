@@ -28,7 +28,8 @@ class TwDynamicScraper:
             'disk-cache-size': 4096
         }
         chrome_options.add_experimental_option('prefs', prefs)
-        chrome_options.add_argument('headless')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
         chrome_options.add_argument(f'--proxy-server={proxy_ip}:{proxy_port}')
 
         driver = webdriver.Chrome(chrome_options=chrome_options)

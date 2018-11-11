@@ -49,16 +49,16 @@ def main():
     # }
     # q = twitter_dynamic_scraper.query(hashtags=hashtags, other_params=other_params)
 
-    # hashtags = '#kdd'
-    # q = tw.tw_dynamic_scraper.query(hashtags)
+    hashtags = '#kdd'
+    q = tw.tw_dynamic_scraper.query(hashtags)
+
+    print(q)
+
+    # profile1 = tw.tw_static_scraper.get_profile('pmissier')
+    # follower_rank1 = profile1['followers'] / (profile1['followers'] + profile1['following'])
     #
-    # print(q)
-
-    profile1 = tw.tw_static_scraper.get_profile('pmissier')
-    follower_rank1 = profile1['followers'] / (profile1['followers'] + profile1['following'])
-
-    print(f'profile: {profile1}')
-    print(f'follower_rank: {follower_rank1}')
+    # print(f'profile: {profile1}')
+    # print(f'follower_rank: {follower_rank1}')
 
 
 if __name__ == "__main__":

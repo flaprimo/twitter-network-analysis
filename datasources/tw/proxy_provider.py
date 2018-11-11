@@ -59,6 +59,7 @@ class ProxyProvider:
         # set selenium options
         chrome_options = webdriver.ChromeOptions()
         prefs = {
+            'profile.default_content_setting_values.cookies': 2,
             'profile.managed_default_content_settings.images': 2,
             'disk-cache-size': 4096
         }

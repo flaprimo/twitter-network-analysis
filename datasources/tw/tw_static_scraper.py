@@ -1,8 +1,10 @@
 from lxml import html
 import requests
 import requests_cache
+import logging
 import os
 
+logger = logging.getLogger(__name__)
 requests_cache.install_cache(cache_name=os.path.join(os.path.dirname(__file__), 'cache/twitter_static_scraper_cache'),
                              expire_after=2.628e+6)
 
@@ -13,7 +15,10 @@ class TwStaticScraper:
         self.base_url = base_url
 
     def get_profile(self, user_name):
+        logger.info('getting profile')
+
         # get proxy
+        logger.debug('getting proxy')
         proxy_ip, proxy_port, proxy_https = self.proxy_provider.get_proxy()
         proxy_url = f'{proxy_ip}:{proxy_port}'
         proxy = {'https': proxy_url} if proxy_https else {'http': proxy_url}
@@ -22,6 +27,8 @@ class TwStaticScraper:
 
         # parse queried profile
         if response.ok:
+            logger.debug('profile fetched')
+            logger.debug('analyzing profile')
             root = html.fromstring(response.content)
             profile = {}
 
@@ -45,6 +52,9 @@ class TwStaticScraper:
             profile['join_date'] = profile_header_card \
                 .xpath('./div[@class="ProfileHeaderCard-joinDate"]/span[2]/text()')[0].strip('Joined ')
 
+            logger.debug(f'profile obtained for "{user_name}": {profile}\n')
+
             return profile
         else:
+            logger.debug('failed getting profile')
             response.raise_for_status()

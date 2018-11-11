@@ -3,8 +3,11 @@ from random import shuffle
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
 from lxml import html
+import logging
 import socket
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class ProxyProvider:
@@ -27,6 +30,7 @@ class ProxyProvider:
         self.index += 1
 
         if self.__is_server_alive(proxy['ip'], proxy['port']):
+            logger.debug(f'proxy {proxy["ip"]}:{proxy["port"]} alive')
             proxy['usage_count'] += 1
             self.__save_proxy_list()
             return proxy['ip'], proxy['port'], proxy['https']
@@ -43,12 +47,15 @@ class ProxyProvider:
             return False
 
     def __get_proxy_list(self):
+        logger.info('getting proxy list')
         try:
             proxy_list = self.__read_proxy_list()
             if datetime.now() - proxy_list['date'] > self.expires:
+                logger.debug('proxy list expired')
                 # download new list and write it on file
                 proxy_list = self.__fetch_proxy_list()
         except (OSError, IOError):
+            logger.debug('proxy list not present')
             proxy_list = self.__fetch_proxy_list()
         shuffle(proxy_list['list'])
         sorted(proxy_list['list'], key=lambda p: p['usage_count'])
@@ -56,9 +63,11 @@ class ProxyProvider:
         return proxy_list
 
     def __fetch_proxy_list(self):
+        logger.info('fetching new proxy list')
         # set selenium options
         chrome_options = webdriver.ChromeOptions()
         prefs = {
+            'enable_do_not_track': True,
             'profile.default_content_setting_values.cookies': 2,
             'profile.managed_default_content_settings.images': 2,
             'disk-cache-size': 4096
@@ -105,9 +114,12 @@ class ProxyProvider:
         # filter out low privacy proxies
         proxy_list['list'] = [p for p in proxy_list['list'] if p['anonymity'] != 'transparent']
 
+        logger.debug(f'fetched {len(proxy_list["list"])} proxies at {proxy_list["date"]}')
+
         return proxy_list
 
     def __read_proxy_list(self):
+        logger.info('reading proxy list json file')
         with open(self.proxy_list_path) as json_file:
             proxy_list = json.load(json_file)
             proxy_list['date'] = datetime.strptime(proxy_list['date'], "%Y-%m-%dT%H:%M:%S.%f")
@@ -115,6 +127,8 @@ class ProxyProvider:
         return proxy_list
 
     def __save_proxy_list(self):
+        logger.info('saving proxy list json file')
+
         # save proxy list usages
         proxy_list = self.proxy_list.copy()
         proxy_list['date'] = proxy_list['date'].isoformat()

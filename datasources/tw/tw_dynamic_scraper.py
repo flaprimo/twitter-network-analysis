@@ -1,5 +1,8 @@
 from selenium import webdriver
 from urllib.parse import quote
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TwDynamicScraper:
@@ -8,15 +11,18 @@ class TwDynamicScraper:
         self.base_url = base_url + 'search'
 
     def query(self, hashtags, other_params=None, language=''):
+        logger.info('getting query')
         # get query url
         query_url = self.__get_query_url(hashtags, other_params, language)
 
         # get proxy
+        logger.debug('getting proxy')
         proxy_ip, proxy_port, proxy_https = self.proxy_provider.get_proxy()
 
         # set selenium options
         chrome_options = webdriver.ChromeOptions()
         prefs = {
+            'enable_do_not_track': True,
             'profile.default_content_setting_values.cookies': 2,
             'profile.managed_default_content_settings.images': 2,
             'disk-cache-size': 4096
@@ -24,7 +30,6 @@ class TwDynamicScraper:
         chrome_options.add_experimental_option('prefs', prefs)
         chrome_options.add_argument('headless')
         chrome_options.add_argument(f'--proxy-server={proxy_ip}:{proxy_port}')
-        print()
 
         driver = webdriver.Chrome(chrome_options=chrome_options)
         driver.set_window_position(0, 0)
@@ -33,6 +38,8 @@ class TwDynamicScraper:
         # load queried web page
         driver.get(query_url)
 
+        logger.debug('query results fetched')
+        logger.debug('analyzing query results')
         twitter_stream = driver.find_element_by_id('stream-items-id')
         print(twitter_stream.get_attribute('innerHTML'))
 
@@ -48,4 +55,8 @@ class TwDynamicScraper:
         else:
             params = ''
 
-        return f'{self.base_url}?l={language}&q={hashtags}{params}'
+        query = f'{self.base_url}?l={language}&q={hashtags}{params}'
+
+        logger.debug(f'composed url query: {query}')
+
+        return query

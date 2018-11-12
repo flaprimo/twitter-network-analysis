@@ -19,7 +19,7 @@ class TwStaticScraper:
 
         # get proxy
         logger.debug('getting proxy')
-        proxy_ip, proxy_port, proxy_https = self.proxy_provider.get_proxy()
+        proxy_ip, proxy_port, proxy_https, proxy_code = self.proxy_provider.get_proxy()
         proxy_url = f'{proxy_ip}:{proxy_port}'
         proxy = {'https': proxy_url} if proxy_https else {'http': proxy_url}
 

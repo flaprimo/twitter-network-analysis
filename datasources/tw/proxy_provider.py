@@ -33,7 +33,7 @@ class ProxyProvider:
             logger.debug(f'proxy {proxy["ip"]}:{proxy["port"]} alive')
             proxy['usage_count'] += 1
             self.__save_proxy_list()
-            return proxy['ip'], proxy['port'], proxy['https']
+            return proxy['ip'], proxy['port'], proxy['https'], proxy['code']
         else:
             return self.get_proxy()
 

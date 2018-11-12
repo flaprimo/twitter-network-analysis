@@ -1,6 +1,8 @@
+from datasources.tw.helper import query_builder
 from datasources.tw.proxy_provider import ProxyProvider
 from datasources.tw.tw_static_scraper import TwStaticScraper
 from datasources.tw.tw_dynamic_scraper import TwDynamicScraper
+from datasources.tw.tw_api import TwApi
 import logging
 import json
 import os
@@ -21,10 +23,16 @@ class Tw:
         # load configs
         self.configs = Tw.load_config(config_file_path)
 
-        # load tw apis
+        # load tw accesses
         self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path + 'proxy_list.json')
         self.tw_static_scraper = TwStaticScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
         self.tw_dynamic_scraper = TwDynamicScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
+        # self.tw_api = TwApi(
+        #     self.configs['tw_api']['consumer_key'],
+        #     self.configs['tw_api']['consumer_key_secret'],
+        #     self.configs['tw_api']['access_token'],
+        #     self.configs['tw_api']['access_token_secret'],
+        # )
         logger.info('INIT Tw')
 
     @staticmethod
@@ -49,8 +57,8 @@ def main():
     # }
     # q = twitter_dynamic_scraper.query(hashtags=hashtags, other_params=other_params)
 
-    hashtags = '#kdd'
-    q = tw.tw_dynamic_scraper.query(hashtags)
+    query = query_builder('#kdd')
+    q = tw.tw_dynamic_scraper.search(query)
 
     print(q)
 
@@ -59,6 +67,15 @@ def main():
     #
     # print(f'profile: {profile1}')
     # print(f'follower_rank: {follower_rank1}')
+
+    # q = [(query_builder('#kdd')),
+    #      query_builder('#datainequality',
+    #                    people={'from': 'pmissier'},
+    #                    date={'since': '2018-10-24', 'until': '2018-10-25'})
+    #      ]
+    #
+    # for i in q:
+    #     print(f'{tw.tw_dynamic_scraper.base_url}?{i}')
 
 
 if __name__ == "__main__":

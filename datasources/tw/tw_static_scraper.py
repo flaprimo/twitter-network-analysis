@@ -14,8 +14,8 @@ class TwStaticScraper:
         self.proxy_provider = proxy_provider
         self.base_url = base_url
 
-    def get_profile(self, user_name):
-        logger.info('getting profile')
+    def get_user(self, user_name):
+        logger.info('getting user')
 
         # get proxy
         logger.debug('getting proxy')
@@ -27,34 +27,34 @@ class TwStaticScraper:
 
         # parse queried profile
         if response.ok:
-            logger.debug('profile fetched')
-            logger.debug('analyzing profile')
+            logger.debug('user fetched')
+            logger.debug('analyzing user')
             root = html.fromstring(response.content)
-            profile = {}
+            user = {}
 
             # get profile stats
             profile_nav = root.xpath('//ul[@class="ProfileNav-list"]')[0]
             profile_nav_path = './li[contains(@class, "ProfileNav-item--{0}")]/' \
                                'a/span[@class="ProfileNav-value"]/@data-count'
-            profile['tweets'] = int(profile_nav.xpath(profile_nav_path.format('tweets'))[0])
-            profile['following'] = int(profile_nav.xpath(profile_nav_path.format('following'))[0])
-            profile['followers'] = int(profile_nav.xpath(profile_nav_path.format('followers'))[0])
-            profile['likes'] = int(profile_nav.xpath(profile_nav_path.format('favorites'))[0])
+            user['tweets'] = int(profile_nav.xpath(profile_nav_path.format('tweets'))[0])
+            user['following'] = int(profile_nav.xpath(profile_nav_path.format('following'))[0])
+            user['followers'] = int(profile_nav.xpath(profile_nav_path.format('followers'))[0])
+            user['likes'] = int(profile_nav.xpath(profile_nav_path.format('favorites'))[0])
 
             # get profile personal info
             profile_header_card = root.xpath('//div[@class="ProfileHeaderCard"]')[0]
-            profile['name'] = profile_header_card.xpath('./h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
-            profile['bio'] = profile_header_card.xpath('./p[contains(@class, "ProfileHeaderCard-bio")]/text()')[0]
-            profile['location'] = profile_header_card \
+            user['name'] = profile_header_card.xpath('./h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
+            user['bio'] = profile_header_card.xpath('./p[contains(@class, "ProfileHeaderCard-bio")]/text()')[0]
+            user['location'] = profile_header_card \
                 .xpath('./div[@class="ProfileHeaderCard-location "]/span[2]/text()')[0].strip()
-            profile['url'] = profile_header_card \
+            user['url'] = profile_header_card \
                 .xpath('./div[@class="ProfileHeaderCard-url "]/span[2]/a/@title')[0]
-            profile['join_date'] = profile_header_card \
+            user['join_date'] = profile_header_card \
                 .xpath('./div[@class="ProfileHeaderCard-joinDate"]/span[2]/text()')[0].strip('Joined ')
 
-            logger.debug(f'profile obtained for "{user_name}": {profile}\n')
+            logger.debug(f'user obtained for "{user_name}": {user}\n')
 
-            return profile
+            return user
         else:
-            logger.debug('failed getting profile')
+            logger.debug('failed getting user')
             response.raise_for_status()

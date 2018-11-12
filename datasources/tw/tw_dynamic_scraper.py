@@ -65,11 +65,11 @@ class TwDynamicScraper:
 
             # header
             tweet['author'] = t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/")  # /runmanantiale
-            date = t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0] # 5:52 am - 12 Nov. 2018
+            date = t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0]  # 5:52 am - 12 Nov. 2018
             try:
-                tweet['date'] = datetime.strptime(date, "%I:%M %p - %d %b %Y")
+                tweet['date'] = datetime.strptime(date, '%I:%M %p - %d %b %Y')
             except ValueError:
-                tweet['date'] = datetime.strptime(date, "%I:%M %p - %d %b. %Y")
+                tweet['date'] = datetime.strptime(date, '%I:%M %p - %d %b. %Y')
 
             # content
             tweet['language'] = t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0]  # es
@@ -79,7 +79,7 @@ class TwDynamicScraper:
             for link in t.xpath('./div[@class="js-tweet-text-container"]/p'):
                 tweet['hashtags'] = []
                 for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href'):
-                    tweet['hashtags'].append('#' + re.findall('/hashtag/(.+)\?', hashtag)[0])
+                    tweet['hashtags'].append('#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0])
 
                 tweet['emojis'] = []
                 for emoji in link.xpath('./img[contains(@class, "Emoji")]/@title'):
@@ -94,14 +94,16 @@ class TwDynamicScraper:
                     tweet['reply'].append(reply.strip('/'))
 
             # footer
-            tweet_footer = './div[@class="stream-item-footer"]/div[contains(@class, "ProfileTweet-actionCountList")]/' \
-                           'span[contains(@class, "ProfileTweet-action--{0}")]/span/@data-tweet-stat-count'  # reply, retweet, favorite
+            tweet_footer = './div[@class="stream-item-footer"]/' \
+                           'div[contains(@class, "ProfileTweet-actionCountList")]/' \
+                           'span[contains(@class, "ProfileTweet-action--{0}")]/' \
+                           'span/@data-tweet-stat-count'  # reply, retweet, favorite
             tweet['replies'] = t.xpath(tweet_footer.format('reply'))[0]
             tweet['retweets'] = t.xpath(tweet_footer.format('retweet'))[0]
             tweet['likes'] = t.xpath(tweet_footer.format('favorite'))[0]
 
+            tweets.append(tweet)
             print(tweet)
-
 
         driver.quit()
 

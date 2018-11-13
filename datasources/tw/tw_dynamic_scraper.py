@@ -1,13 +1,13 @@
-import copy
 from selenium import webdriver
-import random
-import re
+from selenium.common.exceptions import TimeoutException
 from datetime import datetime
 from lxml import html
+import chromedriver_binary
 import logging
 import time
-from selenium.common.exceptions import TimeoutException
-import chromedriver_binary
+import random
+import re
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class TwDynamicScraper:
         while n > tw_stream_len['after'] > tw_stream_len['before']:
             tw_stream_len['before'] = tw_stream_len['after']
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            tt_wait = random.uniform(2, 4)
+            tt_wait = random.uniform(3, 5)
             time.sleep(tt_wait)
             tw_stream_len['after'] = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
                                                                        'li[contains(@class, "stream-item")]'))
@@ -142,16 +142,17 @@ class TwDynamicScraper:
             # analyze loaded tws
             logger.debug('analyzing query results')
             tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
+            driver.quit()
             tw_stream_xml = html.fromstring(tw_stream)
 
-            for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]'):
+            for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]')[:n]:
                 tw_current = TwDynamicScraper.__get_tw(t)
                 tw_list.append(tw_current)
                 logger.debug(f'added tw: {tw_current}')
         else:
+            driver.quit()
             logger.debug('no results are available')
 
-        driver.quit()
         logger.info(f'collected {len(tw_list)} tw')
 
         return tw_list

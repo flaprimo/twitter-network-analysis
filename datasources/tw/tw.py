@@ -57,10 +57,11 @@ def main():
     # }
     # q = twitter_dynamic_scraper.query(hashtags=hashtags, other_params=other_params)
 
-    query = query_builder('#kdd')
-    q = tw.tw_dynamic_scraper.search(query)
+    hashtags = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', '#ECMLPKDD2018',
+                '#emnlp2018', '#kdd', '#msignite2018', '#ona18', '#recsys']
+    queries = [query_builder(h) for h in hashtags]
 
-    print(q)
+    results = [tw.tw_dynamic_scraper.search(q, n=100) for q in queries]
 
     # profile1 = tw.tw_static_scraper.get_profile('pmissier')
     # follower_rank1 = profile1['followers'] / (profile1['followers'] + profile1['following'])

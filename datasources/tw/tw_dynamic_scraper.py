@@ -1,10 +1,13 @@
+import copy
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
 import random
 import re
 from datetime import datetime
 from lxml import html
 import logging
+import time
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +17,6 @@ class TwDynamicScraper:
         self.proxy_provider = proxy_provider
         self.base_url = base_url + 'search'
 
-    def search(self, query, n_scroll=0):
-        logger.info('getting search results')
-        # get query url
-        query_url = f'{self.base_url}?{query}'
-
-        # get proxy
-        logger.debug('getting proxy')
-        proxy_ip, proxy_port, proxy_https, proxy_code = self.proxy_provider.get_proxy()
-
-        # set selenium options
         chrome_options = webdriver.ChromeOptions()
         prefs = {
             'enable_do_not_track': True,
@@ -35,76 +28,133 @@ class TwDynamicScraper:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
+        # chrome_options.add_extension(os.path.join(os.path.dirname(__file__), 'ublock.zip'))
+        self.chrome_options = chrome_options
+
+    def __get_driver(self):
+        chrome_options = copy.deepcopy(self.chrome_options)
+
+        logger.debug('getting proxy')
+        proxy_ip, proxy_port, proxy_https, proxy_code = self.proxy_provider.get_proxy()
         chrome_options.add_argument(f'--proxy-server={proxy_ip}:{proxy_port}')
 
+        logger.debug('getting driver')
         driver = webdriver.Chrome(chrome_options=chrome_options)
         driver.set_window_position(0, 0)
         driver.set_window_size(1024, 768)
 
-        # load queried web page
-        driver.get(query_url)
+        return driver
 
-        # stream = driver.find_element_by_id('streams-items-id').get_attribute('innerHTML')
-        # table = driver.find_elements_by_xpath('//ol[@id="streams-items-id"]/li')
-
-        # print(stream)
-
-        # for _ in range(n_scroll):
-        #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-        #     WebDriverWait(driver, random.uniform(1, 3))
+    @staticmethod
+    def __load_tw_from_stream(driver, n):
+        # load required number of tws
+        tw_stream_len = {
+            'before': 0,
+            'after': len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
+                                                       'li[contains(@class, "stream-item")]'))
+        }
+        while n > tw_stream_len['after'] > tw_stream_len['before']:
+            tw_stream_len['before'] = tw_stream_len['after']
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+            tt_wait = random.uniform(2, 4)
+            time.sleep(tt_wait)
+            tw_stream_len['after'] = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
+                                                                       'li[contains(@class, "stream-item")]'))
+            logger.debug(f'time waited: {round(tt_wait, 2)}\n'
+                         f'loading condition: tw to retrieve({n}) > '
+                         f'tw retrieved after({tw_stream_len["after"]}) > '
+                         f'tw retrieved before({tw_stream_len["before"]})')
 
         logger.debug('query results fetched')
-        logger.debug('analyzing query results')
-        twitter_stream = driver.find_element_by_id('stream-items-id')
+        return driver
 
-        tweets = []
-        current_stream = twitter_stream.get_attribute('innerHTML')
-        current_stream_xml = html.fromstring(current_stream)
-        for t in current_stream_xml.xpath('./li/div/div[@class="content"]'):
-            tweet = {}
+    @staticmethod
+    def __get_tw(t):
+        link = t.xpath('./div[@class="js-tweet-text-container"]/p')[0]
+        tweet_footer = './div[@class="stream-item-footer"]/' \
+                       'div[contains(@class, "ProfileTweet-actionCountList")]/' \
+                       'span[contains(@class, "ProfileTweet-action--{0}")]/' \
+                       'span/@data-tweet-stat-count'  # reply, retweet, favorite
 
+        tw_current = {
             # header
-            tweet['author'] = t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/")  # /runmanantiale
-            date = t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0]  # 5:52 am - 12 Nov. 2018
-            try:
-                tweet['date'] = datetime.strptime(date, '%I:%M %p - %d %b %Y')
-            except ValueError:
-                tweet['date'] = datetime.strptime(date, '%I:%M %p - %d %b. %Y')
+            'author': t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/").lower(),
+            'date': datetime.strptime(t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0],
+                                      '%I:%M %p - %d %b %Y'),
 
             # content
-            tweet['language'] = t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0]  # es
-            tweet['text'] = t.xpath('./div[@class="js-tweet-text-container"]/p/text()')[0]
-
-            # need better loop!
-            for link in t.xpath('./div[@class="js-tweet-text-container"]/p'):
-                tweet['hashtags'] = []
-                for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href'):
-                    tweet['hashtags'].append('#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0])
-
-                tweet['emojis'] = []
-                for emoji in link.xpath('./img[contains(@class, "Emoji")]/@title'):
-                    tweet['emojis'].append(emoji)
-
-                tweet['urls'] = []
-                for url in link.xpath('./a/@data-expanded-url'):
-                    tweet['urls'].append(url)
-
-                tweet['reply'] = []
-                for reply in link.xpath('./a[contains(@class, "twitter-atreply")]/@href'):
-                    tweet['reply'].append(reply.strip('/'))
+            'language': t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0],
+            'text': t.xpath('./div[@class="js-tweet-text-container"]/p/text()')[0],
+            'hashtags': ['#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0]
+                         for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href')],
+            'emojis': [emoji for emoji in link.xpath('./img[contains(@class, "Emoji")]/@title')],
+            'urls': [url for url in link.xpath('./a/@data-expanded-url')],
+            'mentions': [reply.strip('/')
+                         for reply in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
 
             # footer
-            tweet_footer = './div[@class="stream-item-footer"]/' \
-                           'div[contains(@class, "ProfileTweet-actionCountList")]/' \
-                           'span[contains(@class, "ProfileTweet-action--{0}")]/' \
-                           'span/@data-tweet-stat-count'  # reply, retweet, favorite
-            tweet['replies'] = t.xpath(tweet_footer.format('reply'))[0]
-            tweet['retweets'] = t.xpath(tweet_footer.format('retweet'))[0]
-            tweet['likes'] = t.xpath(tweet_footer.format('favorite'))[0]
+            'replies': t.xpath(tweet_footer.format('reply'))[0],
+            'retweets': t.xpath(tweet_footer.format('retweet'))[0],
+            'likes': t.xpath(tweet_footer.format('favorite'))[0]
+        }
 
-            tweets.append(tweet)
-            print(tweet)
+        return tw_current
+
+    @staticmethod
+    def __get_page(driver, url, test_id, timeout=20):
+        try:
+            driver.set_page_load_timeout(timeout)
+            driver.get(url)
+
+            # test if page loaded correctly
+            if len(driver.find_elements_by_id(test_id)) > 0:
+                logger.debug('url correctly loaded')
+                return driver
+            else:
+                logger.debug('page not loaded correctly')
+                driver.close()
+                return None
+
+        except TimeoutException as e:
+            logger.debug(f'url not loaded {str(e)}')
+            driver.close()
+            return None
+
+    def search(self, query, n=30):
+        logger.info('getting search results')
+
+        # get query url
+        query_url = f'{self.base_url}?{query}&lang=en-gb'
+
+        driver = None
+        has_page = False
+        while not has_page:
+            driver = self.__get_page(self.__get_driver(), query_url, 'stream-items-id')
+            has_page = driver is not None
+
+        # load queried web page
+        driver.get(query_url)
+        logger.debug('tw results page loaded')
+
+        tw_list = []
+        if len(driver.find_elements_by_xpath('//div[@class="SearchEmptyTimeline"]')) == 0:
+            logger.debug('results are available')
+
+            driver = TwDynamicScraper.__load_tw_from_stream(driver, n)
+
+            # analyze loaded tws
+            logger.debug('analyzing query results')
+            tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
+            tw_stream_xml = html.fromstring(tw_stream)
+
+            for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]'):
+                tw_current = TwDynamicScraper.__get_tw(t)
+                tw_list.append(tw_current)
+                logger.debug(f'added tw: {tw_current}')
+        else:
+            logger.debug('no results are available')
 
         driver.quit()
+        logger.info(f'collected {len(tw_list)} tw')
 
-        return {}
+        return tw_list

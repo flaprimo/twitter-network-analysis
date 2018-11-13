@@ -61,7 +61,7 @@ def main():
                 '#emnlp2018', '#kdd', '#msignite2018', '#ona18', '#recsys']
     queries = [query_builder(h) for h in hashtags]
 
-    results = [tw.tw_dynamic_scraper.search(q, n=100) for q in queries]
+    [tw.tw_dynamic_scraper.search(q, n=100) for q in queries]
 
     # profile1 = tw.tw_static_scraper.get_profile('pmissier')
     # follower_rank1 = profile1['followers'] / (profile1['followers'] + profile1['following'])

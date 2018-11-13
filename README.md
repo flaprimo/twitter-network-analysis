@@ -8,14 +8,4 @@ Analysis is performed in several sequential/parallel pipelines, which produce in
 Steps are WIP stay tuned ;)
 
 ## Installation
-1. install python required modules `pip install requirements.txt`
-
-2. install chrome driver for [Selenium](https://selenium-python.readthedocs.io/installation.html#drivers)
-
-   `wget https://chromedriver.storage.googleapis.com/2.43/chromedriver_linux64.zip`
-   
-   `sudo unzip chromedriver_linux64.zip -d /usr/local/bin`
-   
-   notes:
-      * latest version of chrome driver at the moment of writing is 2.43
-      * chrome driver must be placed in a folder in PATH
+Install python required modules `pip install requirements.txt`

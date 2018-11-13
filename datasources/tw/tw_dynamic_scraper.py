@@ -6,8 +6,8 @@ from datetime import datetime
 from lxml import html
 import logging
 import time
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import os
+from selenium.common.exceptions import TimeoutException
+import chromedriver_binary
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ class TwDynamicScraper:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
-        # chrome_options.add_extension(os.path.join(os.path.dirname(__file__), 'ublock.zip'))
         self.chrome_options = chrome_options
 
     def __get_driver(self):
@@ -39,7 +38,8 @@ class TwDynamicScraper:
         chrome_options.add_argument(f'--proxy-server={proxy_ip}:{proxy_port}')
 
         logger.debug('getting driver')
-        driver = webdriver.Chrome(chrome_options=chrome_options)
+        driver = webdriver.Chrome(executable_path=chromedriver_binary.chromedriver_filename,
+                                  chrome_options=chrome_options)
         driver.set_window_position(0, 0)
         driver.set_window_size(1024, 768)
 
@@ -121,16 +121,13 @@ class TwDynamicScraper:
             return None
 
     def search(self, query, n=30):
-        logger.info('getting search results')
-
         # get query url
         query_url = f'{self.base_url}?{query}&lang=en-gb'
+        logger.info(f'getting search results for: {query_url}')
 
         driver = None
-        has_page = False
-        while not has_page:
+        while driver is None:
             driver = self.__get_page(self.__get_driver(), query_url, 'stream-items-id')
-            has_page = driver is not None
 
         # load queried web page
         driver.get(query_url)

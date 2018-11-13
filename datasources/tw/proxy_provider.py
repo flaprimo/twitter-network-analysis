@@ -6,6 +6,7 @@ from lxml import html
 import logging
 import socket
 import json
+import chromedriver_binary
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,8 @@ class ProxyProvider:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
 
-        driver = webdriver.Chrome(chrome_options=chrome_options)
+        driver = webdriver.Chrome(executable_path=chromedriver_binary.chromedriver_filename,
+                                  chrome_options=chrome_options)
         driver.set_window_position(0, 0)
         driver.set_window_size(1024, 768)
 

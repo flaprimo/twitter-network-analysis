@@ -59,14 +59,16 @@ class PipelineIO:
         return debug_output
 
     @staticmethod
-    def load_input(stage_input_expected, stage_input, input_format):
+    def load_input(stage_input_expected, stage_input, input_format=None):
         logger.info('load input')
+
+        # if all inputs already present in memory -> return input
         if stage_input is not None and \
                 isinstance(stage_input, dict) and \
                 all(i in stage_input for i in stage_input_expected):
             logger.debug('input present')
             return stage_input
-
+        # if some input not present in memory -> load input from disk
         else:
             logger.debug('input not present, loading input')
             return PipelineIO.__read_files(input_format)

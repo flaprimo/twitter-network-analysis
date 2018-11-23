@@ -48,14 +48,13 @@ class Tw:
 def main():
     tw = Tw()
 
-    # query example
-    # hashtags = '#DataScience AND #healthcare'
-    # other_params = {
-    #     'from': 'pmissier',
-    #     'since': '2018-11-05',
-    #     'until': '2018-11-08'
-    # }
-    # q = twitter_dynamic_scraper.query(hashtags=hashtags, other_params=other_params)
+    # complex query example
+    # query = query_builder(
+    #     '#DataScience AND #healthcare',
+    #     people={'from': 'pmissier'},
+    #     date={'since': '2018-11-05', 'until': '2018-11-08'})
+    #
+    # q = tw.tw_dynamic_scraper.search(query, n=100)
 
     hashtags = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', '#ECMLPKDD2018',
                 '#emnlp2018', '#kdd', '#msignite2018', '#ona18', '#recsys']

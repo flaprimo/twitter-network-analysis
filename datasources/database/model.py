@@ -13,6 +13,7 @@ class User(Base):
     join_date = Column(Date)
 
     profile = relationship('Profile', uselist=False, back_populates='user')
+    user_community = relationship('UserCommunity', uselist=False, back_populates='user')
 
     def __repr__(self):
         return f'<User(user_name={self.user_name}, user_name={self.join_date})>'
@@ -22,7 +23,7 @@ class Profile(Base):
     __tablename__ = 'profiles'
 
     id = Column(Integer, primary_key=True)
-    # user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
     rank = Column(Float, CheckConstraint('rank>=0'))
 
     user = relationship('User', uselist=False, back_populates='profile')
@@ -35,9 +36,10 @@ class Event(Base):
     __tablename__ = 'events'
 
     id = Column(Integer, primary_key=True)
-    # graph_id = Column(Integer, ForeignKey('graph.id'))
-    name = Column(String(20))
-    date = Column(Date)
+    graph_id = Column(Integer, ForeignKey('graphs.id'))
+    name = Column(String(20), unique=True)
+    start_date = Column(Date)
+    end_date = Column(Date)
     location = Column(String(20))
     hashtags = Column(String(20))
 
@@ -46,7 +48,8 @@ class Event(Base):
     def __repr__(self):
         return f'<Event(' \
             f'name={self.name}, ' \
-            f'date={self.date}, ' \
+            f'start_date={self.start_date}, ' \
+            f'end_date={self.end_date}, ' \
             f'location={self.location}, ' \
             f'hashtags={self.hashtags})>'
 
@@ -55,8 +58,8 @@ class Graph(Base):
     __tablename__ = 'graphs'
 
     id = Column(Integer, primary_key=True)
-    # event_id = Column(Integer, ForeignKey('event.id'))
-    # partition_id = Column(Integer, ForeignKey('partition.id'))
+    # event_id = Column(Integer, ForeignKey('events.id'))
+    partition_id = Column(Integer, ForeignKey('partitions.id'))
     no_nodes = Column(Integer, CheckConstraint('no_nodes>=0'))
     no_edges = Column(Integer, CheckConstraint('no_edges>=0'))
     avg_degree = Column(Float, CheckConstraint('avg_degree>=0'))
@@ -87,7 +90,7 @@ class Partition(Base):
     __tablename__ = 'partitions'
 
     id = Column(Integer, primary_key=True)
-    # graph_id = Column(Integer, ForeignKey('graph.id'))
+    # graph_id = Column(Integer, ForeignKey('graphs.id'))
     internal_degree = Column(Float, CheckConstraint('internal_degree>=0'))
     edges_inside = Column(Float, CheckConstraint('edges_inside>=0'))
     normalized_cut = Column(Float, CheckConstraint('normalized_cut>=0'))
@@ -122,10 +125,11 @@ class Community(Base):
     __tablename__ = 'communities'
 
     id = Column(Integer, primary_key=True)
-    partition_id = Column(Integer, ForeignKey('partition.id'))
+    partition_id = Column(Integer, ForeignKey('partitions.id'))
     name = Column(Integer, CheckConstraint('name>=0'))
 
     partition = relationship('Partition', back_populates='community')
+    user_community = relationship('UserCommunity', uselist=False, back_populates='community')
 
     def __repr__(self):
         return f'<Event(name={self.name})>'
@@ -135,6 +139,8 @@ class UserCommunity(Base):
     __tablename__ = 'user_community'
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    community_id = Column(Integer, ForeignKey('communities.id'))
     rel_indegree = Column(Float, CheckConstraint('rel_indegree>=0'))
     rel_indegree_centrality = Column(Float, CheckConstraint('rel_indegree_centrality>=0'))
     rel_hindex = Column(Float, CheckConstraint('rel_hindex>=0'))

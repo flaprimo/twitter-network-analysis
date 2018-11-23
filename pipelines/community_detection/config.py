@@ -2,14 +2,14 @@ import os
 
 
 class Config:
-    def __init__(self, data_filename, cd_config):
+    def __init__(self, project_name, data_filename, cd_config):
         self.data_filename = data_filename
 
         self.cd_config = cd_config
 
         self.base_dir = {
             'input': 'data',
-            'output': 'output/community_detection'
+            'output': f'output/{project_name}/community_detection'
         }
 
         self.data_path = f'{self.base_dir["input"]}/{data_filename}.csv'

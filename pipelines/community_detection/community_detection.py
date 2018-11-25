@@ -1,9 +1,7 @@
 import pandas as pd
 import networkx as nx
-import demon as d
 import logging
 import helper
-import infomap
 from datasources import PipelineIO
 
 logger = logging.getLogger(__name__)
@@ -12,7 +10,7 @@ logger = logging.getLogger(__name__)
 class CommunityDetection:
     def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.input = PipelineIO.load_input(['edges', 'nodes'], stage_input, stage_input_format)
+        self.input = PipelineIO.load_input(['edges', 'nodes', 'graph'], stage_input, stage_input_format)
         self.output_prefix = 'cd'
         self.output_format = {
             'edges': {
@@ -64,10 +62,9 @@ class CommunityDetection:
         logger.info(f'EXEC for {self.config.data_filename}')
 
         if not self.output:
-            self.output['graph'] = self.__get_graph(self.input['edges'], self.input['nodes'])
-            self.output['communities'] = self.__find_communities(self.output['graph'], self.config.cd_config)
+            self.output['communities'] = self.__find_communities(self.input['graph'], self.config.cd_config)
             self.output['graph'], self.output['nodes'], self.output['edges'] = \
-                self.__remove_lone_nodes(self.output['communities'], self.output['graph'],
+                self.__remove_lone_nodes(self.output['communities'], self.input['graph'],
                                          self.input['nodes'], self.input['edges'])
             self.output['nodes'] = self.__add_community_to_nodes(self.output['communities'], self.input['nodes'])
             self.output['graph'] = self.__add_community_to_graph(self.output['communities'], self.output['graph'])
@@ -79,20 +76,10 @@ class CommunityDetection:
         return self.output, self.output_format
 
     @staticmethod
-    def __get_graph(edges, nodes):
-        graph = nx.from_pandas_edgelist(edges,
-                                        source='source_id', target='target_id', edge_attr=['weight'],
-                                        create_using=nx.DiGraph())
-        nx.set_node_attributes(graph, pd.Series(nodes.user_name).to_dict(), 'user_name')
-
-        logger.info('get graph')
-        logger.debug(helper.graph_tostring(graph, 3, 3))
-
-        return graph
-
-    @staticmethod
     def __find_communities(graph, cd_config):
         def demon_alg(g, epsilon, min_community_size):
+            import demon as d
+
             dm = d.Demon(graph=g,
                          epsilon=epsilon,
                          min_community_size=min_community_size)
@@ -110,9 +97,12 @@ class CommunityDetection:
             return pd.DataFrame(c)
 
         def infomap_alg(g):
+            import infomap
+
             im = infomap.Infomap('--two-level --directed --silent')
             im_network = im.network()
 
+            # add edges and weights to network
             for e in g.edges(data=True):
                 im_network.addLink(e[0], e[1], e[2]['weight'])
 
@@ -120,9 +110,22 @@ class CommunityDetection:
 
             return pd.DataFrame([{'user_id': n.physicalId, 'community': n.moduleIndex()} for n in im.iterLeafNodes()])
 
+        def girvan_newman_alg(g):
+            from networkx.algorithms.community import girvan_newman
+
+            results = girvan_newman(g)
+
+            c = []
+            for c_name, c_nodes in enumerate(results):
+                for n in c_nodes:
+                    c.append({'user_id': n, 'community': c_name})
+
+            return pd.DataFrame(c)
+
         cd_algs = {
             'demon': demon_alg,
-            'infomap': infomap_alg
+            'infomap': infomap_alg,
+            'girvan_newman': girvan_newman_alg
         }
 
         try:

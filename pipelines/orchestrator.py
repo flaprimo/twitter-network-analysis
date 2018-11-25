@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 
 import helper
-from pipelines import community_detection, profiling, event_detection
+from pipelines import event_detection, network_creation, community_detection, profiling
 import logging
 import time
 
@@ -17,6 +17,7 @@ class Orchestrator:
         self.events = events
 
         self.ed_configs = [event_detection.Config(self.project_name, e) for e in events.index]
+        self.nc_configs = [network_creation.Config(self.project_name, e) for e in events.index]
         self.cd_configs = [community_detection.Config(self.project_name, e, cd_config) for e in events.index]
         self.p_configs = [profiling.Config(self.project_name, c.data_filename, c.postfix) for c in self.cd_configs]
         logger.info(f'INIT orchestrator for {self.project_name}')
@@ -26,31 +27,48 @@ class Orchestrator:
         logger.info(f'EXEC orchestrator for {self.project_name}')
 
         # EVENT_DETECTION
-        ed_results = {}
-        for c in self.ed_configs:
-            print(c.data_filename)
-            print(self.events[self.events.index == c.data_filename])
+        # ed_results = {}
+        # for c in self.ed_configs:
+        #     print(c.data_filename)
+        #     print(self.events[self.events.index == c.data_filename])
+        #
+        #     stage_input = {'event': self.events[self.events.index == c.data_filename]}
+        #     stage_input_format = {
+        #             'event': {
+        #                 'name': str,
+        #                 'start_date': str,
+        #                 'end_date': str,
+        #                 'location': str,
+        #                 'hashtags': str
+        #             }
+        #         }
+        #
+        #     ed_results[c.data_filename] = self.ed_pipeline(c, (stage_input, stage_input_format))
+        #
+        # for r in ed_results:
+        #     print(r)
 
-            stage_input = {'event': self.events[self.events.index == c.data_filename]}
-            stage_input_format = {
-                    'event': {
-                        'name': str,
-                        'start_date': str,
-                        'end_date': str,
-                        'location': str,
-                        'hashtags': str
-                    }
-                }
+        # NETWORK CREATION
+        stage_input = {  # TODO: mock, need actual implementation
+            'stream': None
+        }
+        stage_input_format = {}
+        nc_results = {c.data_filename: self.nc_pipeline(c, (stage_input, stage_input_format))
+                      for c in self.nc_configs}
 
-            ed_results[c.data_filename] = self.ed_pipeline(c, (stage_input, stage_input_format))
-
-        for r in ed_results:
+        for r in nc_results:
             print(r)
 
         # COMMUNITY DETECTION
         # with ProcessPoolExecutor() as executor:
         #     cd_results = {c.data_filename: r
-        #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs))}
+        #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs, ...))}
+
+        cd_results = {c.data_filename: self.cd_pipeline(c, nc_results[c.data_filename])
+                      for c in self.cd_configs}
+
+        for r in cd_results:
+            print(r)
 
         # PROFILING
         # p_results = {c.data_filename: self.p_pipeline(c, cd_results[c.data_filename])
@@ -70,8 +88,13 @@ class Orchestrator:
         return p.execute()
 
     @staticmethod
-    def cd_pipeline(config):
-        cd = community_detection.PipelineManager(config)
+    def nc_pipeline(config, input_stage):
+        p = network_creation.PipelineManager(config, input_stage)
+        return p.execute()
+
+    @staticmethod
+    def cd_pipeline(config, input_stage):
+        cd = community_detection.PipelineManager(config, input_stage)
         return cd.execute()
 
     @staticmethod
@@ -83,6 +106,9 @@ class Orchestrator:
 
 
 def main():
+    # project_name = 'uk_healthcare'
+    project_name = 'datascience_conferences'
+
     events_dtype = {
         'name': str,
         'start_date': str,
@@ -90,24 +116,19 @@ def main():
         'location': str,
         'hashtags': str
     }
-    events = pd.read_csv('input/uk_healthcare.csv', dtype=events_dtype,
+    events = pd.read_csv(f'input/{project_name}.csv', dtype=events_dtype,
                          parse_dates=['start_date', 'end_date'], index_col='name',
                          date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d'))
     events['start_date'] = events['start_date'].apply(lambda x: x.date())
     events['end_date'] = events['end_date'].apply(lambda x: x.date())
-    # print(helper.df_tostring(events))
 
-    # datasets = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', 'ECMLPKDD2018',
-    #             'emnlp2018', 'kdd', 'msignite2018', 'ona18', 'recsys']
-    # datasets = ['kdd']
     # cd_config = ('infomap', {})
-
     cd_config = ('demon', {
         'epsilon': 0.25,
         'min_community_size': 3
     })
 
-    o = Orchestrator('uk_healthcare', events, cd_config)
+    o = Orchestrator(project_name, events, cd_config)
     o.execute()
 
 

@@ -1,12 +1,6 @@
 import logging
-
-from sqlalchemy.exc import IntegrityError
-
 import helper
 from datasources import PipelineIO
-from datasources.database.database import session_scope
-from datasources.database.model import Event
-from datasources.tw.helper import query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -14,22 +8,24 @@ logger = logging.getLogger(__name__)
 class CreateNetwork:
     def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.input = PipelineIO.load_input(['event'], stage_input, stage_input_format)
-        self.output_prefix = 'ce'
+        self.input = PipelineIO.load_input(['stream'], stage_input, stage_input_format)
+        self.output_prefix = 'cn'
         self.output_format = {
-            'event': {
+            'network': {
                 'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'event'),
+                'path': self.config.get_path(self.output_prefix, 'network'),
                 'r_kwargs': {
                     'dtype': {
-                        'name': str,
-                        'start_date': str,
-                        'end_date': str,
-                        'location': str,
-                        'hashtags': str
-                    },
+                        'cod': str,
+                        'user_from_name': str,
+                        'user_from_fav_count': 'uint16',
+                        'user_rt_fav_count': 'uint16',
+                        'user_to_name': str,
+                        'text': str,
+                        'weights': 'uint16'
+                    }
                 },
-                'w_kwargs': {'index': False}
+                'w_kwargs': {}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -39,9 +35,7 @@ class CreateNetwork:
         logger.info(f'EXEC for {self.config.data_filename}')
 
         if not self.output:
-            self.output['event'] = self.input['event']
-            self.__persist_event(self.input['event'])
-            self.__harvest_event(self.input['event'])
+            self.output['network'] = self.__create_network(self.input['stream'])
 
             PipelineIO.save_output(self.output, self.output_format)
 
@@ -50,35 +44,6 @@ class CreateNetwork:
         return self.output, self.output_format
 
     @staticmethod
-    def __persist_event(event):
-        logger.info('persist event')
-        event_record = event.reset_index().to_dict('records')[0]
-        event_entity = Event(**event_record)
-
-        try:
-            with session_scope() as session:
-                session.add(event_entity)
-            logger.debug('event successfully persisted')
-        except IntegrityError:
-            logger.debug('event already exists or constraint is violated and could not be added')
-
-        # rs = database.engine.execute("SELECT * FROM events").fetchall()
-        #
-        # for r in rs:
-        #     print(r)
-
-    @staticmethod
-    def __harvest_event(event):
-        logger.info('harvest event')
-        logger.debug('dropped columns:\n' + helper.df_tostring(event))
-
-        event_record = event.to_dict('records')[0]
-
-        query = query_builder(
-            ' OR '.join(event_record['hashtags'].split()),
-            date={'since': event_record['start_date'], 'until': event_record['end_date']})
-
-
-        # TODO: perform query
-
+    def __create_network(twstream):
+        logger.info('create network')
         return None

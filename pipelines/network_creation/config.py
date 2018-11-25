@@ -8,7 +8,7 @@ class Config:
 
         self.base_dir = {
             'input': '',
-            'output': f'output/{project_name}/event_detection'
+            'output': f'output/{project_name}/network_creation'
         }
 
     def get_path(self, stage, file_name, file_type='csv'):

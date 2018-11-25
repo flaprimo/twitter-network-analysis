@@ -19,7 +19,7 @@ class Orchestrator:
         self.ed_configs = [event_detection.Config(self.project_name, e) for e in events.index]
         self.nc_configs = [network_creation.Config(self.project_name, e) for e in events.index]
         self.cd_configs = [community_detection.Config(self.project_name, e, cd_config) for e in events.index]
-        self.p_configs = [profiling.Config(self.project_name, c.data_filename, c.postfix) for c in self.cd_configs]
+        self.p_configs = [profiling.Config(self.project_name, c.dataset_name, c.postfix) for c in self.cd_configs]
         logger.info(f'INIT orchestrator for {self.project_name}')
 
     def execute(self):
@@ -29,10 +29,10 @@ class Orchestrator:
         # EVENT_DETECTION
         # ed_results = {}
         # for c in self.ed_configs:
-        #     print(c.data_filename)
-        #     print(self.events[self.events.index == c.data_filename])
+        #     print(c.dataset_name)
+        #     print(self.events[self.events.index == c.dataset_name])
         #
-        #     stage_input = {'event': self.events[self.events.index == c.data_filename]}
+        #     stage_input = {'event': self.events[self.events.index == c.dataset_name]}
         #     stage_input_format = {
         #             'event': {
         #                 'name': str,
@@ -43,7 +43,7 @@ class Orchestrator:
         #             }
         #         }
         #
-        #     ed_results[c.data_filename] = self.ed_pipeline(c, (stage_input, stage_input_format))
+        #     ed_results[c.dataset_name] = self.ed_pipeline(c, (stage_input, stage_input_format))
         #
         # for r in ed_results:
         #     print(r)
@@ -53,7 +53,7 @@ class Orchestrator:
             'stream': None
         }
         stage_input_format = {}
-        nc_results = {c.data_filename: self.nc_pipeline(c, (stage_input, stage_input_format))
+        nc_results = {c.dataset_name: self.nc_pipeline(c, (stage_input, stage_input_format))
                       for c in self.nc_configs}
 
         for r in nc_results:
@@ -61,17 +61,17 @@ class Orchestrator:
 
         # COMMUNITY DETECTION
         # with ProcessPoolExecutor() as executor:
-        #     cd_results = {c.data_filename: r
+        #     cd_results = {c.dataset_name: r
         #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs, ...))}
 
-        cd_results = {c.data_filename: self.cd_pipeline(c, nc_results[c.data_filename])
+        cd_results = {c.dataset_name: self.cd_pipeline(c, nc_results[c.dataset_name])
                       for c in self.cd_configs}
 
         for r in cd_results:
             print(r)
 
         # PROFILING
-        # p_results = {c.data_filename: self.p_pipeline(c, cd_results[c.data_filename])
+        # p_results = {c.dataset_name: self.p_pipeline(c, cd_results[c.dataset_name])
         #              for c in self.p_configs}
 
         # for r in p_results:
@@ -102,7 +102,7 @@ class Orchestrator:
         p = profiling.PPipelineManagerBase(config, input_stage)
         p.execute()
 
-        return f'finished profiling on {config.data_filename}!'
+        return f'finished profiling on {config.dataset_name}!'
 
 
 def main():

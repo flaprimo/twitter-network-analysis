@@ -38,10 +38,10 @@ class PreProcessing:
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
-        logger.info(f'INIT for {self.config.data_filename}')
+        logger.info(f'INIT for {self.config.dataset_name}')
 
     def execute(self):
-        logger.info(f'EXEC for {self.config.data_filename}')
+        logger.info(f'EXEC for {self.config.dataset_name}')
 
         if not self.output:
             self.output['edges'] = self.__drop_columns(self.input['data'])
@@ -51,7 +51,7 @@ class PreProcessing:
 
             PipelineIO.save_output(self.output, self.output_format)
 
-        logger.info(f'END for {self.config.data_filename}')
+        logger.info(f'END for {self.config.dataset_name}')
 
         return self.output, self.output_format
 

@@ -29,17 +29,17 @@ class CreateNetwork:
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
-        logger.info(f'INIT for {self.config.data_filename}')
+        logger.info(f'INIT for {self.config.dataset_name}')
 
     def execute(self):
-        logger.info(f'EXEC for {self.config.data_filename}')
+        logger.info(f'EXEC for {self.config.dataset_name}')
 
         if not self.output:
             self.output['network'] = self.__create_network(self.input['stream'])
 
             PipelineIO.save_output(self.output, self.output_format)
 
-        logger.info(f'END for {self.config.data_filename}')
+        logger.info(f'END for {self.config.dataset_name}')
 
         return self.output, self.output_format
 

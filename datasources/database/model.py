@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Float, String, Boolean, UniqueConstraint, Date, ForeignKey, CheckConstraint
+from sqlalchemy import Column, Integer, Float, String, Boolean, Date, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
@@ -12,8 +12,10 @@ class User(Base):
     user_name = Column(String(20), unique=True)
     join_date = Column(Date)
 
-    profile = relationship('Profile', uselist=False, back_populates='user')
-    user_community = relationship('UserCommunity', uselist=False, back_populates='user')
+    profile = relationship('Profile', uselist=False, back_populates='user',
+                           cascade='all, delete-orphan', single_parent=True)
+    user_communities = relationship('UserCommunity', back_populates='user',
+                                    cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<User(user_name={self.user_name}, user_name={self.join_date})>'
@@ -26,7 +28,7 @@ class Profile(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     rank = Column(Float, CheckConstraint('rank>=0'))
 
-    user = relationship('User', uselist=False, back_populates='profile')
+    user = relationship('User', back_populates='profile')
 
     def __repr__(self):
         return f'<User(user={self.user}, rank={self.rank})>'
@@ -36,14 +38,14 @@ class Event(Base):
     __tablename__ = 'events'
 
     id = Column(Integer, primary_key=True)
-    graph_id = Column(Integer, ForeignKey('graphs.id'))
     name = Column(String(20), unique=True)
     start_date = Column(Date)
     end_date = Column(Date)
     location = Column(String(20))
     hashtags = Column(String(20))
 
-    graph = relationship('Graph', uselist=False, back_populates='event')
+    graph = relationship('Graph', uselist=False, back_populates='event',
+                         cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<Event(' \
@@ -58,20 +60,20 @@ class Graph(Base):
     __tablename__ = 'graphs'
 
     id = Column(Integer, primary_key=True)
-    # event_id = Column(Integer, ForeignKey('events.id'))
-    partition_id = Column(Integer, ForeignKey('partitions.id'))
+    event_id = Column(Integer, ForeignKey('events.id'))
     no_nodes = Column(Integer, CheckConstraint('no_nodes>=0'))
     no_edges = Column(Integer, CheckConstraint('no_edges>=0'))
     avg_degree = Column(Float, CheckConstraint('avg_degree>=0'))
-    avg_weight_degree = Column(Float, CheckConstraint('avg_weight_degree>=0'))
+    avg_weighted_degree = Column(Float, CheckConstraint('avg_weighted_degree>=0'))
     density = Column(Float, CheckConstraint('density>=0'))
     connected = Column(Boolean)
-    strongly_conn_component = Column(Float, CheckConstraint('strongly_conn_component>=0'))
+    strongly_conn_components = Column(Float, CheckConstraint('strongly_conn_components>=0'))
     avg_clustering = Column(Float, CheckConstraint('avg_clustering>=0'))
-    assortativity = Column(Float, CheckConstraint('assortativity>=0'))
+    assortativity = Column(Float)
 
-    event = relationship('Event', uselist=False, back_populates='graph')
-    partition = relationship('Partition', uselist=False, back_populates='graph')
+    event = relationship('Event', back_populates='graph')
+    partition = relationship('Partition', uselist=False, back_populates='graph',
+                             cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<Graph(' \
@@ -79,10 +81,10 @@ class Graph(Base):
             f'no_edges={self.no_edges}, ' \
             f'avg_degree={self.avg_degree}, ' \
             f'avg_degree={self.avg_degree}, ' \
-            f'avg_weight_degree={self.avg_weight_degree}, ' \
+            f'avg_weighted_degree={self.avg_weighted_degree}, ' \
             f'density={self.density}, ' \
             f'connected={self.connected}, ' \
-            f'strongly_conn_component={self.strongly_conn_component}, ' \
+            f'strongly_conn_components={self.strongly_conn_components}, ' \
             f'avg_clustering={self.avg_clustering})>'
 
 
@@ -90,8 +92,8 @@ class Partition(Base):
     __tablename__ = 'partitions'
 
     id = Column(Integer, primary_key=True)
-    # graph_id = Column(Integer, ForeignKey('graphs.id'))
-    internal_degree = Column(Float, CheckConstraint('internal_degree>=0'))
+    graph_id = Column(Integer, ForeignKey('graphs.id'))
+    internal_density = Column(Float, CheckConstraint('internal_density>=0'))
     edges_inside = Column(Float, CheckConstraint('edges_inside>=0'))
     normalized_cut = Column(Float, CheckConstraint('normalized_cut>=0'))
     avg_degree = Column(Float, CheckConstraint('avg_degree>=0'))
@@ -103,12 +105,12 @@ class Partition(Base):
     avg_odf = Column(Float, CheckConstraint('avg_odf>=0'))
     flake_odf = Column(Float, CheckConstraint('flake_odf>=0'))
 
-    graph = relationship('Graph', uselist=False, back_populates='partition')
-    community = relationship('Community', uselist=False, back_populates='partition')
+    graph = relationship('Graph', back_populates='partition')
+    communities = relationship('Community', back_populates='partition', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Partition(' \
-            f'internal_degree={self.internal_degree}, ' \
+            f'internal_density={self.internal_density}, ' \
             f'edges_inside={self.edges_inside}, ' \
             f'normalized_cut={self.normalized_cut}, ' \
             f'avg_degree={self.avg_degree}, ' \
@@ -128,11 +130,12 @@ class Community(Base):
     partition_id = Column(Integer, ForeignKey('partitions.id'))
     name = Column(Integer, CheckConstraint('name>=0'))
 
-    partition = relationship('Partition', back_populates='community')
-    user_community = relationship('UserCommunity', uselist=False, back_populates='community')
+    partition = relationship('Partition', back_populates='communities')
+    user_communities = relationship('UserCommunity', back_populates='community',
+                                    cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
-        return f'<Event(name={self.name})>'
+        return f'<Community(name={self.name})>'
 
 
 class UserCommunity(Base):
@@ -145,8 +148,8 @@ class UserCommunity(Base):
     rel_indegree_centrality = Column(Float, CheckConstraint('rel_indegree_centrality>=0'))
     rel_hindex = Column(Float, CheckConstraint('rel_hindex>=0'))
 
-    user = relationship('User', back_populates='user_community')
-    community = relationship('Community', back_populates='user_community')
+    user = relationship('User', back_populates='user_communities')
+    community = relationship('Community', back_populates='user_communities')
 
     def __repr__(self):
         return f'<UserCommunity(' \

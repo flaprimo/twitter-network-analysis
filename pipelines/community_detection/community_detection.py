@@ -3,6 +3,9 @@ import networkx as nx
 import logging
 import helper
 from datasources import PipelineIO
+from sqlalchemy.exc import IntegrityError
+from datasources.database.database import session_scope
+from datasources.database.model import User
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ class CommunityDetection:
                                          self.input['nodes'], self.input['edges'])
             self.output['nodes'] = self.__add_community_to_nodes(self.output['communities'], self.input['nodes'])
             self.output['graph'] = self.__add_community_to_graph(self.output['communities'], self.output['graph'])
+            self.__persist_users(self.output['nodes'])
 
             PipelineIO.save_output(self.output, self.output_format)
 
@@ -187,3 +191,24 @@ class CommunityDetection:
         logger.debug(helper.graph_tostring(graph, 3, 3))
 
         return graph
+
+    @staticmethod
+    def __persist_users(nodes):
+        logger.info('persist graph')
+        user_name_list = nodes['user_name'].tolist()
+
+        try:
+            with session_scope() as session:
+                # filter users already present
+                users_to_filter = session.query(User.user_name)\
+                    .filter(User.user_name.in_(user_name_list)).all()
+                users_to_filter = [u[0] for u in users_to_filter]
+                user_name_list = list(filter(lambda x: x not in users_to_filter, user_name_list))
+
+                # persist new users
+                user_records = [{'user_name': u} for u in user_name_list]
+                user_entities = [User(**u) for u in user_records]
+                session.add_all(user_entities)
+            logger.debug('users successfully persisted')
+        except IntegrityError:
+            logger.debug('user already exists or constraint is violated and could not be added')

@@ -5,6 +5,9 @@ import helper
 import numpy as np
 import pquality.PartitionQuality as Pq
 from datasources import PipelineIO
+from sqlalchemy.exc import IntegrityError
+from datasources.database.database import session_scope
+from datasources.database.model import User, Partition, Graph, Event, Community
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +117,8 @@ class Metrics:
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
             self.output['cumsum_deg_dist'] = self.__cumsum_deg_dist(self.input['graph'])
             self.output['graph'], self.output['nodes'] = self.__node_metrics(self.input['graph'], self.input['nodes'])
+            self.__persist_partition(self.output['pquality'], self.config.dataset_name)
+            self.__persist_communities(self.output['partition_summary'], self.config.dataset_name)
 
             PipelineIO.save_output(self.output, self.output_format)
 
@@ -265,3 +270,38 @@ class Metrics:
         logger.debug(helper.df_tostring(nodes, 5))
 
         return graph, nodes
+
+    @staticmethod
+    def __persist_partition(partition, dataset_name):
+        logger.info('persist partition')
+
+        partition_record = {r['index']: r['avg']
+                            for r in partition['avg'].reset_index().to_dict('records')}
+
+        try:
+            with session_scope() as session:
+                graph_entity = session.query(Graph).join(Graph.event)\
+                    .filter(Event.name == dataset_name).first()
+                partition_entity = Partition(**partition_record, graph=graph_entity)
+                session.add(partition_entity)
+            logger.debug('partition successfully persisted')
+        except IntegrityError:
+            logger.debug('partition already exists or constraint is violated and could not be added')
+
+    @staticmethod
+    def __persist_communities(partition_summary, dataset_name):
+        logger.info('persist communities')
+
+        communities = [{'name': c} for c in partition_summary.index.tolist()]
+
+        try:
+            with session_scope() as session:
+                partition_entity = session.query(Partition).join(Partition.graph).join(Graph.event)\
+                    .filter(Event.name == dataset_name).first()
+
+                community_entities = [Community(**c, partition=partition_entity)
+                                      for c in communities]
+                session.add_all(community_entities)
+            logger.debug('communities successfully persisted')
+        except IntegrityError:
+            logger.debug('community already exists or constraint is violated and could not be added')

@@ -1,8 +1,11 @@
 import pandas as pd
 import networkx as nx
 import logging
+from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
+from datasources.database.database import session_scope
+from datasources.database.model import Graph, Event
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +92,7 @@ class Metrics:
             self.output['graph'] = self.input['graph']
             self.output['nodes'] = self.input['nodes']
             self.output['edges'] = self.input['edges']
+            self.__persist_graph(self.output['graph_summary'], self.config.dataset_name)
 
             PipelineIO.save_output(self.output, self.output_format)
 
@@ -144,3 +148,20 @@ class Metrics:
         logger.debug(helper.df_tostring(cumsum_deg_dist_df, 5))
 
         return cumsum_deg_dist_df
+
+    @staticmethod
+    def __persist_graph(graph, dataset_name):
+        logger.info('persist graph')
+        graph_record = graph.to_dict('records')[0]
+
+        try:
+            with session_scope() as session:
+                event_entity = session.query(Event).filter(Event.name == dataset_name).first()
+                graph_entity = Graph(**graph_record, event=event_entity)
+                session.add(graph_entity)
+            logger.debug('graph successfully persisted')
+        except IntegrityError:
+            logger.debug('graph already exists or constraint is violated and could not be added')
+
+
+

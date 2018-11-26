@@ -62,11 +62,6 @@ class CreateEvent:
         except IntegrityError:
             logger.debug('event already exists or constraint is violated and could not be added')
 
-        # rs = database.engine.execute("SELECT * FROM events").fetchall()
-        #
-        # for r in rs:
-        #     print(r)
-
     @staticmethod
     def __harvest_event(event):
         logger.info('harvest event')
@@ -77,7 +72,6 @@ class CreateEvent:
         query = query_builder(
             ' OR '.join(event_record['hashtags'].split()),
             date={'since': event_record['start_date'], 'until': event_record['end_date']})
-
 
         # TODO: perform query
 

@@ -27,26 +27,20 @@ class Orchestrator:
         logger.info(f'EXEC orchestrator for {self.project_name}')
 
         # EVENT_DETECTION
-        # ed_results = {}
-        # for c in self.ed_configs:
-        #     print(c.dataset_name)
-        #     print(self.events[self.events.index == c.dataset_name])
-        #
-        #     stage_input = {'event': self.events[self.events.index == c.dataset_name]}
-        #     stage_input_format = {
-        #             'event': {
-        #                 'name': str,
-        #                 'start_date': str,
-        #                 'end_date': str,
-        #                 'location': str,
-        #                 'hashtags': str
-        #             }
-        #         }
-        #
-        #     ed_results[c.dataset_name] = self.ed_pipeline(c, (stage_input, stage_input_format))
-        #
-        # for r in ed_results:
-        #     print(r)
+        ed_results = {}
+        for c in self.ed_configs:
+            stage_input = {'event': self.events[self.events.index == c.dataset_name]}
+            stage_input_format = {
+                    'event': {
+                        'name': str,
+                        'start_date': str,
+                        'end_date': str,
+                        'location': str,
+                        'hashtags': str
+                    }
+                }
+
+            ed_results[c.dataset_name] = self.ed_pipeline(c, (stage_input, stage_input_format))
 
         # NETWORK CREATION
         stage_input = {  # TODO: mock, need actual implementation
@@ -56,13 +50,10 @@ class Orchestrator:
         nc_results = {c.dataset_name: self.nc_pipeline(c, (stage_input, stage_input_format))
                       for c in self.nc_configs}
 
-        for r in nc_results:
-            print(r)
-
         # COMMUNITY DETECTION
         # with ProcessPoolExecutor() as executor:
         #     cd_results = {c.dataset_name: r
-        #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs, ...))}
+        #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs, nc_results))}
 
         cd_results = {c.dataset_name: self.cd_pipeline(c, nc_results[c.dataset_name])
                       for c in self.cd_configs}

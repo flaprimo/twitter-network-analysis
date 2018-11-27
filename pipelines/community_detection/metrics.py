@@ -7,7 +7,7 @@ import pquality.PartitionQuality as Pq
 from datasources import PipelineIO
 from sqlalchemy.exc import IntegrityError
 from datasources.database.database import session_scope
-from datasources.database.model import User, Partition, Graph, Event, Community
+from datasources.database.model import User, Partition, Graph, Event, Community, UserCommunity
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +119,7 @@ class Metrics:
             self.output['graph'], self.output['nodes'] = self.__node_metrics(self.input['graph'], self.input['nodes'])
             self.__persist_partition(self.output['pquality'], self.config.dataset_name)
             self.__persist_communities(self.output['partition_summary'], self.config.dataset_name)
+            self.__persist_usercommunities(self.output['nodes'], self.config.dataset_name)
 
             PipelineIO.save_output(self.output, self.output_format)
 
@@ -305,3 +306,33 @@ class Metrics:
             logger.debug('communities successfully persisted')
         except IntegrityError:
             logger.debug('community already exists or constraint is violated and could not be added')
+
+    @staticmethod
+    def __persist_usercommunities(nodes, dataset_name):
+        logger.info('persist usercommunities')
+        user_records = nodes.to_dict('records')
+
+        try:
+            with session_scope() as session:
+                # get all commmunities for current dataset partition
+                community_entities = session.query(Community)\
+                    .join(Community.partition).join(Partition.graph).join(Graph.event)\
+                    .filter(Event.name == dataset_name).all()
+
+                # get all users for current dataset
+                user_entities = session.query(User).join(Partition.graph).join(Graph.event)\
+                    .filter(User.user_name.in_(list(set([u['user_name'] for u in user_records])))).all()
+
+                usercommunity_entities = []
+                for u in user_records:
+                    # get user and community entities and usercommunity info
+                    community_entity = next(filter(lambda x: x.name == u['community'], community_entities), None)
+                    user_entity = next(filter(lambda x: x.user_name == u['user_name'], user_entities), None)
+                    user_commmunity = {k: u[k] for k in ('indegree', 'indegree_centrality', 'hindex')}
+
+                    # create usercommunity entity
+                    usercommunity_entity = UserCommunity(**user_commmunity, user=user_entity, community=community_entity)
+                    usercommunity_entities.append(usercommunity_entity)
+                session.add_all(usercommunity_entities)
+        except IntegrityError:
+            logger.debug('usercommunity already exists or constraint is violated and could not be added')

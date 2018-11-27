@@ -195,7 +195,7 @@ class CommunityDetection:
     @staticmethod
     def __persist_users(nodes):
         logger.info('persist graph')
-        user_name_list = nodes['user_name'].tolist()
+        user_name_list = list(set(nodes['user_name'].tolist()))
 
         try:
             with session_scope() as session:

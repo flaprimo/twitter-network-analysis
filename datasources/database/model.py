@@ -18,7 +18,7 @@ class User(Base):
                                     cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
-        return f'<User(user_name={self.user_name}, user_name={self.join_date})>'
+        return f'<User(user_name={self.user_name}, join_date={self.join_date})>'
 
 
 class Profile(Base):
@@ -144,15 +144,15 @@ class UserCommunity(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     community_id = Column(Integer, ForeignKey('communities.id'))
-    rel_indegree = Column(Float, CheckConstraint('rel_indegree>=0'))
-    rel_indegree_centrality = Column(Float, CheckConstraint('rel_indegree_centrality>=0'))
-    rel_hindex = Column(Float, CheckConstraint('rel_hindex>=0'))
+    indegree = Column(Integer, CheckConstraint('indegree>=0'))
+    indegree_centrality = Column(Float, CheckConstraint('indegree_centrality>=0'))
+    hindex = Column(Integer, CheckConstraint('hindex>=0'))
 
     user = relationship('User', back_populates='user_communities')
     community = relationship('Community', back_populates='user_communities')
 
     def __repr__(self):
         return f'<UserCommunity(' \
-            f'rel_indegree={self.rel_indegree}, ' \
-            f'rel_indegree_centrality={self.rel_indegree_centrality}, ' \
-            f'rel_hindex={self.rel_hindex})>'
+            f'indegree={self.indegree}, ' \
+            f'indegree_centrality={self.indegree_centrality}, ' \
+            f'hindex={self.hindex})>'

@@ -58,15 +58,12 @@ class Orchestrator:
         cd_results = {c.dataset_name: self.cd_pipeline(c, nc_results[c.dataset_name])
                       for c in self.cd_configs}
 
-        for r in cd_results:
-            print(r)
-
         # PROFILING
-        # p_results = {c.dataset_name: self.p_pipeline(c, cd_results[c.dataset_name])
-        #              for c in self.p_configs}
+        p_results = {c.dataset_name: self.p_pipeline(c, cd_results[c.dataset_name])
+                     for c in self.p_configs}
 
-        # for r in p_results:
-        #     print(r)
+        for r in p_results:
+            print(r)
 
         logger.info(f'END orchestrator for {self.project_name}')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')
@@ -90,15 +87,14 @@ class Orchestrator:
 
     @staticmethod
     def p_pipeline(config, input_stage):
-        p = profiling.PPipelineManagerBase(config, input_stage)
-        p.execute()
-
-        return f'finished profiling on {config.dataset_name}!'
+        p = profiling.PipelineManager(config, input_stage)
+        return p.execute()
 
 
 def main():
     # project_name = 'uk_healthcare'
-    project_name = 'datascience_conferences'
+    # project_name = 'datascience_conferences'
+    project_name = 'datascience_conferences_single'
 
     events_dtype = {
         'name': str,

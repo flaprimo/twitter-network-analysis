@@ -81,7 +81,7 @@ class PipelineIO:
             logger.debug('output present, not executing stage')
             return output
 
-        except IOError as e:
+        except (IOError, ValueError) as e:
             logger.debug(f'output not present, executing stage: {e}')
             return {}
 

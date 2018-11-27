@@ -10,7 +10,14 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     user_name = Column(String(20), unique=True)
+    name = Column(String(60))
     join_date = Column(Date)
+    url = Column(String(160))
+    location = Column(String(160))
+    bio = Column(String(160))
+    tweets = Column(Integer, CheckConstraint('tweets>=0'))
+    following = Column(Integer, CheckConstraint('following>=0'))
+    followers = Column(Integer, CheckConstraint('followers>=0'))
 
     profile = relationship('Profile', uselist=False, back_populates='user',
                            cascade='all, delete-orphan', single_parent=True)
@@ -18,7 +25,16 @@ class User(Base):
                                     cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
-        return f'<User(user_name={self.user_name}, join_date={self.join_date})>'
+        return f'<User(' \
+            f'user_name={self.user_name}, ' \
+            f'name={self.name}, ' \
+            f'join_date={self.join_date}, ' \
+            f'url={self.url}, ' \
+            f'location={self.location}, ' \
+            f'bio={self.bio}, ' \
+            f'tweets={self.tweets}, ' \
+            f'following={self.following}, ' \
+            f'followers={self.followers})>'
 
 
 class Profile(Base):

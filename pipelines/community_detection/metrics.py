@@ -320,7 +320,7 @@ class Metrics:
                     .filter(Event.name == dataset_name).all()
 
                 # get all users for current dataset
-                user_entities = session.query(User).join(Partition.graph).join(Graph.event)\
+                user_entities = session.query(User)\
                     .filter(User.user_name.in_(list(set([u['user_name'] for u in user_records])))).all()
 
                 usercommunity_entities = []
@@ -331,7 +331,8 @@ class Metrics:
                     user_commmunity = {k: u[k] for k in ('indegree', 'indegree_centrality', 'hindex')}
 
                     # create usercommunity entity
-                    usercommunity_entity = UserCommunity(**user_commmunity, user=user_entity, community=community_entity)
+                    usercommunity_entity = UserCommunity(**user_commmunity,
+                                                         user=user_entity, community=community_entity)
                     usercommunity_entities.append(usercommunity_entity)
                 session.add_all(usercommunity_entities)
         except IntegrityError:

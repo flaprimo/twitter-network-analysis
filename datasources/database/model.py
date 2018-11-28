@@ -42,12 +42,17 @@ class Profile(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
+    follower_rank = Column(Float, CheckConstraint('follower_rank>=0'))
+    topical_attachment = Column(Float, CheckConstraint('topical_attachment>=0'))
     rank = Column(Float, CheckConstraint('rank>=0'))
 
     user = relationship('User', back_populates='profile')
 
     def __repr__(self):
-        return f'<User(user={self.user}, rank={self.rank})>'
+        return f'<Profile(' \
+            f'follower_rank={self.follower_rank},' \
+            f'topical_attachment={self.topical_attachment},' \
+            f'rank={self.rank})>'
 
 
 class Event(Base):

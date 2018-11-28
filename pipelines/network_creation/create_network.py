@@ -34,6 +34,7 @@ class CreateNetwork:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
+        # if self.config.check_output or not self.output:
         if not self.output:
             self.output['network'] = self.__create_network(self.input['stream'])
 

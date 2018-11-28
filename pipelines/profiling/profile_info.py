@@ -60,7 +60,7 @@ class ProfileInfo:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        if not self.output:
+        if self.config.check_output or not self.output:
             self.output['userinfo'] = self.__get_userinfo(self.input['nodes'])
             self.output['nodes'] = self.input['nodes']
             self.__persist_userinfo(self.output['userinfo'])

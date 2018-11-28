@@ -13,6 +13,8 @@ class ConfigBase:
 
         self.postfix = ''
 
+        self.check_output = True
+
     def get_path(self, stage, file_name, file_type='csv'):
         directory = f'{self.base_dir["output"]}/{stage}'
 

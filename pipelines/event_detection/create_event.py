@@ -38,7 +38,7 @@ class CreateEvent:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        if not self.output:
+        if self.config.check_output or not self.output:
             self.output['event'] = self.input['event']
             self.__persist_event(self.input['event'])
             self.__harvest_event(self.input['event'])

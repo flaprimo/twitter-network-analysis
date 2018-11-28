@@ -111,7 +111,7 @@ class Metrics:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        if not self.output:
+        if self.config.check_output or not self.output:
             self.output['graph_summary'] = self.__graph_summary(self.input['graph'])
             self.output['partition_summary'] = self.__partition_summary(self.input['graph'], self.input['nodes'])
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])

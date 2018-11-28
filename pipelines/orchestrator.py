@@ -93,8 +93,8 @@ class Orchestrator:
 
 def main():
     # project_name = 'uk_healthcare'
-    # project_name = 'datascience_conferences'
-    project_name = 'datascience_conferences_single'
+    project_name = 'datascience_conferences'
+    # project_name = 'datascience_conferences_single'
 
     events_dtype = {
         'name': str,

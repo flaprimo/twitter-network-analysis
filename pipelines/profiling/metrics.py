@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 from sqlalchemy.exc import IntegrityError
 import helper
-from datasources import PipelineIO, Tw
+from datasources import PipelineIO
 from datasources.database.database import session_scope
 from datasources.database.model import User, Profile
 
@@ -65,7 +65,11 @@ class Metrics:
 
         # normalized follower ratio from https://doi.org/10.1016/j.ipm.2016.04.003
         def follower_rank_alg(followers, following):
-            return followers / (followers + following)
+            try:
+                follower_rank = followers / (followers + following)
+            except ZeroDivisionError:
+                follower_rank = 0
+            return follower_rank
 
         userinfo['follower_rank'] =\
             userinfo.apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)

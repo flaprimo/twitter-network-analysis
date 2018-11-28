@@ -3,9 +3,10 @@ import logging
 from sqlalchemy.exc import IntegrityError
 import helper
 from datetime import datetime
-from datasources import PipelineIO, Tw
+from datasources import PipelineIO
 from datasources.database.database import session_scope
 from datasources.database.model import User
+from datasources.tw.tw import tw
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +75,12 @@ class ProfileInfo:
     @staticmethod
     def __get_userinfo(nodes):
         logger.info('get user info')
-        tw = Tw()
 
+        unique_users = nodes[['user_id', 'user_name']].drop_duplicates()
         profiles = [tw.tw_static_scraper.get_user(u)
-                    for u in list(set(nodes['user_name']))]
+                    for u in unique_users['user_name'].tolist()]
 
-        users = pd.merge(nodes[['user_id', 'user_name']], pd.DataFrame(profiles),
+        users = pd.merge(unique_users, pd.DataFrame(profiles),
                          how='left', left_on=['user_name'], right_on=['user_name'])
         logger.debug(helper.df_tostring(users))
 

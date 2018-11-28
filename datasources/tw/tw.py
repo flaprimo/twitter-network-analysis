@@ -44,6 +44,9 @@ class Tw:
         return configs
 
 
+tw = Tw()
+
+
 # TESTS!
 def main():
     tw = Tw()

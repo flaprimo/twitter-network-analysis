@@ -18,25 +18,20 @@ class ProxyProvider:
         self.proxy_list_path = proxy_list_path
 
         self.proxy_list = self.__get_proxy_list()
+        self.__save_proxy_list()
+        self.proxy_list_len = len(self.proxy_list['list'])
         self.index = 0
 
-        self.__save_proxy_list()
-
     def get_proxy(self):
-        # reset index list
-        if self.index >= len(self.proxy_list['list']):
-            self.index = 0
-
         proxy = self.proxy_list['list'][self.index]
-        self.index += 1
+        self.index = (self.index + 1) % self.proxy_list_len
 
-        if self.__is_server_alive(proxy['ip'], proxy['port']):
-            logger.debug(f'proxy {proxy["ip"]}:{proxy["port"]} alive')
-            proxy['usage_count'] += 1
-            self.__save_proxy_list()
-            return proxy['ip'], proxy['port'], proxy['https'], proxy['code']
-        else:
-            return self.get_proxy()
+        return proxy['ip'], proxy['port'], proxy['https'], proxy['code']
+
+    @staticmethod
+    def __check_proxy_list(proxy_list):
+        logger.info('check proxy list')
+        return list(filter(lambda p: ProxyProvider.__is_server_alive(p['ip'], p['port']), proxy_list))
 
     @staticmethod
     def __is_server_alive(ip, port):
@@ -58,8 +53,9 @@ class ProxyProvider:
         except (OSError, IOError):
             logger.debug('proxy list not present')
             proxy_list = self.__fetch_proxy_list()
+
+        proxy_list['list'] = ProxyProvider.__check_proxy_list(proxy_list['list'])
         shuffle(proxy_list['list'])
-        sorted(proxy_list['list'], key=lambda p: p['usage_count'])
 
         return proxy_list
 
@@ -110,8 +106,7 @@ class ProxyProvider:
                 'port': cells[1],
                 'code': cells[2],
                 'anonymity': cells[4],
-                'https': cells[6] == 'yes',
-                'usage_count': 0
+                'https': cells[6] == 'yes'
             })
 
         # filter out low privacy proxies

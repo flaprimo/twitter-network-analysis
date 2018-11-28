@@ -63,6 +63,7 @@ class Metrics:
     def __follower_rank(userinfo):
         logger.info('compute follower rank')
 
+        # normalized follower ratio from https://doi.org/10.1016/j.ipm.2016.04.003
         def follower_rank_alg(followers, following):
             return followers / (followers + following)
 

@@ -23,6 +23,8 @@ class User(Base):
                            cascade='all, delete-orphan', single_parent=True)
     user_communities = relationship('UserCommunity', back_populates='user',
                                     cascade='all, delete-orphan', single_parent=True)
+    user_events = relationship('UserEvent', back_populates='user',
+                               cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<User(' \
@@ -67,6 +69,8 @@ class Event(Base):
 
     graph = relationship('Graph', uselist=False, back_populates='event',
                          cascade='all, delete-orphan', single_parent=True)
+    user_events = relationship('UserEvent', back_populates='event',
+                               cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<Event(' \
@@ -160,11 +164,10 @@ class Community(Base):
 
 
 class UserCommunity(Base):
-    __tablename__ = 'user_community'
+    __tablename__ = 'user_communities'
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    community_id = Column(Integer, ForeignKey('communities.id'))
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    community_id = Column(Integer, ForeignKey('communities.id'), primary_key=True)
     indegree = Column(Integer, CheckConstraint('indegree>=0'))
     indegree_centrality = Column(Float, CheckConstraint('indegree_centrality>=0'))
     hindex = Column(Integer, CheckConstraint('hindex>=0'))
@@ -177,3 +180,20 @@ class UserCommunity(Base):
             f'indegree={self.indegree}, ' \
             f'indegree_centrality={self.indegree_centrality}, ' \
             f'hindex={self.hindex})>'
+
+
+class UserEvent(Base):
+    __tablename__ = 'user_events'
+
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    event_id = Column(Integer, ForeignKey('events.id'), primary_key=True)
+    topical_attachment = Column(Float, CheckConstraint('topical_attachment>=0'))
+    retweet_rate = Column(Float, CheckConstraint('retweet_rate>=0'))
+
+    user = relationship(User, back_populates='user_events')
+    event = relationship(Event, back_populates='user_events')
+
+    def __repr__(self):
+        return f'<UserEvent(' \
+            f'topical_attachment={self.topical_attachment}, ' \
+            f'retweet_rate={self.retweet_rate})>'

@@ -29,14 +29,9 @@ class ProxyProvider:
         return proxy['ip'], proxy['port'], proxy['https'], proxy['code']
 
     @staticmethod
-    def __check_proxy_list(proxy_list):
-        logger.info('check proxy list')
-        return list(filter(lambda p: ProxyProvider.__is_server_alive(p['ip'], p['port']), proxy_list))
-
-    @staticmethod
-    def __is_server_alive(ip, port):
+    def __is_server_alive(ip, port, timeout=1):
         socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket_client.settimeout(1)
+        socket_client.settimeout(timeout)
         try:
             return socket_client.connect_ex((ip, int(port))) == 0
         except socket.timeout:
@@ -54,7 +49,6 @@ class ProxyProvider:
             logger.debug('proxy list not present')
             proxy_list = self.__fetch_proxy_list()
 
-        proxy_list['list'] = ProxyProvider.__check_proxy_list(proxy_list['list'])
         shuffle(proxy_list['list'])
 
         return proxy_list
@@ -110,7 +104,12 @@ class ProxyProvider:
             })
 
         # filter out low privacy proxies
-        proxy_list['list'] = [p for p in proxy_list['list'] if p['anonymity'] != 'transparent']
+        logger.debug('filter low privacy proxies')
+        proxy_list['list'] = [filter(lambda p: p['anonymity'] != 'transparent', proxy_list)]
+
+        # filter out slow proxies
+        logger.debug('filter slow proxies')
+        proxy_list['list'] = [filter(lambda p: ProxyProvider.__is_server_alive(p['ip'], p['port']), proxy_list)]
 
         logger.debug(f'fetched {len(proxy_list["list"])} proxies at {proxy_list["date"]}')
 

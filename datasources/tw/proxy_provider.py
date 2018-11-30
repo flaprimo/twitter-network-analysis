@@ -105,11 +105,13 @@ class ProxyProvider:
 
         # filter out low privacy proxies
         logger.debug('filter low privacy proxies')
-        proxy_list['list'] = [filter(lambda p: p['anonymity'] != 'transparent', proxy_list)]
+        proxy_list['list'] = list(filter(lambda p: p['anonymity'] != 'transparent',
+                                         proxy_list['list']))
 
         # filter out slow proxies
         logger.debug('filter slow proxies')
-        proxy_list['list'] = [filter(lambda p: ProxyProvider.__is_server_alive(p['ip'], p['port']), proxy_list)]
+        proxy_list['list'] = list(filter(lambda p: ProxyProvider.__is_server_alive(p['ip'], p['port']),
+                                         proxy_list['list']))
 
         logger.debug(f'fetched {len(proxy_list["list"])} proxies at {proxy_list["date"]}')
 

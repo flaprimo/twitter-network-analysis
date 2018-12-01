@@ -2,7 +2,8 @@ import os
 
 
 class ConfigBase:
-    def __init__(self, project_name, dataset_name, stage_name):
+    def __init__(self, project_name, dataset_name, stage_name,
+                 skip_output_check=True, save_io_output=True, save_db_output=True):
         self.dataset_name = dataset_name
         self.stage_name = stage_name
 
@@ -13,7 +14,9 @@ class ConfigBase:
 
         self.postfix = ''
 
-        self.check_output = True
+        self.skip_output_check = skip_output_check
+        self.save_io_output = save_io_output
+        self.save_db_output = save_db_output
 
     def get_path(self, stage, file_name, file_type='csv'):
         directory = f'{self.base_dir["output"]}/{stage}'

@@ -50,7 +50,7 @@ class CreateGraph:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        if self.config.check_output or not self.output:
+        if self.config.skip_output_check or not self.output:
             self.output['graph'] = self.__get_graph(self.input['edges'], self.input['nodes'])
             self.output['edges'] = self.input['edges']
             self.output['nodes'] = self.input['nodes']

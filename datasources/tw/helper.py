@@ -4,13 +4,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def query_builder(words, people=None, location=None, date=None, language=None):
+def query_builder(words='', people=None, location=None, date=None, language=None):
     logger.info('building tw query')
     # for words, use:
     # "exact sentence" -> for exact sentences
     # #hashtag -> for hashtags
     # -word -> for words that must not be present
-    q = f'{words}'
+    q = words
 
     if people:
         q += f' from:{people["from"]}' if 'from' in people else ''

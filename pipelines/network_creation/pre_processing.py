@@ -43,7 +43,7 @@ class PreProcessing:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        if self.config.check_output or not self.output:
+        if self.config.skip_output_check or not self.output:
             self.output['edges'] = self.__drop_columns(self.input['network'])
             self.output['edges'] = self.__merge_duplicates(self.output['edges'])
             self.output['nodes'] = self.__get_nodes(self.output['edges'])

@@ -76,11 +76,18 @@ class TwDynamicScraper:
                        'span[contains(@class, "ProfileTweet-action--{0}")]/' \
                        'span/@data-tweet-stat-count'  # reply, retweet, favorite
 
+        try:
+            reply = t.xpath('./div[@class="ReplyingToContextBelowAuthor"]/a/@href').strip("/").lower()
+        except:
+            reply = []
+
         tw_current = {
             # header
             'author': t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/").lower(),
             'date': datetime.strptime(t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0],
                                       '%I:%M %p - %d %b %Y'),
+            # type
+            'reply': reply,
 
             # content
             'language': t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0],
@@ -101,14 +108,15 @@ class TwDynamicScraper:
         return tw_current
 
     @staticmethod
-    def __get_page(driver, url, test_id, timeout=20):
+    def __get_page(driver, url, test_path, timeout=20):
+        logger.info('loading page')
         try:
             driver.set_page_load_timeout(timeout)
             driver.get(url)
 
             # test if page loaded correctly
-            if len(driver.find_elements_by_id(test_id)) > 0:
-                logger.debug('url correctly loaded')
+            if len(driver.find_elements_by_xpath(test_path)) > 0:
+                logger.debug('page correctly loaded')
                 return driver
             else:
                 logger.debug('page not loaded correctly')
@@ -125,12 +133,11 @@ class TwDynamicScraper:
         query_url = f'{self.base_url}?{query}&lang=en-gb'
         logger.info(f'getting search results for: {query_url}')
 
+        # load queried web page
         driver = None
         while driver is None:
-            driver = self.__get_page(self.__get_driver(), query_url, 'stream-items-id')
-
-        # load queried web page
-        driver.get(query_url)
+            driver = self.__get_page(self.__get_driver(), query_url,
+                                     '//div[@class="SearchEmptyTimeline" or @class="stream"]')
         logger.debug('tw results page loaded')
 
         tw_list = []

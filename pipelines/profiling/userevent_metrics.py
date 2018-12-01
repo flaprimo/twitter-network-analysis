@@ -34,7 +34,7 @@ class UserEventMetrics:
             },
             'stream': {
                 'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'nodes'),
+                'path': self.config.get_path(self.output_prefix, 'stream'),
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
@@ -46,10 +46,10 @@ class UserEventMetrics:
                         'hashtags': lambda x: x.strip('[]').split(', '),
                         'emojis': lambda x: x.strip('[]').split(', '),
                         'urls': lambda x: x.strip('[]').split(', '),
-                        'mentions': 'uint32',
-                        'replies': 'uint32',
-                        'retweets': 'uint32',
-                        'likes': 'uint32'
+                        'mentions': lambda x: x.strip('[]').split(', '),
+                        'no_replies': 'uint32',
+                        'no_retweets': 'uint32',
+                        'no_likes': 'uint32'
                     }
                 },
                 'w_kwargs': {'index': False}
@@ -94,8 +94,8 @@ class UserEventMetrics:
             # if self.config.save_db_output:
             #     self.__persist_profile(self.output['topicalattachment'], self.output['retweetrate'])
             #
-            # if self.config.save_io_output:
-            #     PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 
@@ -128,7 +128,7 @@ class UserEventMetrics:
                     'since': event['start_date'].strftime('%Y-%m-%d'),
                     'until': event['end_date'].strftime('%Y-%m-%d')
                 })
-            streams.append(tw.tw_dynamic_scraper.search(query))
+            streams.extend(tw.tw_dynamic_scraper.search(query))
 
         df_stream = pd.DataFrame.from_records(streams)
 

@@ -100,9 +100,9 @@ class TwDynamicScraper:
                          for reply in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
 
             # footer
-            'replies': t.xpath(tweet_footer.format('reply'))[0],
-            'retweets': t.xpath(tweet_footer.format('retweet'))[0],
-            'likes': t.xpath(tweet_footer.format('favorite'))[0]
+            'no_replies': t.xpath(tweet_footer.format('reply'))[0],
+            'no_retweets': t.xpath(tweet_footer.format('retweet'))[0],
+            'no_likes': t.xpath(tweet_footer.format('favorite'))[0]
         }
 
         return tw_current

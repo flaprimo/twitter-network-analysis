@@ -92,11 +92,11 @@ class TwDynamicScraper:
             # content
             'language': t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0],
             'text': t.xpath('./div[@class="js-tweet-text-container"]/p/text()')[0],
-            'hashtags': ['#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0]
+            'hashtags': ['#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0].lower()
                          for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href')],
             'emojis': [emoji for emoji in link.xpath('./img[contains(@class, "Emoji")]/@title')],
             'urls': [url for url in link.xpath('./a/@data-expanded-url')],
-            'mentions': [reply.strip('/')
+            'mentions': [reply.strip('/').lower()
                          for reply in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
 
             # footer

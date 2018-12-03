@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
 from random import shuffle
-from selenium import webdriver
 from selenium.webdriver.support.select import Select
 from lxml import html
 import logging
 import socket
 import json
-import chromedriver_binary
+from .webdriver import WebDriver
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +13,7 @@ logger = logging.getLogger(__name__)
 class ProxyProvider:
     def __init__(self, provider, proxy_list_path, expires=timedelta(days=1)):
         self.provider = provider
+        self.webdriver = WebDriver()
         self.expires = expires
         self.proxy_list_path = proxy_list_path
 
@@ -55,25 +55,12 @@ class ProxyProvider:
 
     def __fetch_proxy_list(self):
         logger.info('fetching new proxy list')
-        # set selenium options
-        chrome_options = webdriver.ChromeOptions()
-        prefs = {
-            'enable_do_not_track': True,
-            'profile.default_content_setting_values.cookies': 2,
-            'profile.managed_default_content_settings.images': 2,
-            'disk-cache-size': 4096
-        }
-        chrome_options.add_experimental_option('prefs', prefs)
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
-
-        driver = webdriver.Chrome(executable_path=chromedriver_binary.chromedriver_filename,
-                                  chrome_options=chrome_options)
-        driver.set_window_position(0, 0)
-        driver.set_window_size(1024, 768)
 
         # load proxy list web page
-        driver.get(self.provider)
+        driver = None
+        while driver is None:
+            driver = self.webdriver.get_page(self.provider, '///table[@id="proxylisttable"]')
+        logger.debug('proxy list table page loaded')
 
         # change option value to max length
         table_length_option = driver.find_element_by_xpath('//select[@name="proxylisttable_length"]/option[@value=80]')

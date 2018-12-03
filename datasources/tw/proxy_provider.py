@@ -18,7 +18,6 @@ class ProxyProvider:
         self.proxy_list_path = proxy_list_path
 
         self.proxy_list = self.__get_proxy_list()
-        self.__save_proxy_list()
         self.proxy_list_len = len(self.proxy_list['list'])
         self.index = 0
 
@@ -102,6 +101,8 @@ class ProxyProvider:
 
         logger.debug(f'fetched {len(proxy_list["list"])} proxies at {proxy_list["date"]}')
 
+        self.__save_proxy_list(proxy_list, self.proxy_list_path)
+
         return proxy_list
 
     def __read_proxy_list(self):
@@ -112,13 +113,13 @@ class ProxyProvider:
 
         return proxy_list
 
-    def __save_proxy_list(self):
+    @staticmethod
+    def __save_proxy_list(proxy_list, proxy_list_path):
         logger.info('saving proxy list json file')
 
         # save proxy list usages
-        proxy_list = self.proxy_list.copy()
         proxy_list['date'] = proxy_list['date'].isoformat()
 
         # write proxy list json file
-        with open(self.proxy_list_path, 'w') as json_file:
+        with open(proxy_list_path, 'w') as json_file:
             json.dump(proxy_list, json_file, indent=4)

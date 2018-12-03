@@ -4,6 +4,8 @@ import logging
 import time
 import random
 import re
+from selenium.common.exceptions import TimeoutException
+
 from .webdriver import WebDriver
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,18 @@ class TwDynamicScraper:
         }
         while n > tw_stream_len['after'] > tw_stream_len['before']:
             tw_stream_len['before'] = tw_stream_len['after']
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+
+            has_scrolled = False
+            while not has_scrolled:
+                tt_wait = 0
+                try:
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+                    has_scrolled = True
+                except TimeoutException:
+                    tt_wait += 1
+                    time.sleep(tt_wait)
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+
             tt_wait = random.uniform(3, 5)
             time.sleep(tt_wait)
             tw_stream_len['after'] = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'

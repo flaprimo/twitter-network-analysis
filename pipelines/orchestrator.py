@@ -7,7 +7,7 @@ from pipelines import event_detection, network_creation, community_detection, pr
 import logging
 import time
 
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log', format='%(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 

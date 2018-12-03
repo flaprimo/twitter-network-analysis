@@ -59,7 +59,7 @@ class ProxyProvider:
         # load proxy list web page
         driver = None
         while driver is None:
-            driver = self.webdriver.get_page(self.provider, '///table[@id="proxylisttable"]')
+            driver = self.webdriver.get_page(self.provider, '//table[@id="proxylisttable"]')
         logger.debug('proxy list table page loaded')
 
         # change option value to max length

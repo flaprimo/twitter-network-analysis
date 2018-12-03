@@ -40,10 +40,13 @@ class CreateEvent:
 
         if self.config.skip_output_check or not self.output:
             self.output['event'] = self.input['event']
-            self.__persist_event(self.input['event'])
             self.__harvest_event(self.input['event'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_event(self.input['event'])
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

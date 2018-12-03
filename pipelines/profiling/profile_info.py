@@ -64,9 +64,12 @@ class ProfileInfo:
         if self.config.skip_output_check or not self.output:
             self.output['userinfo'] = self.__get_userinfo(self.input['nodes'])
             self.output['nodes'] = self.input['nodes']
-            self.__persist_userinfo(self.output['userinfo'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_userinfo(self.output['userinfo'])
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

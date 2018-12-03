@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 from sqlalchemy.exc import IntegrityError
 import helper
+from ast import literal_eval
 from datasources import PipelineIO
 from datasources.database.database import session_scope
 from datasources.database.model import User, Event, UserEvent
@@ -17,21 +18,6 @@ class UserEventMetrics:
         self.input = PipelineIO.load_input(['nodes', 'userinfo'], stage_input, stage_input_format)
         self.output_prefix = 'uem'
         self.output_format = {
-            'nodes': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {
-                    'dtype': {
-                        'community': 'uint16',
-                        'user_id': 'uint32',
-                        'user_name': str,
-                        'indegree': 'float32',
-                        'indegree_centrality': 'float32',
-                        'hindex': 'uint16'
-                    }
-                },
-                'w_kwargs': {'index': False}
-            },
             'stream': {
                 'type': 'pandas',
                 'path': self.config.get_path(self.output_prefix, 'stream'),
@@ -40,23 +26,25 @@ class UserEventMetrics:
                         'user_id': 'uint32',
                         'author': str,
                         'date': str,
-                        'reply': lambda x: x.strip('[]').split(', '),
                         'language': str,
                         'text': str,
-                        'hashtags': lambda x: x.strip('[]').split(', '),
-                        'emojis': lambda x: x.strip('[]').split(', '),
-                        'urls': lambda x: x.strip('[]').split(', '),
-                        'mentions': lambda x: x.strip('[]').split(', '),
                         'no_replies': 'uint32',
                         'no_retweets': 'uint32',
                         'no_likes': 'uint32'
+                    },
+                    'converters': {
+                        'reply': lambda x: x.strip('[]').replace('\'', '').split(', '),
+                        'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', '),
+                        'emojis': lambda x: x.strip('[]').replace('\'', '').split(', '),
+                        'urls': lambda x: x.strip('[]').replace('\'', '').split(', '),
+                        'mentions': lambda x: x.strip('[]').replace('\'', '').split(', ')
                     }
                 },
                 'w_kwargs': {'index': False}
             },
-            'topicalattachment': {
+            'topical_attachment': {
                 'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'topicalattachment'),
+                'path': self.config.get_path(self.output_prefix, 'topical_attachment'),
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
@@ -66,18 +54,18 @@ class UserEventMetrics:
                 },
                 'w_kwargs': {'index': False}
             },
-            'retweetrate': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'retweetrate'),
-                'r_kwargs': {
-                    'dtype': {
-                        'user_id': 'uint32',
-                        'user_name': str,
-                        'retweet_rate': 'float32'
-                    }
-                },
-                'w_kwargs': {'index': False}
-            }
+            # 'retweet_rate': {
+            #     'type': 'pandas',
+            #     'path': self.config.get_path(self.output_prefix, 'retweet_rate'),
+            #     'r_kwargs': {
+            #         'dtype': {
+            #             'user_id': 'uint32',
+            #             'user_name': str,
+            #             'retweet_rate': 'float32'
+            #         }
+            #     },
+            #     'w_kwargs': {'index': False}
+            # }
         }
         self.output = PipelineIO.load_output(self.output_format)
         logger.info(f'INIT for {self.config.dataset_name}')
@@ -88,12 +76,12 @@ class UserEventMetrics:
         if self.config.skip_output_check or not self.output:
             event = self.__get_event(self.config.dataset_name)
             self.output['stream'] = self.__get_stream(self.input['nodes'], event)
-            # self.output['topicalattachment'] = self.__topical_attachment(self.output['stream'], event)
-            # self.output['retweetrate'] = self.__retweet_rate(self.output['stream'], event)
+            self.output['topical_attachment'] = self.__topical_attachment(self.output['stream'], event)
+            # self.output['retweet_rate'] = self.__retweet_rate(self.output['stream'], event)
 
-            # if self.config.save_db_output:
-            #     self.__persist_profile(self.output['topicalattachment'], self.output['retweetrate'])
-            #
+            if self.config.save_db_output:
+                self.__persist_profile(self.output['topical_attachment'], self.config.dataset_name)  # , self.output['retweet_rate'])
+
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)
 
@@ -137,18 +125,32 @@ class UserEventMetrics:
         return df_stream
 
     @staticmethod
-    def __topical_attachment(stream):
+    def __topical_attachment(stream, event):
         logger.info('compute topical attachment')
 
-        user_names = stream['author'].drop_duplicates().tolist()
+        def topical_attachment_alg(t_ontopic, t_offtopic, l_ontopic, l_offtopic):
+            return (t_ontopic + l_ontopic) / (t_offtopic + l_offtopic + 1)
 
         topical_attachments = []
-        for u in user_names:
-            u_stream = stream[stream['hashtags'].str.contains("hello")]
+        for u_name, u_stream in stream[['author', 'hashtags', 'urls']].groupby('author'):
+            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
 
-        # logger.debug(helper.df_tostring(userinfo, 5))
+            tw_ontopic = u_stream[ontopic_mask].shape[0]
+            tw_offtopic = u_stream.shape[0] - tw_ontopic
 
-        return None
+            link_ontopic = sum(u_stream[ontopic_mask]['urls'].apply(lambda t: t != ['']))
+            link_offtopic = sum(u_stream[~ontopic_mask]['urls'].apply(lambda t: t != ['']))
+
+            topical_attachments.append({
+                'user_name': u_name,
+                'topical_attachment': topical_attachment_alg(tw_ontopic, tw_offtopic, link_ontopic, link_offtopic)
+            })
+
+        df_topicalattachments = pd.DataFrame.from_records(topical_attachments)
+
+        logger.debug(helper.df_tostring(df_topicalattachments, 5))
+
+        return df_topicalattachments
 
     @staticmethod
     def __retweet_rate(stream):
@@ -159,13 +161,13 @@ class UserEventMetrics:
         return None
 
     @staticmethod
-    def __persist_profile(topical_attachment, retweet_rate):
+    def __persist_profile(topical_attachment, dataset_name):  # , retweet_rate):
         logger.info('persist userevent metrics')
 
         profiles = topical_attachment['user_name'].to_frame()
 
-        for m in [topical_attachment, retweet_rate]:
-            profiles = pd.merge(profiles, m.drop(columns=['user_id']),
+        for m in [topical_attachment]:  # , retweet_rate]:
+            profiles = pd.merge(profiles, m,  # m.drop(columns=['user_id']),
                                 how='left', left_on=['user_name'], right_on=['user_name'])
 
         profile_records = profiles.to_dict('records')
@@ -177,14 +179,18 @@ class UserEventMetrics:
                 user_entities = session.query(User)\
                     .filter(User.user_name.in_(user_names)).all()
 
+                # get current event
+                event_entity = session.query(Event).filter(Event.name == dataset_name).first()
+
                 profile_entities = []
                 for p in profile_records:
                     # get user entities and profile info
                     user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-                    profile = {k: p[k] for k in ('topical_attachment', 'retweet_rate')}
+                    # profile = {k: p[k] for k in ('topical_attachment', 'retweet_rate')}
+                    profile = {'topical_attachment': p['topical_attachment']}
 
                     # create profile entity
-                    profile_entity = UserEvent(**profile, user=user_entity)
+                    profile_entity = UserEvent(**profile, user=user_entity, event=event_entity)
                     profile_entities.append(profile_entity)
 
                 session.add_all(profile_entities)

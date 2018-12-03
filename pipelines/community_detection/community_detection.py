@@ -71,9 +71,12 @@ class CommunityDetection:
                                          self.input['nodes'], self.input['edges'])
             self.output['nodes'] = self.__add_community_to_nodes(self.output['communities'], self.input['nodes'])
             self.output['graph'] = self.__add_community_to_graph(self.output['communities'], self.output['graph'])
-            self.__persist_users(self.output['nodes'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_users(self.output['nodes'])
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

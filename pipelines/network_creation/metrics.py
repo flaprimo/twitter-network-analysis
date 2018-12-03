@@ -92,9 +92,12 @@ class Metrics:
             self.output['graph'] = self.input['graph']
             self.output['nodes'] = self.input['nodes']
             self.output['edges'] = self.input['edges']
-            self.__persist_graph(self.output['graph_summary'], self.config.dataset_name)
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_graph(self.output['graph_summary'], self.config.dataset_name)
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

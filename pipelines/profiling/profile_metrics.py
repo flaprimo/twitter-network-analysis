@@ -51,9 +51,12 @@ class ProfileMetrics:
 
         if self.config.skip_output_check or not self.output:
             self.output['followerrank'] = self.__follower_rank(self.input['userinfo'])
-            self.__persist_profile(self.output['followerrank'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_profile(self.output['followerrank'])
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

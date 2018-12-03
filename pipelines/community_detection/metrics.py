@@ -117,11 +117,14 @@ class Metrics:
             self.output['pquality'] = self.__get_pquality(self.input['graph'], self.input['nodes'])
             self.output['cumsum_deg_dist'] = self.__cumsum_deg_dist(self.input['graph'])
             self.output['graph'], self.output['nodes'] = self.__node_metrics(self.input['graph'], self.input['nodes'])
-            self.__persist_partition(self.output['pquality'], self.config.dataset_name)
-            self.__persist_communities(self.output['partition_summary'], self.config.dataset_name)
-            self.__persist_usercommunities(self.output['nodes'], self.config.dataset_name)
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_db_output:
+                self.__persist_partition(self.output['pquality'], self.config.dataset_name)
+                self.__persist_communities(self.output['partition_summary'], self.config.dataset_name)
+                self.__persist_usercommunities(self.output['nodes'], self.config.dataset_name)
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

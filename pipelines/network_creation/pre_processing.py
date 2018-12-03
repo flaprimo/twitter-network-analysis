@@ -49,7 +49,8 @@ class PreProcessing:
             self.output['nodes'] = self.__get_nodes(self.output['edges'])
             self.output['edges'] = self.__rename_edges(self.output['nodes'], self.output['edges'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

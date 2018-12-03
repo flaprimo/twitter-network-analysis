@@ -38,7 +38,8 @@ class CreateNetwork:
         if not self.output:
             self.output['network'] = self.__create_network(self.input['stream'])
 
-            PipelineIO.save_output(self.output, self.output_format)
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         logger.info(f'END for {self.config.dataset_name}')
 

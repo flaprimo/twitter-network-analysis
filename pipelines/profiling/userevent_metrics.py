@@ -22,6 +22,7 @@ class UserEventMetrics:
                 'path': self.config.get_path(self.output_prefix, 'stream'),
                 'r_kwargs': {
                     'dtype': {
+                        'tw_id': str,
                         'user_id': 'uint32',
                         'author': str,
                         'date': str,
@@ -64,6 +65,18 @@ class UserEventMetrics:
                     }
                 },
                 'w_kwargs': {'index': False}
+            },
+            'topical_strength': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'topical_strength'),
+                'r_kwargs': {
+                    'dtype': {
+                        'user_id': 'uint32',
+                        'user_name': str,
+                        'topical_strength': 'float32'
+                    }
+                },
+                'w_kwargs': {'index': False}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -77,10 +90,11 @@ class UserEventMetrics:
             self.output['stream'] = self.__get_stream(self.input['nodes'], event)
             self.output['topical_attachment'] = self.__topical_attachment(self.output['stream'], event)
             self.output['event_focus'] = self.__event_focus(self.output['stream'], event)
+            self.output['topical_strength'] = self.__topical_strength(self.output['stream'], event)
 
             if self.config.save_db_output:
                 self.__persist_profile(self.output['topical_attachment'], self.output['event_focus'],
-                                       self.config.dataset_name)
+                                       self.output['topical_strength'], self.config.dataset_name)
 
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)
@@ -178,12 +192,42 @@ class UserEventMetrics:
         return df_eventfocus
 
     @staticmethod
-    def __persist_profile(topical_attachment, event_focus, dataset_name):
+    def __topical_strength(stream, event):
+        logger.info('compute topical_strength')
+
+        def topical_strength_alg(l_ontopic, l_offtopic, r_ontopic, r_offtopic):
+            import math
+            return (l_ontopic * math.log10(l_ontopic + r_ontopic + 1)) /\
+                   (l_offtopic * math.log10(l_offtopic + r_offtopic + 1) + 1)
+
+        topical_strength = []
+        for u_name, u_stream in stream[['author', 'hashtags', 'urls', 'no_retweets']].groupby('author'):
+            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
+
+            link_ontopic = sum(u_stream[ontopic_mask]['urls'].apply(lambda t: t != ['']))
+            link_offtopic = sum(u_stream[~ontopic_mask]['urls'].apply(lambda t: t != ['']))
+
+            retw_ontopic = sum(u_stream[ontopic_mask]['no_retweets'])
+            retw_offtopic = sum(u_stream[~ontopic_mask]['no_retweets'])
+
+            topical_strength.append({
+                'user_name': u_name,
+                'topical_strength': topical_strength_alg(link_ontopic, link_offtopic, retw_ontopic, retw_offtopic)
+            })
+
+        df_topicalstrength = pd.DataFrame.from_records(topical_strength)
+
+        logger.debug(helper.df_tostring(df_topicalstrength, 5))
+
+        return df_topicalstrength
+
+    @staticmethod
+    def __persist_profile(topical_attachment, event_focus, topical_strength, dataset_name):
         logger.info('persist userevent metrics')
 
         profiles = topical_attachment['user_name'].to_frame()
 
-        for m in [topical_attachment, event_focus]:
+        for m in [topical_attachment, event_focus, topical_strength]:
             profiles = pd.merge(profiles, m,  # m.drop(columns=['user_id']),
                                 how='left', left_on=['user_name'], right_on=['user_name'])
 
@@ -203,7 +247,7 @@ class UserEventMetrics:
                 for p in profile_records:
                     # get user entities and profile info
                     user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-                    profile = {k: p[k] for k in ('topical_attachment', 'event_focus')}
+                    profile = {k: p[k] for k in ('topical_attachment', 'event_focus', 'topical_strength')}
 
                     # create profile entity
                     profile_entity = UserEvent(**profile, user=user_entity, event=event_entity)

@@ -77,8 +77,9 @@ class TwDynamicScraper:
                        'span/@data-tweet-stat-count'  # reply, retweet, favorite
 
         try:
-            reply = t.xpath('./div[@class="ReplyingToContextBelowAuthor"]/a/@href').strip("/").lower()
-        except:
+            reply = [reply.strip('/').lower()
+                     for reply in t.xpath('./div[@class="ReplyingToContextBelowAuthor"]/a/@href')]
+        except IndexError:
             reply = []
 
         tw_current = {
@@ -86,6 +87,8 @@ class TwDynamicScraper:
             'author': t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/").lower(),
             'date': datetime.strptime(t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0],
                                       '%I:%M %p - %d %b %Y'),
+            'tw_id': t.xpath('./div[@class="stream-item-header"]/small/a/@data-conversation-id')[0],
+
             # type
             'reply': reply,
 
@@ -94,10 +97,10 @@ class TwDynamicScraper:
             'text': t.xpath('./div[@class="js-tweet-text-container"]/p/text()')[0],
             'hashtags': ['#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0].lower()
                          for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href')],
-            'emojis': [emoji for emoji in link.xpath('./img[contains(@class, "Emoji")]/@title')],
-            'urls': [url for url in link.xpath('./a/@data-expanded-url')],
-            'mentions': [reply.strip('/').lower()
-                         for reply in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
+            'emojis': link.xpath('./img[contains(@class, "Emoji")]/@title'),
+            'urls': link.xpath('./a/@data-expanded-url'),
+            'mentions': [mention.strip('/').lower()
+                         for mention in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
 
             # footer
             'no_replies': t.xpath(tweet_footer.format('reply'))[0],

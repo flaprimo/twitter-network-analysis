@@ -1,4 +1,3 @@
-from datasources.tw.helper import query_builder
 from datasources.tw.proxy_provider import ProxyProvider
 from datasources.tw.tw_static_scraper import TwStaticScraper
 from datasources.tw.tw_dynamic_scraper import TwDynamicScraper
@@ -45,43 +44,3 @@ class Tw:
 
 
 tw = Tw()
-
-
-# TESTS!
-def main():
-    tw = Tw()
-
-    # complex query example
-    # query = query_builder(
-    #     '#DataScience AND #healthcare',
-    #     people={'from': 'pmissier'},
-    #     date={'since': '2018-11-05', 'until': '2018-11-08'})
-    #
-    # q = tw.tw_dynamic_scraper.search(query, n=100)
-
-    hashtags = ['#GTC18', '#IPAW2018', '#NIPS2017', '#provenanceweek', '#TCF2018', '#ECMLPKDD2018',
-                '#emnlp2018', '#kdd', '#msignite2018', '#ona18', '#recsys']
-    queries = [query_builder(h) for h in hashtags]
-
-    results = [tw.tw_dynamic_scraper.search(q, n=100) for q in queries]
-    for h, r in zip(hashtags, results):
-        print(f'{h} -> {len(r)} tws collected')
-
-    # profile1 = tw.tw_static_scraper.get_profile('pmissier')
-    # follower_rank1 = profile1['followers'] / (profile1['followers'] + profile1['following'])
-    #
-    # print(f'profile: {profile1}')
-    # print(f'follower_rank: {follower_rank1}')
-
-    # q = [(query_builder('#kdd')),
-    #      query_builder('#datainequality',
-    #                    people={'from': 'pmissier'},
-    #                    date={'since': '2018-10-24', 'until': '2018-10-25'})
-    #      ]
-    #
-    # for i in q:
-    #     print(f'{tw.tw_dynamic_scraper.base_url}?{i}')
-
-
-if __name__ == "__main__":
-    main()

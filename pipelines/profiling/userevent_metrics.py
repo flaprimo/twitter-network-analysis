@@ -2,7 +2,6 @@ import pandas as pd
 import logging
 from sqlalchemy.exc import IntegrityError
 import helper
-from ast import literal_eval
 from datasources import PipelineIO
 from datasources.database.database import session_scope
 from datasources.database.model import User, Event, UserEvent
@@ -54,18 +53,18 @@ class UserEventMetrics:
                 },
                 'w_kwargs': {'index': False}
             },
-            # 'retweet_rate': {
-            #     'type': 'pandas',
-            #     'path': self.config.get_path(self.output_prefix, 'retweet_rate'),
-            #     'r_kwargs': {
-            #         'dtype': {
-            #             'user_id': 'uint32',
-            #             'user_name': str,
-            #             'retweet_rate': 'float32'
-            #         }
-            #     },
-            #     'w_kwargs': {'index': False}
-            # }
+            'event_focus': {
+                'type': 'pandas',
+                'path': self.config.get_path(self.output_prefix, 'event_focus'),
+                'r_kwargs': {
+                    'dtype': {
+                        'user_id': 'uint32',
+                        'user_name': str,
+                        'event_focus': 'float32'
+                    }
+                },
+                'w_kwargs': {'index': False}
+            }
         }
         self.output = PipelineIO.load_output(self.output_format)
         logger.info(f'INIT for {self.config.dataset_name}')
@@ -77,10 +76,11 @@ class UserEventMetrics:
             event = self.__get_event(self.config.dataset_name)
             self.output['stream'] = self.__get_stream(self.input['nodes'], event)
             self.output['topical_attachment'] = self.__topical_attachment(self.output['stream'], event)
-            # self.output['retweet_rate'] = self.__retweet_rate(self.output['stream'], event)
+            self.output['event_focus'] = self.__event_focus(self.output['stream'], event)
 
             if self.config.save_db_output:
-                self.__persist_profile(self.output['topical_attachment'], self.config.dataset_name)  # , self.output['retweet_rate'])
+                self.__persist_profile(self.output['topical_attachment'], self.output['event_focus'],
+                                       self.config.dataset_name)
 
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)
@@ -153,20 +153,37 @@ class UserEventMetrics:
         return df_topicalattachments
 
     @staticmethod
-    def __retweet_rate(stream):
-        logger.info('compute retweet rate')
+    def __event_focus(stream, event):
+        logger.info('compute event_focus')
 
-        # logger.debug(helper.df_tostring(userinfo, 5))
+        def event_focus_alg(t_ontopic, t_offtopic):
+            return t_ontopic / (t_offtopic + 1)
 
-        return None
+        event_focus = []
+        for u_name, u_stream in stream[['author', 'hashtags']].groupby('author'):
+            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
+
+            tw_ontopic = u_stream[ontopic_mask].shape[0]
+            tw_offtopic = u_stream.shape[0] - tw_ontopic
+
+            event_focus.append({
+                'user_name': u_name,
+                'event_focus': event_focus_alg(tw_ontopic, tw_offtopic)
+            })
+
+        df_eventfocus = pd.DataFrame.from_records(event_focus)
+
+        logger.debug(helper.df_tostring(df_eventfocus, 5))
+
+        return df_eventfocus
 
     @staticmethod
-    def __persist_profile(topical_attachment, dataset_name):  # , retweet_rate):
+    def __persist_profile(topical_attachment, event_focus, dataset_name):
         logger.info('persist userevent metrics')
 
         profiles = topical_attachment['user_name'].to_frame()
 
-        for m in [topical_attachment]:  # , retweet_rate]:
+        for m in [topical_attachment, event_focus]:
             profiles = pd.merge(profiles, m,  # m.drop(columns=['user_id']),
                                 how='left', left_on=['user_name'], right_on=['user_name'])
 
@@ -186,8 +203,7 @@ class UserEventMetrics:
                 for p in profile_records:
                     # get user entities and profile info
                     user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-                    # profile = {k: p[k] for k in ('topical_attachment', 'retweet_rate')}
-                    profile = {'topical_attachment': p['topical_attachment']}
+                    profile = {k: p[k] for k in ('topical_attachment', 'event_focus')}
 
                     # create profile entity
                     profile_entity = UserEvent(**profile, user=user_entity, event=event_entity)

@@ -28,8 +28,8 @@ class TwDynamicScraper:
             tw_stream_len['before'] = tw_stream_len['after']
 
             has_scrolled = False
+            tt_wait = 0
             while not has_scrolled:
-                tt_wait = 0
                 try:
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
                     has_scrolled = True

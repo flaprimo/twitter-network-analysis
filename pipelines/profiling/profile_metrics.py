@@ -1,4 +1,3 @@
-import pandas as pd
 import logging
 from sqlalchemy.exc import IntegrityError
 import helper
@@ -51,6 +50,7 @@ class ProfileMetrics:
 
         if self.config.skip_output_check or not self.output:
             self.output['followerrank'] = self.__follower_rank(self.input['userinfo'])
+            self.output['nodes'] = self.input['nodes']
 
             if self.config.save_db_output:
                 self.__persist_profile(self.output['followerrank'])

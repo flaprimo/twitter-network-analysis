@@ -1,12 +1,9 @@
-import pandas as pd
 import logging
 from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
 from datasources.database.database import session_scope
 from datasources.database.model import User, Event, UserEvent
-from datasources.tw.helper import query_builder
-from datasources.tw.tw import tw
 
 logger = logging.getLogger(__name__)
 
@@ -14,69 +11,22 @@ logger = logging.getLogger(__name__)
 class UserEventMetrics:
     def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.input = PipelineIO.load_input(['nodes', 'userinfo'], stage_input, stage_input_format)
+        self.input = PipelineIO.load_input(['stream', 'nodes', 'event'], stage_input, stage_input_format)
         self.output_prefix = 'uem'
         self.output_format = {
-            'stream': {
+            'userevent_metrics': {
                 'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'stream'),
-                'r_kwargs': {
-                    'dtype': {
-                        'tw_id': str,
-                        'user_id': 'uint32',
-                        'author': str,
-                        'date': str,
-                        'language': str,
-                        'text': str,
-                        'no_replies': 'uint32',
-                        'no_retweets': 'uint32',
-                        'no_likes': 'uint32'
-                    },
-                    'converters': {
-                        'reply': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'emojis': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'urls': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'mentions': lambda x: x.strip('[]').replace('\'', '').split(', ')
-                    }
-                },
-                'w_kwargs': {'index': False}
-            },
-            'topical_attachment': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'topical_attachment'),
+                'path': self.config.get_path(self.output_prefix, 'userevent_metrics'),
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
                         'user_name': str,
-                        'topical_attachment': 'float32'
-                    }
-                },
-                'w_kwargs': {'index': False}
-            },
-            'event_focus': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'event_focus'),
-                'r_kwargs': {
-                    'dtype': {
-                        'user_id': 'uint32',
-                        'user_name': str,
-                        'event_focus': 'float32'
-                    }
-                },
-                'w_kwargs': {'index': False}
-            },
-            'topical_strength': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'topical_strength'),
-                'r_kwargs': {
-                    'dtype': {
-                        'user_id': 'uint32',
-                        'user_name': str,
+                        'topical_attachment': 'float32',
+                        'event_focus': 'float32',
                         'topical_strength': 'float32'
                     }
                 },
-                'w_kwargs': {'index': False}
+                'w_kwargs': {}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -86,15 +36,14 @@ class UserEventMetrics:
         logger.info(f'EXEC for {self.config.dataset_name}')
 
         if self.config.skip_output_check or not self.output:
-            event = self.__get_event(self.config.dataset_name)
-            self.output['stream'] = self.__get_stream(self.input['nodes'], event)
-            self.output['topical_attachment'] = self.__topical_attachment(self.output['stream'], event)
-            self.output['event_focus'] = self.__event_focus(self.output['stream'], event)
-            self.output['topical_strength'] = self.__topical_strength(self.output['stream'], event)
+            stream = self.__add_stream_categories(self.input['stream'], self.input['event'])
+            topical_attachment = self.__topical_attachment(stream)
+            event_focus = self.__event_focus(self.input['stream'])
+            topical_strength = self.__topical_strength(self.input['stream'])
+            self.output['userevent_metrics'] = self.__merge_metrics(topical_attachment, event_focus, topical_strength)
 
             if self.config.save_db_output:
-                self.__persist_profile(self.output['topical_attachment'], self.output['event_focus'],
-                                       self.output['topical_strength'], self.config.dataset_name)
+                self.__persist_userevents(self.output['userevent_metrics'], self.config.dataset_name)
 
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)
@@ -104,156 +53,107 @@ class UserEventMetrics:
         return self.output, self.output_format
 
     @staticmethod
-    def __get_event(dataset_name):
-        logger.info('getting event')
-        with session_scope() as session:
-            event = session.query(Event.name, Event.start_date, Event.end_date, Event.location, Event.hashtags)\
-                .filter(Event.name == dataset_name).first()._asdict()
+    def __add_stream_categories(stream, event):
+        logger.info('adding tw stream categories for users')
 
-        event['hashtags'] = event['hashtags'].split()
+        hashtags = event['hashtags'][0]
 
-        logger.debug(f'event: {event}')
+        stream['tw_ontopic'] = stream['hashtags'].apply(lambda t: any(h in hashtags for h in t))
+        stream['link_ontopic'] = stream[stream['tw_ontopic']]['urls'].apply(lambda t: t != [''])
+        stream['link_ontopic'].fillna(False, inplace=True)
 
-        return event
-
-    @staticmethod
-    def __get_stream(nodes, event):
-        logger.info('getting tw stream for users')
-
-        user_names = nodes['user_name'].drop_duplicates().tolist()
-
-        streams = []
-        for u in user_names:
-            query = query_builder(
-                people={'from': u},
-                date={
-                    'since': event['start_date'].strftime('%Y-%m-%d'),
-                    'until': event['end_date'].strftime('%Y-%m-%d')
-                })
-            streams.extend(tw.tw_dynamic_scraper.search(query))
-
-        df_stream = pd.DataFrame.from_records(streams)
-
-        logger.debug(helper.df_tostring(df_stream, 5))
-
-        return df_stream
+        return stream
 
     @staticmethod
-    def __topical_attachment(stream, event):
+    def __topical_attachment(stream):
         logger.info('compute topical attachment')
 
-        def topical_attachment_alg(t_ontopic, t_offtopic, l_ontopic, l_offtopic):
-            return (t_ontopic + l_ontopic) / (t_offtopic + l_offtopic + 1)
+        def topical_attachment_alg(tw_ontopic, tw_offtopic, link_ontopic, link_offtopic):
+            return (tw_ontopic + link_ontopic) / (tw_offtopic + link_offtopic + 1)
 
-        topical_attachments = []
-        for u_name, u_stream in stream[['author', 'hashtags', 'urls']].groupby('author'):
-            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
+        topical_attachment =\
+            stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author')\
+                .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
+                                                        x['link_ontopic'].sum(), (~x['link_ontopic']).sum()))\
+                .to_frame().rename(columns={0: 'topical_attachment'})
 
-            tw_ontopic = u_stream[ontopic_mask].shape[0]
-            tw_offtopic = u_stream.shape[0] - tw_ontopic
+        logger.debug(helper.df_tostring(topical_attachment, 5))
 
-            link_ontopic = sum(u_stream[ontopic_mask]['urls'].apply(lambda t: t != ['']))
-            link_offtopic = sum(u_stream[~ontopic_mask]['urls'].apply(lambda t: t != ['']))
-
-            topical_attachments.append({
-                'user_name': u_name,
-                'topical_attachment': topical_attachment_alg(tw_ontopic, tw_offtopic, link_ontopic, link_offtopic)
-            })
-
-        df_topicalattachments = pd.DataFrame.from_records(topical_attachments)
-
-        logger.debug(helper.df_tostring(df_topicalattachments, 5))
-
-        return df_topicalattachments
+        return topical_attachment
 
     @staticmethod
-    def __event_focus(stream, event):
-        logger.info('compute event_focus')
+    def __event_focus(stream):
+        logger.info('compute event focus')
 
         def event_focus_alg(t_ontopic, t_offtopic):
             return t_ontopic / (t_offtopic + 1)
 
-        event_focus = []
-        for u_name, u_stream in stream[['author', 'hashtags']].groupby('author'):
-            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
+        event_focus =\
+            stream[['author', 'tw_ontopic']].groupby('author')\
+                .apply(lambda x: event_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum()))\
+                .to_frame().rename(columns={0: 'event_focus'})
 
-            tw_ontopic = u_stream[ontopic_mask].shape[0]
-            tw_offtopic = u_stream.shape[0] - tw_ontopic
+        logger.debug(helper.df_tostring(event_focus, 5))
 
-            event_focus.append({
-                'user_name': u_name,
-                'event_focus': event_focus_alg(tw_ontopic, tw_offtopic)
-            })
-
-        df_eventfocus = pd.DataFrame.from_records(event_focus)
-
-        logger.debug(helper.df_tostring(df_eventfocus, 5))
-
-        return df_eventfocus
+        return event_focus
 
     @staticmethod
-    def __topical_strength(stream, event):
-        logger.info('compute topical_strength')
+    def __topical_strength(stream):
+        logger.info('compute topical strength')
 
-        def topical_strength_alg(l_ontopic, l_offtopic, r_ontopic, r_offtopic):
+        def topical_strength_alg(link_ontopic, link_offtopic, rtw_ontopic, rtw_offtopic):
             import math
-            return (l_ontopic * math.log10(l_ontopic + r_ontopic + 1)) /\
-                   (l_offtopic * math.log10(l_offtopic + r_offtopic + 1) + 1)
+            return (link_ontopic * math.log10(link_ontopic + rtw_ontopic + 1)) / \
+                   (link_offtopic * math.log10(link_offtopic + rtw_offtopic + 1) + 1)
 
-        topical_strength = []
-        for u_name, u_stream in stream[['author', 'hashtags', 'urls', 'no_retweets']].groupby('author'):
-            ontopic_mask = u_stream['hashtags'].apply(lambda t: any(h in event['hashtags'] for h in t))
+        topical_strength =\
+            stream[['author', 'tw_ontopic', 'link_ontopic', 'no_retweets']].groupby('author')\
+                .apply(lambda x: topical_strength_alg(x['link_ontopic'].sum(), (~x['link_ontopic']).sum(),
+                                                      x[x['tw_ontopic']]['no_retweets'].sum(),
+                                                      x[~x['tw_ontopic']]['no_retweets'].sum()))\
+                .to_frame().rename(columns={0: 'topical_strength'})
 
-            link_ontopic = sum(u_stream[ontopic_mask]['urls'].apply(lambda t: t != ['']))
-            link_offtopic = sum(u_stream[~ontopic_mask]['urls'].apply(lambda t: t != ['']))
+        logger.debug(helper.df_tostring(topical_strength, 5))
 
-            retw_ontopic = sum(u_stream[ontopic_mask]['no_retweets'])
-            retw_offtopic = sum(u_stream[~ontopic_mask]['no_retweets'])
-
-            topical_strength.append({
-                'user_name': u_name,
-                'topical_strength': topical_strength_alg(link_ontopic, link_offtopic, retw_ontopic, retw_offtopic)
-            })
-
-        df_topicalstrength = pd.DataFrame.from_records(topical_strength)
-
-        logger.debug(helper.df_tostring(df_topicalstrength, 5))
-
-        return df_topicalstrength
+        return topical_strength
 
     @staticmethod
-    def __persist_profile(topical_attachment, event_focus, topical_strength, dataset_name):
+    def __merge_metrics(topical_attachment, event_focus, topical_strength):
+        logger.info('merging userevent metrics')
+
+        userevents = topical_attachment\
+            .merge(event_focus, left_index=True, right_index=True)\
+            .merge(topical_strength, left_index=True, right_index=True)
+        userevents.index.names = ['user_name']
+
+        logger.debug(helper.df_tostring(userevents, 5))
+
+        return userevents
+
+    @staticmethod
+    def __persist_userevents(userevents, dataset_name):
         logger.info('persist userevent metrics')
-
-        profiles = topical_attachment['user_name'].to_frame()
-
-        for m in [topical_attachment, event_focus, topical_strength]:
-            profiles = pd.merge(profiles, m,  # m.drop(columns=['user_id']),
-                                how='left', left_on=['user_name'], right_on=['user_name'])
-
-        profile_records = profiles.to_dict('records')
-        user_names = [p['user_name'] for p in profile_records]
+        userevent_records = userevents.to_dict('index')
 
         try:
             with session_scope() as session:
                 # get all users for current dataset
                 user_entities = session.query(User)\
-                    .filter(User.user_name.in_(user_names)).all()
+                    .filter(User.user_name.in_(userevent_records.keys())).all()
 
                 # get current event
                 event_entity = session.query(Event).filter(Event.name == dataset_name).first()
 
-                profile_entities = []
-                for p in profile_records:
-                    # get user entities and profile info
-                    user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-                    profile = {k: p[k] for k in ('topical_attachment', 'event_focus', 'topical_strength')}
+                userevent_entities = []
+                for user_name, metrics in userevent_records.items():
+                    # get user entities and userevent info
+                    user_entity = next(filter(lambda x: x.user_name == user_name, user_entities), None)
 
-                    # create profile entity
-                    profile_entity = UserEvent(**profile, user=user_entity, event=event_entity)
-                    profile_entities.append(profile_entity)
+                    # create userevent entity
+                    userevent_entity = UserEvent(**metrics, user=user_entity, event=event_entity)
+                    userevent_entities.append(userevent_entity)
 
-                session.add_all(profile_entities)
+                session.add_all(userevent_entities)
             logger.debug('userevent info successfully persisted')
         except IntegrityError:
             logger.debug('userevent info already exists or constraint is violated and could not be added')

@@ -25,11 +25,13 @@ class CreateEvent:
                         'name': str,
                         'start_date': str,
                         'end_date': str,
-                        'location': str,
-                        'hashtags': str
+                        'location': str
                     },
+                    'converters': {
+                        'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', ')
+                    }
                 },
-                'w_kwargs': {'index': False}
+                'w_kwargs': {}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -56,6 +58,7 @@ class CreateEvent:
     def __persist_event(event):
         logger.info('persist event')
         event_record = event.reset_index().to_dict('records')[0]
+        event_record['hashtags'] = ' '.join(event_record['hashtags'])
         event_entity = Event(**event_record)
 
         try:
@@ -73,7 +76,7 @@ class CreateEvent:
         event_record = event.to_dict('records')[0]
 
         query = query_builder(
-            ' OR '.join(event_record['hashtags'].split()),
+            ' OR '.join(event_record['hashtags']),
             date={'since': event_record['start_date'], 'until': event_record['end_date']})
 
         # TODO: perform query

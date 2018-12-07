@@ -1,4 +1,6 @@
 import logging
+
+import helper
 from ..pipeline_manager_base import PipelineManagerBase
 from .create_network import CreateNetwork
 from .pre_processing import PreProcessing

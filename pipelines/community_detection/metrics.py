@@ -313,8 +313,6 @@ class Metrics:
     @staticmethod
     def __persist_usercommunities(nodes, dataset_name):
         logger.info('persist usercommunities')
-        user_records = nodes.to_dict('records')
-
         try:
             with session_scope() as session:
                 # get all commmunities for current dataset partition
@@ -324,17 +322,18 @@ class Metrics:
 
                 # get all users for current dataset
                 user_entities = session.query(User)\
-                    .filter(User.user_name.in_(list(set([u['user_name'] for u in user_records])))).all()
+                    .filter(User.user_name.in_(nodes['user_name'].drop_duplicates().tolist())).all()
 
                 usercommunity_entities = []
-                for u in user_records:
+                for u in nodes.to_dict('records'):
                     # get user and community entities and usercommunity info
                     community_entity = next(filter(lambda x: x.name == u['community'], community_entities), None)
                     user_entity = next(filter(lambda x: x.user_name == u['user_name'], user_entities), None)
-                    user_commmunity = {k: u[k] for k in ('indegree', 'indegree_centrality', 'hindex')}
 
                     # create usercommunity entity
-                    usercommunity_entity = UserCommunity(**user_commmunity,
+                    usercommunity_entity = UserCommunity(indegree=u['indegree'],
+                                                         indegree_centrality=u['indegree_centrality'],
+                                                         hindex=u['hindex'],
                                                          user=user_entity, community=community_entity)
                     usercommunity_entities.append(usercommunity_entity)
                 session.add_all(usercommunity_entities)

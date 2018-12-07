@@ -198,7 +198,7 @@ class CommunityDetection:
     @staticmethod
     def __persist_users(nodes):
         logger.info('persist graph')
-        user_name_list = list(set(nodes['user_name'].tolist()))
+        user_name_list = nodes['user_name'].drop_duplicates().tolist()
 
         try:
             with session_scope() as session:
@@ -209,8 +209,7 @@ class CommunityDetection:
                 user_name_list = list(filter(lambda x: x not in users_to_filter, user_name_list))
 
                 # persist new users
-                user_records = [{'user_name': u} for u in user_name_list]
-                user_entities = [User(**u) for u in user_records]
+                user_entities = [User(user_name=u) for u in user_name_list]
                 session.add_all(user_entities)
             logger.debug('users successfully persisted')
         except IntegrityError:

@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, project_name, events, cd_config):
+    def __init__(self, project_name, cd_config):
         self.project_name = project_name
-        self.events = events
+        self.project_path = f'input/{project_name}.csv'
+        self.events = self.__parse_events(self.project_path)
 
-        self.ed_configs = [event_detection.Config(self.project_name, e) for e in events.index]
-        self.nc_configs = [network_creation.Config(self.project_name, e) for e in events.index]
-        self.cd_configs = [community_detection.Config(self.project_name, e, cd_config) for e in events.index]
+        self.ed_configs = [event_detection.Config(self.project_name, e) for e in self.events.index]
+        self.nc_configs = [network_creation.Config(self.project_name, e) for e in self.events.index]
+        self.cd_configs = [community_detection.Config(self.project_name, e, cd_config) for e in self.events.index]
         self.p_configs = [profiling.Config(self.project_name, c.dataset_name, c.postfix) for c in self.cd_configs]
         logger.info(f'INIT orchestrator for {self.project_name}')
 
@@ -57,13 +58,10 @@ class Orchestrator:
         p_results = {c.dataset_name: self.p_pipeline(c, p_input_stage[c.dataset_name])
                      for c in self.p_configs}
 
-        for r in p_results:
-            print(r)
-
         logger.info(f'END orchestrator for {self.project_name}')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')
 
-        # return cd_results
+        return cd_results
 
     @staticmethod
     def ed_pipeline(config, input_stage):
@@ -86,7 +84,7 @@ class Orchestrator:
         return p.execute()
 
     @staticmethod
-    def parse_events(events_path):
+    def __parse_events(events_path):
         events = pd.read_csv(events_path,
                              dtype={
                                  'name': str,
@@ -108,15 +106,13 @@ def main():
     # project_name = 'datascience_conferences'
     project_name = 'datascience_conferences_single'
 
-    events = Orchestrator.parse_events(f'input/{project_name}.csv')
-
     # cd_config = ('infomap', {})
     cd_config = ('demon', {
         'epsilon': 0.25,
         'min_community_size': 3
     })
 
-    o = Orchestrator(project_name, events, cd_config)
+    o = Orchestrator(project_name, cd_config)
     o.execute()
 
 

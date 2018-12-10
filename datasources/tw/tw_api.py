@@ -5,16 +5,38 @@ logger = logging.getLogger(__name__)
 
 
 class TwApi:
-    def __init__(self, consumer_key, consumer_key_secret, access_token, access_token_secret):
-        auth = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
-        auth.set_access_token(access_token, access_token_secret)
-        self.api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+    def __init__(self): # consumer_key, consumer_key_secret, access_token, access_token_secret):
+
         logger.debug('INIT Tw api')
+        self.consumerKey = "2QrWmgktSrXnFKlcTYCFn2GsF"
+        self.consumerSecret = "826nBChHpDKVZDWfVNI8uQD3we2WPFK2xFaFZhihYY8n99fVU9"
+        self.accessKey = "295370953-I7XuX1QonyQEJvEigrYnvxE2n4bR6p2quWyb8EPr"
+        self.accessSecret = "zsgw6qkLR7G7JC8e9PA03sBVCzUKnPlKxcyV1ZEiyxNgA"
+        self.api = None
 
-        # consumer_key = "2QrWmgktSrXnFKlcTYCFn2GsF"
-        # consumer_key_secret = "826nBChHpDKVZDWfVNI8uQD3we2WPFK2xFaFZhihYY8n99fVU9"
-        # access_token = "295370953-I7XuX1QonyQEJvEigrYnvxE2n4bR6p2quWyb8EPr"
-        # access_token_secret = "zsgw6qkLR7G7JC8e9PA03sBVCzUKnPlKxcyV1ZEiyxNgA"
 
-    def create_search(self, query="", n=100):
-        return tweepy.Cursor(self.api.search, q=query).items(n)
+    def create_search(self, query="", n=0):
+
+        api = self.create_api()
+        search = tweepy.Cursor(api.search, q=query).items(n)
+
+        return search
+
+    def create_stream(self):
+
+        myStreamListener = MyStreamListener()
+        return tweepy.Stream(auth = self.api.auth, listener=myStreamListener())
+
+
+
+    def create_api(self):
+
+        auth = tweepy.OAuthHandler(self.consumerKey, self.consumerSecret)
+        auth.set_access_token(self.accessKey, self.accessSecret)
+        self.api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+        return self.api
+
+    def get_api(self):
+
+        return self.api

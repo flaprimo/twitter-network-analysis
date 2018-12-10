@@ -1,12 +1,9 @@
-import tweepy
-import csv
 import re
 import networkx as nx
 import pandas as pd
 
 
-class NetworkBuilder():
-
+class NetworkBuilder:
     def __init__(self, file_path="graph_file", search = None):
 
         self.file_path = file_path
@@ -20,7 +17,7 @@ class NetworkBuilder():
     def create_networks(self):
 
         for tweet in self.search: 
-            if(tweet.text.startswith("RT")):
+            if tweet.text.startswith("RT"):
                 mentions = re.findall(r'@\w+', tweet.text)
                 for user in mentions:
                     user_screen_name = user.replace('@','').lower()
@@ -32,14 +29,13 @@ class NetworkBuilder():
                     self.tweets.append('NonNecessary')
                     self.from_name.append(user_screen_name)
                     self.to_name.append(tweet.user.screen_name)
-
      
     def save_csv(self):
 
         self.df['user_from_name'] = self.from_name
         self.df['user_to_name'] = self.to_name
         self.df['cod'] = self.df[['user_from_name', 'user_to_name']].apply(lambda x: ''.join(x), axis=1)
-        self.df['text'] =  self.tweets
+        self.df['text'] = self.tweets
 
         self.df_result = self.df.groupby('cod').first()
         self.df_result['weights'] = self.df['cod'].value_counts()

@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 import helper
 from datetime import datetime
 from datasources import PipelineIO
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import User
 from datasources.tw.tw import tw
 
@@ -101,7 +101,7 @@ class ProfileInfo:
         user_names = userinfo['user_name'].drop_duplicates().tolist()
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 # get all users for current dataset
                 user_entities = session.query(User.id, User.user_name)\
                     .filter(User.user_name.in_(user_names)).all()

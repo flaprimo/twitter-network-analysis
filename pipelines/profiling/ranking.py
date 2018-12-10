@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import User, Event, UserEvent, UserCommunity
 from datasources.tw.helper import query_builder
 from datasources.tw.tw import tw
@@ -80,7 +80,7 @@ class Ranking:
         user_names = rank['user_name'].tolist()
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 # get all users for current dataset
                 user_entities = session.query(User)\
                     .filter(User.user_name.in_(user_names)).all()

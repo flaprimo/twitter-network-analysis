@@ -6,7 +6,7 @@ import numpy as np
 import pquality.PartitionQuality as Pq
 from datasources import PipelineIO
 from sqlalchemy.exc import IntegrityError
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import User, Partition, Graph, Event, Community, UserCommunity
 
 logger = logging.getLogger(__name__)
@@ -283,7 +283,7 @@ class Metrics:
                             for r in partition['avg'].reset_index().to_dict('records')}
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 graph_entity = session.query(Graph).join(Graph.event)\
                     .filter(Event.name == dataset_name).first()
                 partition_entity = Partition(**partition_record, graph=graph_entity)
@@ -299,7 +299,7 @@ class Metrics:
         communities = [{'name': c} for c in partition_summary.index.tolist()]
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 partition_entity = session.query(Partition).join(Partition.graph).join(Graph.event)\
                     .filter(Event.name == dataset_name).first()
 
@@ -314,7 +314,7 @@ class Metrics:
     def __persist_usercommunities(nodes, dataset_name):
         logger.info('persist usercommunities')
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 # get all commmunities for current dataset partition
                 community_entities = session.query(Community)\
                     .join(Community.partition).join(Partition.graph).join(Graph.event)\

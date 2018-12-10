@@ -4,7 +4,7 @@ import logging
 from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import Graph, Event
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ class Metrics:
         graph_record = graph.to_dict('records')[0]
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 event_entity = session.query(Event).filter(Event.name == dataset_name).first()
                 graph_entity = Graph(**graph_record, event=event_entity)
                 session.add(graph_entity)

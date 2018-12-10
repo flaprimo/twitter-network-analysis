@@ -2,7 +2,7 @@ import logging
 from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import User, Event, UserEvent
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,7 @@ class UserEventMetrics:
         userevent_records = userevents.to_dict('index')
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 # get all users for current dataset
                 user_entities = session.query(User)\
                     .filter(User.user_name.in_(userevent_records.keys())).all()

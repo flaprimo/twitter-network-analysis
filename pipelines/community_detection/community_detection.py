@@ -4,7 +4,7 @@ import logging
 import helper
 from datasources import PipelineIO
 from sqlalchemy.exc import IntegrityError
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import User
 
 logger = logging.getLogger(__name__)
@@ -201,7 +201,7 @@ class CommunityDetection:
         user_name_list = nodes['user_name'].drop_duplicates().tolist()
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 # filter users already present
                 users_to_filter = session.query(User.user_name)\
                     .filter(User.user_name.in_(user_name_list)).all()

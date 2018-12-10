@@ -1,10 +1,9 @@
 import logging
 
 from sqlalchemy.exc import IntegrityError
-
 import helper
 from datasources import PipelineIO
-from datasources.database.database import session_scope
+from datasources.database.database import db
 from datasources.database.model import Event
 from datasources.tw.helper import query_builder
 
@@ -62,7 +61,7 @@ class CreateEvent:
         event_entity = Event(**event_record)
 
         try:
-            with session_scope() as session:
+            with db.session_scope() as session:
                 session.add(event_entity)
             logger.debug('event successfully persisted')
         except IntegrityError:

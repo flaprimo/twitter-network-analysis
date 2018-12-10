@@ -1,7 +1,5 @@
-import tweepy
-import pandas as pd
-from tw_network_builder import *
 from datasources.tw.tw import tw
+from datasources.tw.tw_network_builder import NetworkBuilder
 
 if __name__ == "__main__":
     # FILTERING TWEETS

@@ -13,30 +13,6 @@ class CreateGraph:
         self.input = PipelineIO.load_input(['edges', 'nodes'], stage_input, stage_input_format)
         self.output_prefix = 'cg'
         self.output_format = {
-            'edges': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'edges'),
-                'r_kwargs': {
-                    'dtype': {
-                        'source_id': 'uint32',
-                        'target_id': 'uint32',
-                        'weight': 'uint16'
-                    },
-                },
-                'w_kwargs': {'index': False}
-            },
-            'nodes': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {
-                    'dtype': {
-                        'user_id': 'uint32',
-                        'user_name': str
-                    },
-                    'index_col': 'user_id'
-                },
-                'w_kwargs': {}
-            },
             'graph': {
                 'type': 'networkx',
                 'path': self.config.get_path(self.output_prefix, 'graph', 'gexf'),
@@ -52,8 +28,6 @@ class CreateGraph:
 
         if self.config.skip_output_check or not self.output:
             self.output['graph'] = self.__get_graph(self.input['edges'], self.input['nodes'])
-            self.output['edges'] = self.input['edges']
-            self.output['nodes'] = self.input['nodes']
 
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)

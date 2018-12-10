@@ -32,4 +32,8 @@ class PipelineManager(PipelineManagerBase):
 
         logger.info(f'END pipeline for {self.config.dataset_name}')
 
+        m_output, m_output_format = helper.pass_results_pipeline(
+            (pp_output, pp_output_format), (m_output, m_output_format), ['nodes', 'edges'])
+        m_output, m_output_format = helper.pass_results_pipeline(
+            (cg_output, cg_output_format), (m_output, m_output_format), ['graph'])
         return m_output, m_output_format

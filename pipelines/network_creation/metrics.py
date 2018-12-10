@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class Metrics:
     def __init__(self, config, stage_input=None, stage_input_format=None):
         self.config = config
-        self.input = PipelineIO.load_input(['graph', 'edges', 'nodes'], stage_input, stage_input_format)
+        self.input = PipelineIO.load_input(['graph'], stage_input, stage_input_format)
         self.output_prefix = 'm'
         self.output_format = {
             'graph_summary': {
@@ -45,39 +45,6 @@ class Metrics:
                     'index_col': 'degree'
                 },
                 'w_kwargs': {}
-            },
-            'nodes': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'nodes'),
-                'r_kwargs': {
-                    'dtype': {
-                        'community': 'uint16',
-                        'user_id': 'uint32',
-                        'user_name': str,
-                        'indegree': 'float32',
-                        'indegree_centrality': 'float32',
-                        'hindex': 'uint16'
-                    }
-                },
-                'w_kwargs': {'index': False}
-            },
-            'edges': {
-                'type': 'pandas',
-                'path': self.config.get_path(self.output_prefix, 'edges'),
-                'r_kwargs': {
-                    'dtype': {
-                        'source_id': 'uint32',
-                        'target_id': 'uint32',
-                        'weight': 'uint16'
-                    },
-                },
-                'w_kwargs': {'index': False}
-            },
-            'graph': {
-                'type': 'networkx',
-                'path': self.config.get_path(self.output_prefix, 'graph', 'gexf'),
-                'r_kwargs': {'node_type': int},
-                'w_kwargs': {}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -89,9 +56,6 @@ class Metrics:
         if self.config.skip_output_check or not self.output:
             self.output['graph_summary'] = self.__graph_summary(self.input['graph'])
             self.output['cumsum_deg_dist'] = self.__cumsum_deg_dist(self.input['graph'])
-            self.output['graph'] = self.input['graph']
-            self.output['nodes'] = self.input['nodes']
-            self.output['edges'] = self.input['edges']
 
             if self.config.save_db_output:
                 self.__persist_graph(self.output['graph_summary'], self.config.dataset_name)

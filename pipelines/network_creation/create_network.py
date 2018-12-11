@@ -48,9 +48,8 @@ class CreateNetwork:
 
         tw_list = []
         for tw in stream:
-            from_username = tw['user']['screen_name'].lower()
-
             if tw['full_text'].startswith('RT'):
+                from_username = tw['user']['screen_name'].lower()
                 mentions = re.findall(r'@\w+', tw['full_text'])
 
                 for user in mentions:

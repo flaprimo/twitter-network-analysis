@@ -45,7 +45,7 @@ class PreProcessing:
 
         if self.config.skip_output_check or not self.output:
             self.output['edges'] = self.__drop_columns(self.input['network'])
-            self.output['edges'] = self.__merge_duplicates(self.output['edges'])
+            self.output['edges'] = self.__add_weights(self.output['edges'])
             self.output['nodes'] = self.__get_nodes(self.output['edges'])
             self.output['edges'] = self.__rename_edges(self.output['nodes'], self.output['edges'])
 
@@ -58,28 +58,21 @@ class PreProcessing:
 
     @staticmethod
     def __drop_columns(edges):
-        columns_tokeep = ['user_from_name', 'user_to_name', 'weights']
-        columns_todrop = [c for c in edges.columns.values if c not in columns_tokeep]
-        edges = edges[columns_tokeep]
-        edges = edges.rename(columns={'user_from_name': 'source_id', 'user_to_name': 'target_id', 'weights': 'weight'})
+        edges = edges[['from_username', 'to_username']]
+        edges = edges.rename(columns={'from_username': 'source_id', 'to_username': 'target_id'})
+        edges['weight'] = 1
 
         logger.info('drop columns')
-        logger.debug(f'dropped columns: {columns_todrop}\n' +
-                     helper.df_tostring(edges, 5))
+        logger.debug(helper.df_tostring(edges, 5))
 
         return edges
 
     @staticmethod
-    def __merge_duplicates(edges):
-        edges.source_id = edges.source_id.str.lower()
-        edges.target_id = edges.target_id.str.lower()
-
-        df_edges_duplicates = edges[edges.duplicated(subset=['source_id', 'target_id'], keep='first')]
+    def __add_weights(edges):
         edges = edges.groupby(['source_id', 'target_id']).sum().reset_index()
 
-        logger.info('merge duplicates columns')
-        logger.debug(f'number of duplicates: {df_edges_duplicates.shape}\n' +
-                     helper.df_tostring(edges, 5))
+        logger.info('add weights')
+        logger.debug(helper.df_tostring(edges, 5))
 
         return edges
 

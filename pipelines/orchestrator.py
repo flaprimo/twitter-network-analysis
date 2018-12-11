@@ -36,11 +36,7 @@ class Orchestrator:
             ed_results[c.dataset_name] = self.ed_pipeline(c, (nc_input, nc_input_format))
 
         # NETWORK CREATION
-        nc_input = {  # TODO: mock, need actual implementation
-            'stream': None
-        }
-        nc_input_format = {}
-        nc_results = {c.dataset_name: self.nc_pipeline(c, (nc_input, nc_input_format))
+        nc_results = {c.dataset_name: self.nc_pipeline(c, ed_results[c.dataset_name])
                       for c in self.nc_configs}
         # nc_results = helper.remove_results_orchestrator(nc_results)
 

@@ -1,5 +1,7 @@
 import logging
+import re
 import helper
+import pandas as pd
 from datasources import PipelineIO
 
 logger = logging.getLogger(__name__)
@@ -16,13 +18,9 @@ class CreateNetwork:
                 'path': self.config.get_path(self.output_prefix, 'network'),
                 'r_kwargs': {
                     'dtype': {
-                        'cod': str,
-                        'user_from_name': str,
-                        'user_from_fav_count': 'uint16',
-                        'user_rt_fav_count': 'uint16',
-                        'user_to_name': str,
+                        'from_username': str,
+                        'to_username': str,
                         'text': str,
-                        'weights': 'uint16'
                     }
                 },
                 'w_kwargs': {}
@@ -34,8 +32,7 @@ class CreateNetwork:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        # if self.config.skip_output_check or not self.output:
-        if not self.output:
+        if self.config.skip_output_check or not self.output:
             self.output['network'] = self.__create_network(self.input['stream'])
 
             if self.config.save_io_output:
@@ -46,6 +43,27 @@ class CreateNetwork:
         return self.output, self.output_format
 
     @staticmethod
-    def __create_network(twstream):
+    def __create_network(stream):
         logger.info('create network')
-        return None
+
+        tw_list = []
+        for tw in stream:
+            from_username = tw['user']['screen_name'].lower()
+
+            if tw['full_text'].startswith('RT'):
+                mentions = re.findall(r'@\w+', tw['full_text'])
+
+                for user in mentions:
+                    tw_record = {
+                        'from_username': from_username,
+                        'to_username': user.replace('@', '').lower(),
+                        'text': tw['full_text'].replace('\n', ''),
+                    }
+                    tw_list.append(tw_record)
+
+        tw_df = pd.DataFrame.from_records(tw_list, columns=['from_username', 'to_username', 'text'])
+
+        logger.info('merge duplicates columns')
+        logger.debug(helper.df_tostring(tw_df, 5))
+
+        return tw_df

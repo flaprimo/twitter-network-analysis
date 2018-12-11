@@ -1,5 +1,6 @@
 import pandas as pd
 import networkx as nx
+import json
 import logging
 import helper
 
@@ -18,6 +19,11 @@ class PipelineIO:
                 n[1].pop('label', None)
             return graph
 
+        def read_json(path):
+            with open(path) as json_file:
+                json_content = json.load(json_file)
+            return json_content
+
         io_values = {}
         for o_name, o_format in io_format.items():
             if o_format['type'] == 'pandas':
@@ -25,6 +31,9 @@ class PipelineIO:
 
             elif o_format['type'] == 'networkx':
                 io_values[o_name] = read_networkx(o_format['path'], o_format['r_kwargs'])
+
+            elif o_format['type'] == 'json':
+                io_values[o_name] = read_json(o_format['path'])
 
             else:
                 raise ValueError('error: unknown file type')
@@ -39,6 +48,10 @@ class PipelineIO:
         def write_networkx(graph, path, kwargs):
             nx.write_gexf(graph, path, **kwargs)
 
+        def write_json(json_content, path):
+            with open(path, 'w') as json_file:
+                json.dump(json_content, json_file, indent=4)
+
         debug_output = ''
         for o_name, o_value in io_values.items():
             o_format = io_format[o_name]
@@ -50,6 +63,10 @@ class PipelineIO:
             elif o_format['type'] == 'networkx':
                 write_networkx(o_value, o_format['path'], o_format['w_kwargs'])
                 o_debug = helper.graph_tostring(o_value, 3, 3)
+
+            elif o_format['type'] == 'json':
+                write_json(o_value, o_format['path'])
+                o_debug = 'json file'
 
             else:
                 raise ValueError('error: unknown file type')

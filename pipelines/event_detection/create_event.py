@@ -5,7 +5,7 @@ import helper
 from datasources import PipelineIO
 from datasources.database.database import db
 from datasources.database.model import Event
-from datasources.tw.helper import query_builder
+from datasources.tw.tw import tw
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,12 @@ class CreateEvent:
                     }
                 },
                 'w_kwargs': {}
+            },
+            'stream': {
+                'type': 'json',
+                'path': self.config.get_path(self.output_prefix, 'stream', 'json'),
+                'r_kwargs': {},
+                'w_kwargs': {}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -41,7 +47,7 @@ class CreateEvent:
 
         if self.config.skip_output_check or not self.output:
             self.output['event'] = self.input['event']
-            self.__harvest_event(self.input['event'])
+            self.output['tw'] = self.__harvest_event(self.input['event'])
 
             if self.config.save_db_output:
                 self.__persist_event(self.input['event'])
@@ -74,10 +80,10 @@ class CreateEvent:
 
         event_record = event.to_dict('records')[0]
 
-        query = query_builder(
-            ' OR '.join(event_record['hashtags']),
-            date={'since': event_record['start_date'], 'until': event_record['end_date']})
+        search = tw.tw_api.create_search(query=' OR '.join(event_record['hashtags']),
+                                         since=event_record['start_date'],
+                                         until=event_record['end_date'],
+                                         n=100)
+        tw_list = [tw_json._json for tw_json in search]
 
-        # TODO: perform query
-
-        return None
+        return tw_list

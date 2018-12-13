@@ -48,17 +48,18 @@ class CreateNetwork:
 
         tw_list = []
         for tw in stream:
-            if tw['full_text'].startswith('RT'):
-                from_username = tw['user']['screen_name'].lower()
-                mentions = re.findall(r'@\w+', tw['full_text'])
+            # also consider RT as an added value (like +1)?
+            # if tw['full_text'].startswith('RT'):
+            from_username = tw['user']['screen_name'].lower()
+            mentions = re.findall(r'@\w+', tw['full_text'])
 
-                for user in mentions:
-                    tw_record = {
-                        'from_username': from_username,
-                        'to_username': user.replace('@', '').lower(),
-                        'text': tw['full_text'].replace('\n', ''),
-                    }
-                    tw_list.append(tw_record)
+            for user in mentions:
+                tw_record = {
+                    'from_username': from_username,
+                    'to_username': user.replace('@', '').lower(),
+                    'text': tw['full_text'].replace('\n', ''),
+                }
+                tw_list.append(tw_record)
 
         tw_df = pd.DataFrame.from_records(tw_list, columns=['from_username', 'to_username', 'text'])
 

@@ -178,7 +178,7 @@ class Metrics:
 
         pqualities = [
             ('internal_density', Pq.internal_edge_density, 1, []),
-            ('edges_inside', Pq.internal_edge_density, 1, []),
+            ('edges_inside', Pq.edges_inside, 1, []),
             ('normalized_cut', Pq.normalized_cut, 2, []),
             ('avg_degree', Pq.average_internal_degree, 1, []),
             ('fomd', Pq.fraction_over_median_degree, 1, []),

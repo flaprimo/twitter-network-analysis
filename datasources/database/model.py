@@ -186,7 +186,7 @@ class UserEvent(Base):
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     event_id = Column(Integer, ForeignKey('events.id'), primary_key=True)
     topical_attachment = Column(Float, CheckConstraint('topical_attachment>=0'))
-    event_focus = Column(Float, CheckConstraint('event_focus>=0'))
+    topical_focus = Column(Float, CheckConstraint('topical_focus>=0'))
     topical_strength = Column(Float, CheckConstraint('topical_strength>=0'))
 
     user = relationship(User, back_populates='user_events')
@@ -195,5 +195,5 @@ class UserEvent(Base):
     def __repr__(self):
         return f'<UserEvent(' \
             f'topical_attachment={self.topical_attachment}, ' \
-            f'event_focus={self.event_focus}, ' \
+            f'topical_focus={self.topical_focus}, ' \
             f'topical_strength={self.topical_strength})>'

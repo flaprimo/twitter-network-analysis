@@ -22,7 +22,7 @@ class UserEventMetrics:
                         'user_id': 'uint32',
                         'user_name': str,
                         'topical_attachment': 'float32',
-                        'event_focus': 'float32',
+                        'topical_focus': 'float32',
                         'topical_strength': 'float32'
                     }
                 },
@@ -38,9 +38,9 @@ class UserEventMetrics:
         if self.config.skip_output_check or not self.output:
             stream = self.__add_stream_categories(self.input['stream'], self.input['event'])
             topical_attachment = self.__topical_attachment(stream)
-            event_focus = self.__event_focus(self.input['stream'])
+            topical_focus = self.__topical_focus(self.input['stream'])
             topical_strength = self.__topical_strength(self.input['stream'])
-            self.output['userevent_metrics'] = self.__merge_metrics(topical_attachment, event_focus, topical_strength)
+            self.output['userevent_metrics'] = self.__merge_metrics(topical_attachment, topical_focus, topical_strength)
 
             if self.config.save_db_output:
                 self.__persist_userevents(self.output['userevent_metrics'], self.config.dataset_name)
@@ -82,20 +82,20 @@ class UserEventMetrics:
         return topical_attachment
 
     @staticmethod
-    def __event_focus(stream):
+    def __topical_focus(stream): # topical focus
         logger.info('compute event focus')
 
-        def event_focus_alg(t_ontopic, t_offtopic):
+        def topical_focus_alg(t_ontopic, t_offtopic):
             return t_ontopic / (t_offtopic + 1)
 
-        event_focus =\
+        topical_focus =\
             stream[['author', 'tw_ontopic']].groupby('author')\
-                .apply(lambda x: event_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum()))\
-                .to_frame().rename(columns={0: 'event_focus'})
+                .apply(lambda x: topical_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum()))\
+                .to_frame().rename(columns={0: 'topical_focus'})
 
-        logger.debug(helper.df_tostring(event_focus, 5))
+        logger.debug(helper.df_tostring(topical_focus, 5))
 
-        return event_focus
+        return topical_focus
 
     @staticmethod
     def __topical_strength(stream):
@@ -118,11 +118,11 @@ class UserEventMetrics:
         return topical_strength
 
     @staticmethod
-    def __merge_metrics(topical_attachment, event_focus, topical_strength):
+    def __merge_metrics(topical_attachment, topical_focus, topical_strength):
         logger.info('merging userevent metrics')
 
         userevents = topical_attachment\
-            .merge(event_focus, left_index=True, right_index=True)\
+            .merge(topical_focus, left_index=True, right_index=True)\
             .merge(topical_strength, left_index=True, right_index=True)
         userevents.index.names = ['user_name']
 

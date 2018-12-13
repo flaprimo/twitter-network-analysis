@@ -16,9 +16,10 @@ class TwApi:
         self.api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
         logger.debug('INIT Tw api')
 
-    def create_search(self, query='', n=0):
+    def create_search(self, query='', since=None, until=None, n=0):
         logger.info(f'tw api search for: {query}')
-        search = tweepy.Cursor(self.api.search, q=query, tweet_mode='extended').items(n)
+        search = tweepy.Cursor(self.api.search, q=query, since=since, until=until, tweet_mode='extended')\
+            .items(n)
 
         return search
 

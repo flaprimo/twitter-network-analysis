@@ -10,18 +10,25 @@ class TwApi:
         self.consumerSecret = consumer_key_secret
         self.accessKey = access_token
         self.accessSecret = access_token_secret
+        logger.debug('INIT Tw api')
 
+    def __get_api(self):
         auth = tweepy.OAuthHandler(self.consumerKey, self.consumerSecret)
         auth.set_access_token(self.accessKey, self.accessSecret)
-        self.api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-        logger.debug('INIT Tw api')
+        api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+        return api
 
     def create_search(self, query='', since=None, until=None, n=0):
         logger.info(f'tw api search for: {query}')
-        search = tweepy.Cursor(self.api.search, q=query, since=since, until=until, tweet_mode='extended')\
+        api = self.__get_api()
+
+        search = tweepy.Cursor(api.search, q=query, since=since, until=until, tweet_mode='extended')\
             .items(n)
 
-        return search
+        tw_list = [tw_json._json for tw_json in search]
+
+        return tw_list
 
     # def create_stream(self):
     #     myStreamListener = MyStreamListener()

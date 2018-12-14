@@ -50,14 +50,15 @@ class CreateNetwork:
         for tw in stream:
             # also consider RT as an added value (like +1)?
             # if tw['full_text'].startswith('RT'):
+            text = tw['extended_tweet']['full_text'] if tw['truncated'] else tw['text']
             from_username = tw['user']['screen_name'].lower()
-            mentions = re.findall(r'@\w+', tw['full_text'])
+            mentions = re.findall(r'@\w+', text)
 
             for user in mentions:
                 tw_record = {
                     'from_username': from_username,
                     'to_username': user.replace('@', '').lower(),
-                    'text': tw['full_text'].replace('\n', ''),
+                    'text': text.replace('\n', ''),
                 }
                 tw_list.append(tw_record)
 

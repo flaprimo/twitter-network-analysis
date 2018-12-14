@@ -2,6 +2,7 @@ from datasources.tw.proxy_provider import ProxyProvider
 from datasources.tw.tw_static_scraper import TwStaticScraper
 from datasources.tw.tw_dynamic_scraper import TwDynamicScraper
 from datasources.tw.tw_api import TwApi
+from datasources.tw.tw_premium_api import TwPremiumApi
 import logging
 import json
 import os
@@ -23,10 +24,19 @@ class Tw:
         self.configs = Tw.load_config(config_file_path)
 
         # load tw accesses
+        # scrapers
         self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path + 'proxy_list.json')
         self.tw_static_scraper = TwStaticScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
         self.tw_dynamic_scraper = TwDynamicScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
+
+        # apis
         self.tw_api = TwApi(
+            self.configs['tw_api']['consumer_key'],
+            self.configs['tw_api']['consumer_key_secret'],
+            self.configs['tw_api']['access_token'],
+            self.configs['tw_api']['access_token_secret'],
+        )
+        self.tw_premium_api = TwPremiumApi(
             self.configs['tw_api']['consumer_key'],
             self.configs['tw_api']['consumer_key_secret'],
             self.configs['tw_api']['access_token'],

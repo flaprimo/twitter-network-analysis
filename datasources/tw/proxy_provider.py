@@ -44,7 +44,7 @@ class ProxyProvider:
                 logger.debug('proxy list expired')
                 # download new list and write it on file
                 proxy_list = self.__fetch_proxy_list()
-        except (OSError, IOError):
+        except (OSError, IOError, FileNotFoundError):
             logger.debug('proxy list not present')
             proxy_list = self.__fetch_proxy_list()
 

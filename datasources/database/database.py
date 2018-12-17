@@ -6,7 +6,7 @@ import os
 
 
 class Database:
-    def __init__(self, db_dir='output/', db_name='database', reset_db=True):
+    def __init__(self, db_dir='output/', db_name='database', reset_db=False):
         self.db_path = f'{db_dir}{db_name}.db'
 
         if not os.path.exists(db_dir):

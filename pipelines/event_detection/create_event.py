@@ -88,6 +88,6 @@ class CreateEvent:
         search = tw.tw_premium_api.create_search(query=' OR '.join(event_record['hashtags']),
                                                  since=event_record['start_date'],
                                                  until=event_record['end_date'],
-                                                 n=101)
+                                                 n=200)
 
         return search

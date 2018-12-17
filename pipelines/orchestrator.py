@@ -57,7 +57,7 @@ class Orchestrator:
         logger.info(f'END orchestrator for {self.project_name}')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')
 
-        return cd_results
+        return p_results
 
     @staticmethod
     def ed_pipeline(config, input_stage):
@@ -98,9 +98,7 @@ class Orchestrator:
 
 
 def main():
-    # project_name = 'uk_healthcare'
-    # project_name = 'datascience_conferences'
-    project_name = 'datascience_conferences_single'
+    project_name = 'uk_healthcare'
 
     # cd_config = ('infomap', {})
     cd_config = ('demon', {

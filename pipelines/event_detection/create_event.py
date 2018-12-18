@@ -76,7 +76,6 @@ class CreateEvent:
     @staticmethod
     def __harvest_event(event):
         logger.info('harvest event')
-        logger.debug('dropped columns:\n' + helper.df_tostring(event))
 
         event_record = event.to_dict('records')[0]
 

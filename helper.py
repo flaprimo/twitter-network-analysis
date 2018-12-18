@@ -24,18 +24,9 @@ def pairwise_combinations(l):
 
 
 def pass_results_pipeline(from_results, to_results, r_names):
-    # print(from_results)
     for name in r_names:
         to_results[0][name] = from_results[0][name]
         to_results[1][name] = from_results[1][name]
-
-    return to_results
-
-
-def pass_results_orchestrator(from_results, to_results, r_names):
-    for dataset_name in from_results.keys():
-        to_results[dataset_name] =\
-            pass_results_pipeline(from_results[dataset_name], to_results[dataset_name], r_names)
 
     return to_results
 

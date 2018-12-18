@@ -16,48 +16,52 @@ class Orchestrator:
         self.project_name = project_name
         self.project_path = f'input/{project_name}.csv'
         self.events = self.__parse_events(self.project_path)
+        self.cd_config = cd_config
 
-        self.ed_configs = [event_detection.Config(self.project_name, e) for e in self.events.index]
-        self.nc_configs = [network_creation.Config(self.project_name, e) for e in self.events.index]
-        self.cd_configs = [community_detection.Config(self.project_name, e, cd_config) for e in self.events.index]
-        self.p_configs = [profiling.Config(self.project_name, c.dataset_name, c.postfix) for c in self.cd_configs]
         logger.info(f'INIT orchestrator for {self.project_name}')
 
     def execute(self):
         start_time = time.time()
         logger.info(f'EXEC orchestrator for {self.project_name}')
 
-        # EVENT_DETECTION
-        ed_results = {}
-        for c in self.ed_configs:
-            nc_input = {'event': self.events[self.events.index == c.dataset_name]}
-            nc_input_format = {'event': {}}
-
-            ed_results[c.dataset_name] = self.ed_pipeline(c, (nc_input, nc_input_format))
-
-        # NETWORK CREATION
-        nc_results = {c.dataset_name: self.nc_pipeline(c, ed_results[c.dataset_name])
-                      for c in self.nc_configs}
-        # nc_results = helper.remove_results_orchestrator(nc_results)
-
-        # COMMUNITY DETECTION
-        # with ProcessPoolExecutor() as executor:
-        #     cd_results = {c.dataset_name: r
-        #                   for c, r in zip(self.cd_configs, executor.map(self.cd_pipeline, self.cd_configs, nc_results))}
-
-        cd_results = {c.dataset_name: self.cd_pipeline(c, nc_results[c.dataset_name])
-                      for c in self.cd_configs}
-        # cd_results = helper.remove_results_orchestrator(cd_results)
-
-        # PROFILING
-        p_input_stage = helper.pass_results_orchestrator(ed_results, cd_results, ['event'])
-        p_results = {c.dataset_name: self.p_pipeline(c, p_input_stage[c.dataset_name])
-                     for c in self.p_configs}
+        results = self.sequential_exec()
 
         logger.info(f'END orchestrator for {self.project_name}')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')
 
-        return p_results
+        return results
+
+    def sequential_exec(self):
+        results = {}
+        for e in self.events.iterrows():
+            e_name = e[0]
+
+            # EVENT DETECTION
+            ed_config = event_detection.Config(self.project_name, e_name)
+            ed_results = self.ed_pipeline(ed_config, ({'event': e}, {'event': {}}))
+
+            # NETWORK CREATION
+            nc_config = network_creation.Config(self.project_name, e_name)
+            nc_results = self.nc_pipeline(nc_config, ed_results)
+
+            # COMMUNITY DETECTION
+            cd_config = community_detection.Config(self.project_name, e_name, self.cd_config)
+            cd_results = self.cd_pipeline(cd_config, nc_results)
+
+            # PROFILING
+            p_input_stage = helper.pass_results_pipeline(ed_results, cd_results, ['event'])
+            p_config = profiling.Config(self.project_name, e_name, cd_config.postfix)
+            p_results = self.p_pipeline(p_config, p_input_stage)
+
+            # only store output format for improved memory management
+            results[e_name] = {
+                'event_detection': ed_results[1],
+                'network_creation': nc_results[1],
+                'community_detection': cd_results[1],
+                'profiling': p_results[1]
+            }
+
+        return results
 
     @staticmethod
     def ed_pipeline(config, input_stage):

@@ -6,9 +6,7 @@ from sqlalchemy.exc import IntegrityError
 import helper
 from datasources import PipelineIO
 from datasources.database.database import db
-from datasources.database.model import User, Event, UserEvent, UserCommunity
-from datasources.tw.helper import query_builder
-from datasources.tw.tw import tw
+from datasources.database.model import User, Event, UserEvent, UserCommunity, Profile
 
 logger = logging.getLogger(__name__)
 
@@ -57,16 +55,26 @@ class Ranking:
 
         # number of communities each user is in * indegree centrality (weight)
 
-        # number of events a user has participated
-
-        # popularity (follower rank)
-
-        with session_scope() as session:
+        with db.session_scope() as session:
             # users = session.query(User).all()
 
-            r = session.query(Table.column, func.count(Table.column)).group_by(UserCommunity.user_id).all()
+            # number of communities each user has been, sum of the indegree centralities for each user
+            communities_per_user = session.query(UserCommunity.community_id,
+                                                 func.count(UserCommunity.community_id),
+                                                 func.sum(UserCommunity.indegree_centrality))\
+                .group_by(UserCommunity.user_id).all()
 
-            print(r)
+            # number of events each user has been
+            events_per_user = session.query(UserEvent.event_id, func.count(UserEvent.event_id))\
+                .group_by(UserEvent.user_id).all()
+
+            # follower_rank (popularity)
+            popularity = session.query(Profile.user_id, Profile.follower_rank).all()
+
+
+
+            # r = session.query(func.count(models.Child.id), User) \
+            #     .select_from(User).outerjoin(models.Child).group_by(User.id)
 
             # r = session.query(func.count(Communities.id), models.Parent) \
             #     .select_from(models.Parent).join(models.Child).group_by(models.Parent.id)

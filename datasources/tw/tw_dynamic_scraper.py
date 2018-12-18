@@ -116,7 +116,12 @@ class TwDynamicScraper:
 
             # analyze loaded tws
             logger.debug('analyzing query results')
-            tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
+            tw_stream = None
+            while tw_stream is None:
+                try:
+                    tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
+                except TimeoutException:
+                    logger.debug('timeout exception in fetching stream, retrying')
             driver.quit()
             tw_stream_xml = html.fromstring(tw_stream)
 

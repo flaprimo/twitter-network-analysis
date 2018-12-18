@@ -11,7 +11,7 @@ class TwPremiumApi:
         self.accessKey = access_token
         self.accessSecret = access_token_secret
 
-        self.product = '30day'# 'fullarchive'
+        self.product = 'fullarchive'  # '30day'
         self.label = 'prod'
         logger.debug('INIT Tw premium api')
 

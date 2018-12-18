@@ -33,12 +33,13 @@ class Orchestrator:
 
     def sequential_exec(self):
         results = {}
-        for e in self.events.iterrows():
-            e_name = e[0]
+        for e in self.events.reset_index().iterrows():
+            e_name = e[1]['name']
+            e_df = pd.DataFrame([e[1]]).set_index('name')
 
             # EVENT DETECTION
             ed_config = event_detection.Config(self.project_name, e_name)
-            ed_results = self.ed_pipeline(ed_config, ({'event': e}, {'event': {}}))
+            ed_results = self.ed_pipeline(ed_config, ({'event': e_df}, {'event': {}}))
 
             # NETWORK CREATION
             nc_config = network_creation.Config(self.project_name, e_name)

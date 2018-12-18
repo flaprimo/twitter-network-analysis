@@ -1,7 +1,6 @@
 import logging
 
 from sqlalchemy.exc import IntegrityError
-import helper
 from datasources import PipelineIO
 from datasources.database.database import db
 from datasources.database.model import Event

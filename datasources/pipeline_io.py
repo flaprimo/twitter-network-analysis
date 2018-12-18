@@ -88,7 +88,8 @@ class PipelineIO:
         # if some input not present in memory -> load input from disk
         else:
             logger.debug('input not present, loading input')
-            return PipelineIO.__read_files(input_format)
+            filtered_input_format = {k: v for k, v in input_format.items() if k in stage_input_expected}
+            return PipelineIO.__read_files(filtered_input_format)
 
     @staticmethod
     def load_output(output_format):

@@ -44,8 +44,8 @@ class AnalysisHelper:
             ds[pipeline_name][output_name]['name'] = ds_name
 
         # merge results in a single dataframe
-        merge_results = pd.concat([ds[pipeline_name][output_name] for ds_name, ds in filtered_results.items()])\
-            .set_index('name')
+        merge_results = pd.concat([ds[pipeline_name][output_name] for ds_name, ds in filtered_results.items()],
+                                  sort=True).set_index('name')
 
         return merge_results
 
@@ -79,3 +79,13 @@ class AnalysisHelper:
         plt.legend()
         plt.tight_layout()
         plt.show()
+
+    @staticmethod
+    def get_common_nodes(pipeline_name, output_name, results):  # 'community_detection', 'nodes'
+        # get results of interest
+        filtered_results = AnalysisHelper.get_single_summary(pipeline_name, output_name, results)
+
+        results = filtered_results.reset_index()['user_name'].value_counts().to_frame()
+        results = results[results['user_name'] > 1]
+
+        return results

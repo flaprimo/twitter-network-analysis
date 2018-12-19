@@ -80,6 +80,8 @@ class AnalysisHelper:
         plt.tight_layout()
         plt.show()
 
+        return filtered_results
+
     @staticmethod
     def get_common_nodes(pipeline_name, output_name, results):  # 'community_detection', 'nodes'
         # get results of interest
@@ -87,5 +89,40 @@ class AnalysisHelper:
 
         results = filtered_results.reset_index()['user_name'].value_counts().to_frame()
         results = results[results['user_name'] > 1]
+
+        return results
+
+    @staticmethod
+    def plot_events_with_common_nodes(pipeline_name, output_name, results):  # 'community_detection', 'nodes'
+        from matplotlib.ticker import MaxNLocator
+
+        # get results of interest
+        filtered_results = AnalysisHelper.get_single_summary(pipeline_name, output_name, results)\
+            .reset_index()[['user_name', 'name']]
+
+        # get dummies from event names
+        name_dummies = pd.get_dummies(filtered_results['name'])
+        results = pd.concat([filtered_results['user_name'], name_dummies], axis=1)
+
+        # sum all events appearances by user
+        results = results.groupby('user_name').sum()
+
+        # keep events with > 1 appearance
+        results = results[results.sum(axis=1) > 1]
+
+        # get total number of different users per event
+        results = results.sum().to_frame().reset_index()
+
+        results.rename(columns={'index': 'event_name', 0: 'total'}, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(15, 8))
+        sns.barplot(x='event_name', y='total', data=results)\
+            .set_title('Number of users per event that appear in more than one event')
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha="right")
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        plt.xlabel('Events')
+        plt.ylabel('Number of users that appear in more than one event')
+        plt.tight_layout()
+        plt.show()
 
         return results

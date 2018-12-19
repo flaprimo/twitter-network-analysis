@@ -25,6 +25,7 @@ class TwDynamicScraper:
                                                                         'li[contains(@class, "stream-item")]'))
             except TimeoutException:
                 logger.debug('timeout exception in fetching stream length, retrying')
+                tw_stream_len_after = None
 
         # load required number of tws
         tw_stream_len = {
@@ -129,6 +130,7 @@ class TwDynamicScraper:
                     tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
                 except TimeoutException:
                     logger.debug('timeout exception in fetching stream, retrying')
+                    tw_stream = None
             driver.quit()
             tw_stream_xml = html.fromstring(tw_stream)
 

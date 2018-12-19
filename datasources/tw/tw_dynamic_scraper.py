@@ -18,11 +18,18 @@ class TwDynamicScraper:
 
     @staticmethod
     def __load_tw_from_stream(driver, n):
+        tw_stream_len_after = None
+        while tw_stream_len_after is None:
+            try:
+                tw_stream_len_after = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
+                                                                        'li[contains(@class, "stream-item")]'))
+            except TimeoutException:
+                logger.debug('timeout exception in fetching stream length, retrying')
+
         # load required number of tws
         tw_stream_len = {
             'before': 0,
-            'after': len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
-                                                       'li[contains(@class, "stream-item")]'))
+            'after': tw_stream_len_after
         }
         while n > tw_stream_len['after'] > tw_stream_len['before']:
             tw_stream_len['before'] = tw_stream_len['after']

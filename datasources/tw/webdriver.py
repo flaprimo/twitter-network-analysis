@@ -47,6 +47,7 @@ class WebDriver:
 
         try:
             driver.set_page_load_timeout(timeout)
+            driver.implicitly_wait(timeout)
             driver.get(url)
 
             # test if page loaded correctly

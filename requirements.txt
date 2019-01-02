@@ -13,7 +13,7 @@ entrypoints==0.2.3
 future==0.17.1
 html5lib==1.0.1
 idna==2.8
-infomap==1.0.0b46
+infomap==1.0.0b47
 ipykernel==5.1.0
 ipython==7.2.0
 ipython-genutils==0.2.0
@@ -34,7 +34,7 @@ nbconvert==5.4.0
 nbformat==4.4.0
 networkx==2.2
 notebook==5.7.4
-numpy==1.15.4
+numpy==1.16.0rc1
 oauthlib==2.1.0
 pandas==0.23.4
 pandocfilters==1.4.2
@@ -48,7 +48,7 @@ prompt-toolkit==2.0.5
 ptyprocess==0.6.0
 Pygments==2.3.1
 pyparsing==2.3.0
-pyrsistent==0.14.7
+pyrsistent==0.14.8
 PySocks==1.6.8
 python-dateutil==2.7.5
 pytz==2018.7
@@ -57,7 +57,7 @@ qtconsole==4.4.3
 requests==2.21.0
 requests-cache==0.4.13
 requests-oauthlib==1.0.0
-scipy==1.2.0rc2
+scipy==1.2.0
 seaborn==0.9.0
 selenium==3.141.0
 Send2Trash==1.5.0
@@ -70,7 +70,7 @@ tornado==5.1.1
 tqdm==4.28.1
 traitlets==4.3.2
 tweepy==3.7.0
-TwitterAPI==2.5.7
+TwitterAPI==2.5.8
 urllib3==1.24.1
 wcwidth==0.1.7
 webencodings==0.5.1

@@ -157,7 +157,29 @@ class AnalysisHelper:
         return filtered_results
 
     @staticmethod
-    def get_common_nodes(results, pipeline_name='community_detection', output_name='nodes'):
+    def __get_shared_nodes(results, pipeline_name, output_name):
+        nodes = AnalysisHelper.get_single_summary(pipeline_name, output_name, results).user_name \
+            .reset_index().drop_duplicates().user_name
+
+        # get shared nodes
+        shared_nodes = nodes.value_counts().where(lambda x: x > 1).dropna().astype(int).to_frame()\
+            .rename(columns={'user_name': 'no_participations'})
+
+        return shared_nodes
+
+    @staticmethod
+    def compare_common_nodes(results):
+        # load nodes
+        all_shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'network_creation', 'nodes')
+        cd_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detection', 'nodes')
+
+        # check shared nodes survived
+        all_shared_nodes['is_present'] = all_shared_nodes.index.isin(cd_nodes.index)
+
+        return all_shared_nodes
+
+    @staticmethod
+    def get_common_nodes(results):
         """Returns and plots the shared nodes among multiple contexts.
 
         It defaults on the nodes chosen with the community detection algorithm.
@@ -167,25 +189,20 @@ class AnalysisHelper:
         :param output_name: name of the output to which the desired output belongs to.
         :return: pandas series with user_names as indexes and number of appearances as values.
         """
-
-        # get results of interest
-        filtered_results = AnalysisHelper.get_single_summary(pipeline_name, output_name, results)
-
-        results = filtered_results.reset_index()['user_name'].value_counts().to_frame()\
-            .rename(columns={'user_name': 'no_participations'})
-        results = results[results['no_participations'] > 1]
+        # get shared nodes
+        shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detection', 'nodes')
 
         # add user information
         with db.session_scope() as session:
             userinfo = pd.read_sql(session.query(User, Profile.follower_rank).join(Profile.user)
-                                   .filter(User.user_name.in_(results.index.tolist())).statement,
+                                   .filter(User.user_name.in_(shared_nodes.index.tolist())).statement,
                                    con=session.bind, index_col='user_name')
 
-        results = userinfo.merge(results, left_index=True, right_index=True)\
+        shared_nodes = userinfo.merge(shared_nodes, left_index=True, right_index=True)\
             .drop(['id', 'following', 'followers', 'tweets', 'join_date'], axis=1)\
             .sort_values(by='no_participations', ascending=False)
 
-        return results
+        return shared_nodes
 
     @staticmethod
     def plot_events_with_common_nodes(results, pipeline_name='community_detection', output_name='nodes'):

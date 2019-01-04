@@ -46,7 +46,7 @@ class CreateEvent:
 
         if self.config.skip_output_check or not self.output:
             self.output['event'] = self.input['event']
-            self.output['stream'] = self.__harvest_event(self.input['event'])
+            # self.output['stream'] = self.__harvest_event(self.input['event'])
 
             if self.config.save_db_output:
                 self.__persist_event(self.input['event'])

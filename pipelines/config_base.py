@@ -3,7 +3,7 @@ import os
 
 class ConfigBase:
     def __init__(self, project_name, dataset_name, stage_name,
-                 skip_output_check=False, save_io_output=True, save_db_output=True):
+                 skip_output_check=True, save_io_output=True, save_db_output=True):
         self.dataset_name = dataset_name
         self.stage_name = stage_name
 

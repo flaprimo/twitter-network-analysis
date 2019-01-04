@@ -145,9 +145,9 @@ class CommunityDetection:
         communities = alg(graph, **cd_config[1])
 
         # check if empty (no communities have been found)
+        # if empty assign all nodes to the same community
         if communities.empty:
-            communities = pd.DataFrame({'user_id': graph.nodes})
-            communities['community'] = communities.user_id
+            communities = pd.DataFrame({'user_id': graph.nodes, 'community': 0})
 
         logger.debug(f'found {communities.community.nunique()} communities\n' +
                      helper.df_tostring(communities, 5))

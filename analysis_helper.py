@@ -128,6 +128,13 @@ class AnalysisHelper:
         return results
 
     @staticmethod
+    def community_over_nonodes_ratio(results):
+        partitions_summary = AnalysisHelper.get_multi_summary('community_detection', 'partition_summary', results)
+
+        return pd.DataFrame([{'name': ds_name, 'community/no_nodes ratio': ds.no_nodes.sum() / len(ds.index)}
+                             for ds_name, ds in partitions_summary.items()]).set_index('name')
+
+    @staticmethod
     def plot_compare_cumsum_deg_dist(results):
         """Returns and plots the cumulative sum of degree distribution for all the datasets.
 

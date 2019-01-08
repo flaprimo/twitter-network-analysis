@@ -82,7 +82,7 @@ class UserEventMetrics:
         return topical_attachment
 
     @staticmethod
-    def __topical_focus(stream): # topical focus
+    def __topical_focus(stream):
         logger.info('compute event focus')
 
         def topical_focus_alg(t_ontopic, t_offtopic):

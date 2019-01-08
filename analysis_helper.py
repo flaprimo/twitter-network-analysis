@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datasources import PipelineIO
 from datasources.database.database import db
-from datasources.database.model import User, Profile
+from datasources.database.model import User, Profile, UserCommunity
 
 
 class AnalysisHelper:
@@ -212,6 +212,37 @@ class AnalysisHelper:
         return shared_nodes
 
     @staticmethod
+    def rank1(results):
+        from sqlalchemy import func
+        # add user information
+
+        # # number of communities each user has been, sum of the indegree centralities for each user
+        # communities_per_user = session.query(UserCommunity.community_id,
+        #                                      func.count(UserCommunity.community_id),
+        #                                      func.sum(UserCommunity.indegree_centrality)) \
+        #     .group_by(UserCommunity.user_id).all()
+        #
+        # # number of events each user has been
+        # events_per_user = session.query(UserEvent.event_id, func.count(UserEvent.event_id)) \
+        #     .group_by(UserEvent.user_id).all()
+        #
+        # # follower_rank (popularity)
+        # popularity = session.query(Profile.user_id, Profile.follower_rank).all()
+
+        with db.session_scope() as session:
+            userinfo = pd.read_sql(session.query(UserCommunity.community_id,
+                                                 func.count(UserCommunity.community_id),
+                                                 func.sum(UserCommunity.indegree_centrality))
+                                   .group_by(UserCommunity.user_id).statement, con=session.bind)
+            # userinfo = pd.read_sql(session.query(UserCommunity).statement, con=session.bind)
+
+            # userinfo = pd.read_sql(session.query(User, Profile.follower_rank).join(Profile.user)
+            #                        .filter(User.user_name.in_(shared_nodes.index.tolist())).statement,
+            #                        con=session.bind, index_col='user_name')
+
+        return userinfo
+
+    @staticmethod
     def plot_events_with_common_nodes(results, pipeline_name='community_detection', output_name='nodes'):
         """Returns and plots the shared nodes among multiple contexts.
 
@@ -256,3 +287,42 @@ class AnalysisHelper:
         plt.show()
 
         return results.set_index('event_name')
+
+    @staticmethod
+    def communities_summary_stats(results):
+        # load results
+        partitions_summary = AnalysisHelper.get_multi_summary('community_detection', 'partition_summary', results)
+        no_all_nodes = AnalysisHelper.get_single_summary('network_creation', 'graph_summary', results)[['no_nodes']]\
+            .rename(columns={'no_nodes': 'no_all_nodes'})
+        no_cd_nodes = AnalysisHelper.get_single_summary('community_detection', 'nodes', results)[['user_name']]\
+            .reset_index().drop_duplicates().set_index('name').groupby('name').count()\
+            .rename(columns={'user_name': 'no_cd_nodes'})
+
+        # compute stats for each context
+        events_stats = no_all_nodes.merge(no_cd_nodes, left_index=True, right_index=True)
+
+        communities = pd.DataFrame([{
+            'name': ds_name, 'no_communities': len(ds.index), 'no_nodes_greatest_community': ds.no_nodes.max()
+        } for ds_name, ds in partitions_summary.items()]).set_index('name')
+
+        events_stats = events_stats.merge(communities, left_index=True, right_index=True)
+
+        events_stats['is_degenerate'] = \
+            events_stats.apply(lambda x: x['no_communities'] == x['no_all_nodes'] and
+                                         x['no_nodes_greatest_community'] == 1, axis=1)
+        # degenerated_context_ratio.apply(lambda x: x['no_communities'] == 1 and x['no_nodes_greatest_community'] == x['no_all_nodes'])
+
+        # summarize each context
+        good_contexts = events_stats[~events_stats['is_degenerate']]
+
+        c_summary_dict = {
+            'degenerated_context_ratio': events_stats['is_degenerate'].sum() / len(events_stats.index),
+            'good_context_ratio': (~events_stats['is_degenerate']).sum() / len(events_stats.index),
+            'avg_communities_per_good_context': good_contexts['no_communities'].sum() / len(good_contexts.index),
+            'avg_sociable_users_ratio': (good_contexts['no_cd_nodes'] / good_contexts['no_all_nodes']).sum() / len(
+                good_contexts.index)
+        }
+        c_summary = pd.DataFrame(data=list(c_summary_dict.values()), index=list(c_summary_dict.keys()))\
+            .rename(columns={0: 'values'}).round(2)
+
+        return c_summary

@@ -22,9 +22,7 @@ class WebDriver:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
-        chrome_options.add_argument('--host-rules="' +
-                                    ', '.join([f'MAP {url} localhost' for url in url_blacklist]) +
-                                    '"')
+        chrome_options.add_argument('--host-rules=' + ', '.join([f'MAP {url} localhost' for url in url_blacklist]))
 
         self.chrome_options = chrome_options
         self.proxy_provider = proxy_provider

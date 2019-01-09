@@ -3,6 +3,7 @@ from selenium.common.exceptions import TimeoutException
 import chromedriver_binary
 import logging
 import copy
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ class WebDriver:
     def __init__(self, proxy_provider=None):
         url_blacklist = ['https://twitter.com/i/jot/*', '*.twitter.com/i/jot/*', 'https://google-analytics.com/*',
                          'https://www.google-analytics.com/*', 'https://analytics.twitter.com/*']
+        profile_dir = os.path.join(os.path.dirname(__file__), 'profile')
         chrome_options = webdriver.ChromeOptions()
         prefs = {
             'enable_do_not_track': True,
@@ -19,7 +21,10 @@ class WebDriver:
             'disk-cache-size': 4096
         }
         chrome_options.add_experimental_option('prefs', prefs)
-        chrome_options.add_argument('--headless')
+        if os.path.isdir(profile_dir):
+            chrome_options.add_argument('--user-data-dir=' + profile_dir)
+        else:
+            chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')

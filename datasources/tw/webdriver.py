@@ -58,10 +58,10 @@ class WebDriver:
                 return driver
             else:
                 logger.debug('page not loaded correctly')
-                driver.close()
+                driver.quit()
                 return None
 
         except TimeoutException as e:
             logger.debug(f'url not loaded {str(e)}')
-            driver.close()
+            driver.quit()
             return None

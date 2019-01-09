@@ -20,6 +20,7 @@ class WebDriver:
         }
         chrome_options.add_experimental_option('prefs', prefs)
         chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
         chrome_options.add_argument('--host-rules=' + ', '.join([f'MAP {url} localhost' for url in url_blacklist]))

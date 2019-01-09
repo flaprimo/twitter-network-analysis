@@ -115,7 +115,11 @@ class CommunityDetection:
 
             im.run()
 
-            return pd.DataFrame([{'user_id': n.physicalId, 'community': n.moduleIndex()} for n in im.iterLeafNodes()])
+            communities = pd.DataFrame([{'user_id': n.physicalId, 'community': n.moduleIndex()}
+                                        for n in im.iterLeafNodes()])
+            communities = communities.groupby('community').filter(lambda x: len(x) > 3)
+
+            return communities
 
         def girvan_newman_alg(g):
             from networkx.algorithms.community import girvan_newman
@@ -129,10 +133,23 @@ class CommunityDetection:
 
             return pd.DataFrame(c)
 
+        def greedy_modularity_alg(g):
+            from networkx.algorithms.community import greedy_modularity_communities
+
+            results = greedy_modularity_communities(g, weight='weight')
+
+            c = []
+            for c_name, c_nodes in enumerate(results):
+                for n in c_nodes:
+                    c.append({'user_id': n, 'community': c_name})
+
+            return pd.DataFrame(c)
+
         cd_algs = {
             'demon': demon_alg,
             'infomap': infomap_alg,
-            'girvan_newman': girvan_newman_alg
+            'girvan_newman': girvan_newman_alg,
+            'greedy_modularity': greedy_modularity_alg
         }
 
         try:

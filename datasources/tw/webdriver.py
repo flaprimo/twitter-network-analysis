@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 
 class WebDriver:
     def __init__(self, proxy_provider=None):
-
+        url_blacklist = ['https://twitter.com/i/jot/*', '*.twitter.com/i/jot/*', 'https://google-analytics.com/*',
+                         'https://www.google-analytics.com/*', 'https://analytics.twitter.com/*']
         chrome_options = webdriver.ChromeOptions()
         prefs = {
             'enable_do_not_track': True,
@@ -21,6 +22,9 @@ class WebDriver:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--lang=en')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')
+        chrome_options.add_argument('--host-rules="' +
+                                    ', '.join([f'MAP {url} localhost' for url in url_blacklist]) +
+                                    '"')
 
         self.chrome_options = chrome_options
         self.proxy_provider = proxy_provider

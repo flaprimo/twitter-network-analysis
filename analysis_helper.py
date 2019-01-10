@@ -308,9 +308,10 @@ class AnalysisHelper:
         events_stats = events_stats.merge(communities, left_index=True, right_index=True)
 
         events_stats['is_degenerate'] = \
-            events_stats.apply(lambda x: x['no_communities'] == x['no_all_nodes'] and
-                                         x['no_nodes_greatest_community'] == 1, axis=1)
-        # degenerated_context_ratio.apply(lambda x: x['no_communities'] == 1 and x['no_nodes_greatest_community'] == x['no_all_nodes'])
+            events_stats.apply(lambda x: x['no_communities'] == 1 and
+                                         x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
+            # events_stats.apply(lambda x: x['no_communities'] == x['no_all_nodes'] and
+            #                              x['no_nodes_greatest_community'] == 1, axis=1)
 
         # summarize each context
         good_contexts = events_stats[~events_stats['is_degenerate']]

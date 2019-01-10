@@ -131,7 +131,7 @@ class AnalysisHelper:
     def community_over_nonodes_ratio(results):
         partitions_summary = AnalysisHelper.get_multi_summary('community_detection', 'partition_summary', results)
 
-        return pd.DataFrame([{'name': ds_name, 'community/no_nodes ratio': ds.no_nodes.sum() / len(ds.index)}
+        return pd.DataFrame([{'name': ds_name, 'community/no_nodes ratio':  len(ds.index) / ds.no_nodes.sum()}
                              for ds_name, ds in partitions_summary.items()]).set_index('name')
 
     @staticmethod

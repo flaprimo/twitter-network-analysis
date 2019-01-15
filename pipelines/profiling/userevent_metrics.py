@@ -133,7 +133,7 @@ class UserEventMetrics:
     @staticmethod
     def __persist_userevents(userevents, dataset_name):
         logger.info('persist userevent metrics')
-        userevent_records = userevents.to_dict('index')
+        userevent_records = userevents.set_index('user_name').to_dict('index')
 
         try:
             with db.session_scope() as session:

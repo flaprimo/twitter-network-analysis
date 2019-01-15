@@ -104,11 +104,11 @@ class Orchestrator:
 def main():
     project_name = 'uk_healthcare'
 
-    # cd_config = ('infomap', {})
-    cd_config = ('demon', {
-        'epsilon': 0.25,
-        'min_community_size': 3
-    })
+    cd_config = ('infomap', {})
+    # cd_config = ('demon', {
+    #     'epsilon': 0.25,
+    #     'min_community_size': 3
+    # })
 
     o = Orchestrator(project_name, cd_config)
     o.execute()

@@ -44,24 +44,24 @@ class CreateEvent:
     def execute(self):
         logger.info(f'EXEC for {self.config.dataset_name}')
 
-        # if self.config.skip_output_check or not self.output:
-        #     self.output['event'] = self.input['event']
-        #     self.output['stream'] = self.__harvest_event(self.input['event'])
-        #
-        #     if self.config.save_db_output:
-        #         self.__persist_event(self.input['event'])
-        #
-        #     if self.config.save_io_output:
-        #         PipelineIO.save_output(self.output, self.output_format)
+        if self.config.skip_output_check or not self.output:
+            self.output['event'] = self.input['event']
+            self.output['stream'] = self.__harvest_event(self.input['event'])
+
+            if self.config.save_db_output:
+                self.__persist_event(self.input['event'])
+
+            if self.config.save_io_output:
+                PipelineIO.save_output(self.output, self.output_format)
 
         # START MOD: already present twitter files
-        self.output['event'] = self.input['event']
-
-        if self.config.save_db_output:
-            self.__persist_event(self.input['event'])
-
-        if self.config.save_io_output:
-            PipelineIO.save_output(self.output, self.output_format)
+        # self.output['event'] = self.input['event']
+        #
+        # if self.config.save_db_output:
+        #     self.__persist_event(self.input['event'])
+        #
+        # if self.config.save_io_output:
+        #     PipelineIO.save_output(self.output, self.output_format)
         # END MOD
 
         logger.info(f'END for {self.config.dataset_name}')
@@ -87,11 +87,6 @@ class CreateEvent:
         logger.info('harvest event')
 
         event_record = event.to_dict('records')[0]
-
-        # search = tw.tw_api.create_search(query=' OR '.join(event_record['hashtags']),
-        #                                  since=event_record['start_date'],
-        #                                  until=event_record['end_date'],
-        #                                  n=100)
 
         search = tw.tw_premium_api.create_search(query=' OR '.join(event_record['hashtags']),
                                                  since=event_record['start_date'],

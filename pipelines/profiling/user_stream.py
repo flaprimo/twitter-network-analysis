@@ -52,6 +52,11 @@ class UserStream:
             if self.config.save_io_output:
                 PipelineIO.save_output(self.output, self.output_format)
 
+        # self.output['stream'] =\
+        #     self.output['stream'][self.output['stream']['author']
+        #         .isin(self.input['nodes']['user_name'].drop_duplicates())]
+        # PipelineIO.save_output(self.output, self.output_format)
+
         logger.info(f'END for {self.config.dataset_name}')
 
         return self.output, self.output_format
@@ -71,7 +76,12 @@ class UserStream:
                     'since': event_record['start_date'],
                     'until': event_record['end_date']
                 })
-            streams.extend(tw.tw_dynamic_scraper.search(query))
+            stream = tw.tw_dynamic_scraper.search(query)
+
+            # only keeps tws from current user_name
+            stream = [s for s in stream if s['author'] == u]
+
+            streams.extend(stream)
 
         df_stream = pd.DataFrame.from_records(streams)
 

@@ -32,6 +32,8 @@ class PipelineManager(PipelineManagerBase):
 
         uem_input_stage = helper.pass_results_pipeline(
             (self.input, self.input_format), (us_output, us_output_format), ['event'])
+        uem_input_stage = helper.pass_results_pipeline(
+            (pm_output, pm_output_format), (uem_input_stage[0], uem_input_stage[1]), ['nodes'])
         uem = UserEventMetrics(self.config, uem_input_stage[0], uem_input_stage[1])
         uem_output, uem_output_format = uem.execute()
 

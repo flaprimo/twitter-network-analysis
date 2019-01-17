@@ -115,11 +115,11 @@ class CommunityDetection:
 
             im.run()
 
-            communities = pd.DataFrame([{'user_id': n.physicalId, 'community': n.moduleIndex()}
-                                        for n in im.iterLeafNodes()])
-            communities = communities.groupby('community').filter(lambda x: len(x) > 3)
+            c = pd.DataFrame([{'user_id': n.physicalId, 'community': n.moduleIndex()}
+                              for n in im.iterLeafNodes()])
+            c = c.groupby('community').filter(lambda x: len(x) > 3)
 
-            return communities
+            return c
 
         def girvan_newman_alg(g):
             from networkx.algorithms.community import girvan_newman

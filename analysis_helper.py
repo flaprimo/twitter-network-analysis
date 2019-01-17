@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datasources import PipelineIO
 from datasources.database.database import db
-from datasources.database.model import User, Profile, UserCommunity
+from datasources.database.model import User, Profile, UserCommunity, UserEvent
+from sqlalchemy import func, desc
 
 
 class AnalysisHelper:
@@ -212,33 +213,15 @@ class AnalysisHelper:
         return shared_nodes
 
     @staticmethod
-    def rank1(results):
-        from sqlalchemy import func
-        # add user information
-
-        # # number of communities each user has been, sum of the indegree centralities for each user
-        # communities_per_user = session.query(UserCommunity.community_id,
-        #                                      func.count(UserCommunity.community_id),
-        #                                      func.sum(UserCommunity.indegree_centrality)) \
-        #     .group_by(UserCommunity.user_id).all()
-        #
-        # # number of events each user has been
-        # events_per_user = session.query(UserEvent.event_id, func.count(UserEvent.event_id)) \
-        #     .group_by(UserEvent.user_id).all()
-        #
-        # # follower_rank (popularity)
-        # popularity = session.query(Profile.user_id, Profile.follower_rank).all()
-
+    def rank_1():
         with db.session_scope() as session:
-            userinfo = pd.read_sql(session.query(UserCommunity.community_id,
-                                                 func.count(UserCommunity.community_id),
-                                                 func.sum(UserCommunity.indegree_centrality))
-                                   .group_by(UserCommunity.user_id).statement, con=session.bind)
-            # userinfo = pd.read_sql(session.query(UserCommunity).statement, con=session.bind)
-
-            # userinfo = pd.read_sql(session.query(User, Profile.follower_rank).join(Profile.user)
-            #                        .filter(User.user_name.in_(shared_nodes.index.tolist())).statement,
-            #                        con=session.bind, index_col='user_name')
+            userinfo = pd.read_sql(session.query(User.user_name,
+                                                 (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 0) +
+                                                  func.ifnull(func.sum(UserEvent.topical_focus), 0)).label('rank'))
+                                   .join(UserCommunity).join(UserEvent)
+                                   .group_by(UserCommunity.user_id)
+                                   .order_by(desc('rank')).statement,
+                                   con=session.bind)
 
         return userinfo
 
@@ -310,8 +293,6 @@ class AnalysisHelper:
         events_stats['is_degenerate'] = \
             events_stats.apply(lambda x: x['no_communities'] == 1 and
                                          x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
-            # events_stats.apply(lambda x: x['no_communities'] == x['no_all_nodes'] and
-            #                              x['no_nodes_greatest_community'] == 1, axis=1)
 
         # summarize each context
         good_contexts = events_stats[~events_stats['is_degenerate']]

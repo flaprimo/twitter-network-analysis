@@ -19,14 +19,14 @@ class UserEventMetrics:
                 'path': self.config.get_path(self.output_prefix, 'userevent_metrics'),
                 'r_kwargs': {
                     'dtype': {
-                        'user_id': 'uint32',
+                        # 'user_id': 'uint32',
                         'user_name': str,
                         'topical_attachment': 'float32',
                         'topical_focus': 'float32',
                         'topical_strength': 'float32'
                     }
                 },
-                'w_kwargs': {}
+                'w_kwargs': {'index': False}
             }
         }
         self.output = PipelineIO.load_output(self.output_format)
@@ -40,7 +40,8 @@ class UserEventMetrics:
             topical_attachment = self.__topical_attachment(stream)
             topical_focus = self.__topical_focus(self.input['stream'])
             topical_strength = self.__topical_strength(self.input['stream'])
-            self.output['userevent_metrics'] = self.__merge_metrics(topical_attachment, topical_focus, topical_strength)
+            self.output['userevent_metrics'] =\
+                self.__merge_metrics(self.input['nodes'], topical_attachment, topical_focus, topical_strength)
 
             if self.config.save_db_output:
                 self.__persist_userevents(self.output['userevent_metrics'], self.config.dataset_name)
@@ -118,13 +119,17 @@ class UserEventMetrics:
         return topical_strength
 
     @staticmethod
-    def __merge_metrics(topical_attachment, topical_focus, topical_strength):
+    def __merge_metrics(nodes, topical_attachment, topical_focus, topical_strength):
         logger.info('merging userevent metrics')
 
         userevents = topical_attachment\
             .merge(topical_focus, left_index=True, right_index=True)\
-            .merge(topical_strength, left_index=True, right_index=True)
-        userevents.index.names = ['user_name']
+            .merge(topical_strength, left_index=True, right_index=True)\
+            .reset_index().rename(columns={'author': 'user_name'})
+
+        # add missing nodes
+        userevents = userevents.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',
+                                      how='outer', sort='True').fillna(0)
 
         logger.debug(helper.df_tostring(userevents, 5))
 

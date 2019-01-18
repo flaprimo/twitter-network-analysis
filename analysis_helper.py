@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datasources import PipelineIO
@@ -308,3 +309,21 @@ class AnalysisHelper:
             .rename(columns={0: 'values'}).round(2)
 
         return c_summary
+
+    @staticmethod
+    def partitions_summary_aggregated(results):
+        partitions_summary = AnalysisHelper.get_single_summary('community_detection', 'partition_summary', results)
+        partitions_summary = partitions_summary.groupby(partitions_summary.index).describe()
+
+        ps_list = []
+        for name, ps in partitions_summary.groupby(level=0, axis=1):
+            ps_list.append({
+                'name': name,
+                'count': ps[name]['count'].replace([np.inf, -np.inf], np.nan).dropna().mean(),
+                'mean': ps[name]['mean'].replace([np.inf, -np.inf], np.nan).dropna().mean(),
+                'std': ps[name]['std'].replace([np.inf, -np.inf], np.nan).dropna().mean(),
+                'min': ps[name]['min'].replace([np.inf, -np.inf], np.nan).dropna().min(),
+                'max': ps[name]['max'].replace([np.inf, -np.inf], np.nan).dropna().max()
+            })
+
+        return pd.DataFrame(ps_list).set_index('name')

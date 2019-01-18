@@ -62,7 +62,6 @@ class AnalysisHelper:
             'pipeline_name1': ['output_name1', ...],
             ...
         }
-        :param ds_result
         :param results: output format that is returned after a pipeline execution.
         :return: dictionary with the desired results from all datasets.
 
@@ -194,8 +193,6 @@ class AnalysisHelper:
         It defaults on the nodes chosen with the community detection algorithm.
 
         :param results: output format that is returned after a pipeline execution.
-        :param pipeline_name: name of the pipeline to which the desired output belongs to.
-        :param output_name: name of the output to which the desired output belongs to.
         :return: pandas series with user_names as indexes and number of appearances as values.
         """
         # get shared nodes
@@ -216,7 +213,7 @@ class AnalysisHelper:
     @staticmethod
     def rank_1():
         with db.session_scope() as session:
-            userinfo = pd.read_sql(session.query(User.user_name,
+            userinfo = pd.read_sql(session.query(User.user_name, User.name, User.location,
                                                  (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 0) +
                                                   func.ifnull(func.sum(UserEvent.topical_focus), 0)).label('rank'))
                                    .join(UserCommunity).join(UserEvent)

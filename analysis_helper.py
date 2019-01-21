@@ -219,7 +219,7 @@ class AnalysisHelper:
                                    .join(UserCommunity).join(UserEvent)
                                    .group_by(UserCommunity.user_id)
                                    .order_by(desc('rank')).statement,
-                                   con=session.bind)
+                                   con=session.bind).round(decimals=3)
 
         return userinfo
 
@@ -323,4 +323,25 @@ class AnalysisHelper:
                 'max': ps[name]['max'].replace([np.inf, -np.inf], np.nan).dropna().max()
             })
 
-        return pd.DataFrame(ps_list).set_index('name')
+        return pd.DataFrame(ps_list).set_index('name').round(decimals=2)
+
+    @staticmethod
+    def pquality_aggregated(results):
+        pipeline_name = 'community_detection'
+        output_name = 'pquality'
+
+        # get results of interest
+        filtered_results = AnalysisHelper.load_all_results({pipeline_name: [output_name]}, results)
+        for ds_name, ds in filtered_results.items():
+            ds[pipeline_name][output_name]['name'] = ds_name
+        merge_results = pd.concat([ds[pipeline_name][output_name] for ds_name, ds in filtered_results.items()],
+                                  sort=True)
+
+        partitions_summary = merge_results.groupby(merge_results.index).describe()
+
+        partitions_summary = partitions_summary[[
+            ('min', 'min'), ('max', 'max'), ('avg', 'mean'), ('std', 'mean')
+        ]].round(decimals=2)
+        partitions_summary.columns = partitions_summary.columns.droplevel(1)
+
+        return partitions_summary

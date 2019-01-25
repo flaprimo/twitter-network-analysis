@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datasources import PipelineIO
 from datasources.database.database import db
-from datasources.database.model import User, Profile, UserCommunity, UserEvent
-from sqlalchemy import func, desc
+from datasources.database.model import User, Profile, UserCommunity, UserEvent, Partition, Graph, Community
+from sqlalchemy import func, desc, and_
 
 
 class AnalysisHelper:
@@ -211,19 +211,6 @@ class AnalysisHelper:
         return shared_nodes
 
     @staticmethod
-    def rank_1():
-        with db.session_scope() as session:
-            userinfo = pd.read_sql(session.query(User.user_name, User.name, User.location,
-                                                 (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 0) +
-                                                  func.ifnull(func.sum(UserEvent.topical_focus), 0)).label('rank'))
-                                   .join(UserCommunity).join(UserEvent)
-                                   .group_by(UserCommunity.user_id)
-                                   .order_by(desc('rank')).statement,
-                                   con=session.bind).round(decimals=3)
-
-        return userinfo
-
-    @staticmethod
     def plot_events_with_common_nodes(results, pipeline_name='community_detection', output_name='nodes'):
         """Returns and plots the shared nodes among multiple contexts.
 
@@ -266,6 +253,7 @@ class AnalysisHelper:
         plt.ylabel('Number of users that appear in multiple events')
         plt.tight_layout()
         plt.show()
+        fig.savefig("tables/foo.pdf", bbox_inches='tight')
 
         return results.set_index('event_name')
 
@@ -345,3 +333,68 @@ class AnalysisHelper:
         partitions_summary.columns = partitions_summary.columns.droplevel(1)
 
         return partitions_summary
+
+    @staticmethod
+    def get_active_users():
+        with db.session_scope() as session:
+            active_users = pd.read_sql(session.query(User.id, User.user_name, User.tweets)
+                                       .join(Profile)
+                                       .filter(Profile.follower_rank > 0).statement,
+                                       con=session.bind, index_col='id')
+
+            active_users['tweets'] = (active_users['tweets'] - active_users['tweets'].min()) /\
+                                     (active_users['tweets'].max() - active_users['tweets'].min())
+            active_users = active_users[active_users.tweets > 0.00005]
+
+        return active_users.index.tolist()
+
+    @staticmethod
+    def rank_1():
+        active_users = AnalysisHelper.get_active_users()
+
+        with db.session_scope() as session:
+            userinfo = pd.read_sql(session.query(User.user_name, User.name, User.location,
+                                                 (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 1) +
+                                                  func.ifnull(func.sum(UserEvent.topical_focus), 0)).label('rank'))
+                                   .join(UserCommunity).join(UserEvent)
+                                   .filter(User.id.in_(active_users))
+                                   .group_by(UserCommunity.user_id)
+                                   .order_by(desc('rank')).statement,
+                                   con=session.bind).round(decimals=3)
+
+        return userinfo
+
+    @staticmethod
+    def rank_2():
+        active_users = AnalysisHelper.get_active_users()
+
+        def min_max(df):
+            min = df.min()
+            max = df.max()
+
+            return (df - min) / (max - min)
+
+        with db.session_scope() as session:
+            data = pd.read_sql(session.query(User.user_name,
+                                             Profile.follower_rank,
+                                             UserEvent.topical_attachment,
+                                             UserCommunity.indegree_centrality)
+                               .join(Profile, User.id == Profile.user_id)
+                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
+                               .join(Community, UserCommunity.community_id == Community.id)
+                               .join(Partition, Community.partition_id == Partition.id)
+                               .join(Graph, Partition.graph_id == Graph.id)
+                               .join(UserEvent, and_(Graph.event_id == UserEvent.event_id,
+                                     User.id == UserEvent.user_id))
+                               .filter(User.id.in_(active_users)).statement,
+                               con=session.bind, index_col='user_name')
+
+        data['topical_attachment'] = min_max(data['topical_attachment'])
+
+        rank = data.groupby('user_name')\
+            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
+                             (x['topical_attachment'].sum() + x['indegree_centrality'].sum()))\
+            .reset_index(level=0, drop=True).sort_values(ascending=False)\
+            .to_frame().rename(columns={'follower_rank': 'rank'})
+
+        return rank

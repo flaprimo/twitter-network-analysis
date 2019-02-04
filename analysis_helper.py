@@ -398,3 +398,38 @@ class AnalysisHelper:
             .to_frame().rename(columns={'follower_rank': 'rank'})
 
         return rank
+
+    @staticmethod
+    def rank_3():
+        active_users = AnalysisHelper.get_active_users()
+
+        def min_max(df):
+            min = df.min()
+            max = df.max()
+
+            return (df - min) / (max - min)
+
+        with db.session_scope() as session:
+            data = pd.read_sql(session.query(User.user_name,
+                                             Profile.follower_rank,
+                                             UserEvent.topical_attachment,
+                                             UserCommunity.indegree_centrality)
+                               .join(Profile, User.id == Profile.user_id)
+                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
+                               .join(Community, UserCommunity.community_id == Community.id)
+                               .join(Partition, Community.partition_id == Partition.id)
+                               .join(Graph, Partition.graph_id == Graph.id)
+                               .join(UserEvent, and_(Graph.event_id == UserEvent.event_id,
+                                     User.id == UserEvent.user_id))
+                               .filter(User.id.in_(active_users)).statement,
+                               con=session.bind, index_col='user_name')
+
+        data['topical_attachment'] = min_max(data['topical_attachment'])
+
+        rank = data.groupby('user_name')\
+            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
+                             (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1)))\
+            .reset_index(level=0, drop=True).sort_values(ascending=False)\
+            .to_frame().rename(columns={'follower_rank': 'rank'})
+
+        return rank

@@ -130,7 +130,7 @@ class AnalysisHelper:
 
     @staticmethod
     def community_over_nonodes_ratio(results):
-        partitions_summary = AnalysisHelper.get_multi_summary('community_detection', 'partition_summary', results)
+        partitions_summary = AnalysisHelper.get_multi_summary('community_detectionn', 'partition_summary', results)
 
         return pd.DataFrame([{'name': ds_name, 'community/no_nodes ratio':  len(ds.index) / ds.no_nodes.sum()}
                              for ds_name, ds in partitions_summary.items()]).set_index('name')
@@ -146,12 +146,12 @@ class AnalysisHelper:
         from scipy import stats
 
         # get results of interest
-        filtered_results = AnalysisHelper.load_all_results({'community_detection': ['cumsum_deg_dist']}, results)
+        filtered_results = AnalysisHelper.load_all_results({'community_detectionn': ['cumsum_deg_dist']}, results)
 
         fig, ax = plt.subplots(figsize=(15, 8))
 
         for ds_name, ds in filtered_results.items():
-            df = ds['community_detection']['cumsum_deg_dist']
+            df = ds['community_detectionn']['cumsum_deg_dist']
             sns.lineplot(x=df['cumsum_of_the_no_of_nodes'], y=stats.zscore(df.index), ax=ax, label=ds_name) \
                 .set_title('Cumulative sum of degree distribution')
 
@@ -178,8 +178,8 @@ class AnalysisHelper:
     @staticmethod
     def compare_common_nodes(results):
         # load nodes
-        all_shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'network_creation', 'nodes')
-        cd_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detection', 'nodes')
+        all_shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'network_creationn', 'nodes')
+        cd_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detectionn', 'nodes')
 
         # check shared nodes survived
         all_shared_nodes['is_present'] = all_shared_nodes.index.isin(cd_nodes.index)
@@ -196,7 +196,7 @@ class AnalysisHelper:
         :return: pandas series with user_names as indexes and number of appearances as values.
         """
         # get shared nodes
-        shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detection', 'nodes')
+        shared_nodes = AnalysisHelper.__get_shared_nodes(results, 'community_detectionn', 'nodes')
 
         # add user information
         with db.session_scope() as session:
@@ -211,7 +211,7 @@ class AnalysisHelper:
         return shared_nodes
 
     @staticmethod
-    def plot_events_with_common_nodes(results, pipeline_name='community_detection', output_name='nodes'):
+    def plot_events_with_common_nodes(results, pipeline_name='community_detectionn', output_name='nodes'):
         """Returns and plots the shared nodes among multiple contexts.
 
         It defaults on the nodes chosen with the community detection algorithm.
@@ -260,10 +260,10 @@ class AnalysisHelper:
     @staticmethod
     def communities_summary_stats(results):
         # load results
-        partitions_summary = AnalysisHelper.get_multi_summary('community_detection', 'partition_summary', results)
-        no_all_nodes = AnalysisHelper.get_single_summary('network_creation', 'graph_summary', results)[['no_nodes']]\
+        partitions_summary = AnalysisHelper.get_multi_summary('community_detectionn', 'partition_summary', results)
+        no_all_nodes = AnalysisHelper.get_single_summary('network_creationn', 'graph_summary', results)[['no_nodes']]\
             .rename(columns={'no_nodes': 'no_all_nodes'})
-        no_cd_nodes = AnalysisHelper.get_single_summary('community_detection', 'nodes', results)[['user_name']]\
+        no_cd_nodes = AnalysisHelper.get_single_summary('community_detectionn', 'nodes', results)[['user_name']]\
             .reset_index().drop_duplicates().set_index('name').groupby('name').count()\
             .rename(columns={'user_name': 'no_cd_nodes'})
 
@@ -297,7 +297,7 @@ class AnalysisHelper:
 
     @staticmethod
     def partitions_summary_aggregated(results):
-        partitions_summary = AnalysisHelper.get_single_summary('community_detection', 'partition_summary', results)
+        partitions_summary = AnalysisHelper.get_single_summary('community_detectionn', 'partition_summary', results)
         partitions_summary = partitions_summary.groupby(partitions_summary.index).describe()
 
         ps_list = []
@@ -315,7 +315,7 @@ class AnalysisHelper:
 
     @staticmethod
     def pquality_aggregated(results):
-        pipeline_name = 'community_detection'
+        pipeline_name = 'community_detectionn'
         output_name = 'pquality'
 
         # get results of interest

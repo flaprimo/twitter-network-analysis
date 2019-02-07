@@ -60,47 +60,37 @@ class TwDynamicScraper:
 
     @staticmethod
     def __get_tw(t):
-        link = t.xpath('./div[@class="js-tweet-text-container"]/p')[0]
-        tweet_footer = './div[@class="stream-item-footer"]/' \
-                       'div[contains(@class, "ProfileTweet-actionCountList")]/' \
-                       'span[contains(@class, "ProfileTweet-action--{0}")]/' \
-                       'span/@data-tweet-stat-count'  # reply, retweet, favorite
-
-        try:
-            reply = [reply.strip('/').lower()
-                     for reply in t.xpath('./div[@class="ReplyingToContextBelowAuthor"]/a/@href')]
-        except IndexError:
-            reply = []
-
-        try:
-            text = t.xpath('./div[@class="js-tweet-text-container"]/p/text()')[0]
-        except IndexError:
-            text = []
+        tw_header = t.xpath('./div[@class="stream-item-header"]')[0]
+        tw_content = t.xpath('./div[@class="js-tweet-text-container"]/p')[0]
+        tw_footer = t.xpath('./div[@class="stream-item-footer"]/'
+                            'div[contains(@class, "ProfileTweet-actionCountList")]')[0]
+        # reply, retweet, favorite
+        tw_action = './span[contains(@class, "ProfileTweet-action--{0}")]/span/@data-tweet-stat-count'
 
         tw_current = {
             # header
-            'author': t.xpath('./div[@class="stream-item-header"]/a/@href')[0].strip("/").lower(),
-            'date': datetime.strptime(t.xpath('./div[@class="stream-item-header"]/small/a/@title')[0],
-                                      '%I:%M %p - %d %b %Y'),
-            'tw_id': t.xpath('./div[@class="stream-item-header"]/small/a/@data-conversation-id')[0],
+            'author': tw_header.xpath('./a/@href')[0].strip("/").lower(),
+            'date': datetime.strptime(tw_header.xpath('./small/a/@title')[0], '%I:%M %p - %d %b %Y'),
+            'tw_id': tw_header.xpath('./small/a/@data-conversation-id')[0],
 
             # type
-            'reply': reply,
+            'reply': [reply.strip('/').lower()
+                      for reply in t.xpath('./div[@class="ReplyingToContextBelowAuthor"]/a/@href')],
 
             # content
-            'language': t.xpath('./div[@class="js-tweet-text-container"]/p/@lang')[0],
-            'text': text,
+            'language': tw_content.xpath('./@lang')[0],
+            'text': next(iter(tw_content.xpath('./text()')), ''),
             'hashtags': ['#' + re.findall(r'/hashtag/(.+)\?', hashtag)[0].lower()
-                         for hashtag in link.xpath('./a[contains(@class, "twitter-hashtag")]/@href')],
-            'emojis': link.xpath('./img[contains(@class, "Emoji")]/@title'),
-            'urls': link.xpath('./a/@data-expanded-url'),
+                         for hashtag in tw_content.xpath('./a[contains(@class, "twitter-hashtag")]/@href')],
+            'emojis': tw_content.xpath('./img[contains(@class, "Emoji")]/@title'),
+            'urls': tw_content.xpath('./a/@data-expanded-url'),
             'mentions': [mention.strip('/').lower()
-                         for mention in link.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
+                         for mention in tw_content.xpath('./a[contains(@class, "twitter-atreply")]/@href')],
 
             # footer
-            'no_replies': int(t.xpath(tweet_footer.format('reply'))[0]),
-            'no_retweets': int(t.xpath(tweet_footer.format('retweet'))[0]),
-            'no_likes': int(t.xpath(tweet_footer.format('favorite'))[0])
+            'no_replies': int(tw_footer.xpath(tw_action.format('reply'))[0]),
+            'no_retweets': int(tw_footer.xpath(tw_action.format('retweet'))[0]),
+            'no_likes': int(tw_footer.xpath(tw_action.format('favorite'))[0])
         }
 
         return tw_current

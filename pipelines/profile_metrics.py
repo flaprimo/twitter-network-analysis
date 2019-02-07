@@ -9,12 +9,12 @@ from .pipeline_base import PipelineBase
 logger = logging.getLogger(__name__)
 
 
-class UserMetrics(PipelineBase):
+class ProfileMetrics(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
-                'stage_name': 'user_info',
-                'file_name': 'user_info',
+                'stage_name': 'profile_info',
+                'file_name': 'profile_info',
                 'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
@@ -94,12 +94,12 @@ class UserMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__user_info, self.__remove_nonexistent_users, self.__follower_rank]
-        super(UserMetrics, self).__init__('user_metrics', files, tasks, datasources, file_prefix)
+        tasks = [self.__profile_info, self.__remove_nonexistent_users, self.__follower_rank]
+        super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources, file_prefix)
 
-    def __user_info(self):
+    def __profile_info(self):
         if not self.datasources.files.exists(
-                'user_metrics', 'user_info', 'user_info', 'csv', self.context_name):
+                'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name):
             nodes = self.datasources.files.read(
                 'community_detection_metrics', 'node_metrics', 'nodes', 'csv', self.context_name)
 
@@ -136,18 +136,18 @@ class UserMetrics(PipelineBase):
                 logger.debug('user info already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
-                userinfo, 'user_metrics', 'user_info', 'user_info', 'csv', self.context_name)
+                userinfo, 'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name)
 
     def __remove_nonexistent_users(self):
         if not self.datasources.files.exists(
-                'user_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name) or\
+                'profile_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name) or\
             not self.datasources.files.exists(
-                'user_metrics', 'remove_nonexistent_users', 'edges', 'csv', self.context_name) or\
+                'profile_metrics', 'remove_nonexistent_users', 'edges', 'csv', self.context_name) or\
             not self.datasources.files.exists(
-                'user_metrics', 'remove_nonexistent_users', 'graph', 'gexf', self.context_name):
+                'profile_metrics', 'remove_nonexistent_users', 'graph', 'gexf', self.context_name):
 
-            user_info = self.datasources.files.read(
-                'user_metrics', 'user_info', 'user_info', 'csv', self.context_name)
+            profile_info = self.datasources.files.read(
+                'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name)
             nodes = self.datasources.files.read(
                 'community_detection_metrics', 'node_metrics', 'nodes', 'csv', self.context_name)
             edges = self.datasources.files.read(
@@ -155,22 +155,22 @@ class UserMetrics(PipelineBase):
             graph = self.datasources.files.read(
                 'community_detection', 'add_communities_to_graph', 'graph', 'gexf', self.context_name)
 
-            nodes = nodes[nodes.user_id.isin(user_info['user_id'])]
-            edges = edges[edges.source_id.isin(user_info['user_id']) & edges.target_id.isin(user_info['user_id'])]
-            graph.remove_nodes_from(set(graph.nodes) - set(user_info['user_id'].tolist()))
+            nodes = nodes[nodes.user_id.isin(profile_info['user_id'])]
+            edges = edges[edges.source_id.isin(profile_info['user_id']) & edges.target_id.isin(profile_info['user_id'])]
+            graph.remove_nodes_from(set(graph.nodes) - set(profile_info['user_id'].tolist()))
 
             self.datasources.files.write(
-                nodes, 'user_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name)
+                nodes, 'profile_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name)
             self.datasources.files.write(
-                edges, 'user_metrics', 'remove_nonexistent_users', 'edges', 'csv', self.context_name)
+                edges, 'profile_metrics', 'remove_nonexistent_users', 'edges', 'csv', self.context_name)
             self.datasources.files.write(
-                graph, 'user_metrics', 'remove_nonexistent_users', 'graph', 'gexf', self.context_name)
+                graph, 'profile_metrics', 'remove_nonexistent_users', 'graph', 'gexf', self.context_name)
 
     def __follower_rank(self):
         if not self.datasources.files.exists(
-                'user_metrics', 'follower_rank', 'profiles', 'csv', self.context_name):
-            user_info = self.datasources.files.read(
-                'user_metrics', 'user_info', 'user_info', 'csv', self.context_name)
+                'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name):
+            profile_info = self.datasources.files.read(
+                'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name)
 
             # normalized follower ratio from https://doi.org/10.1016/j.ipm.2016.04.003
             def follower_rank_alg(followers, following):
@@ -180,10 +180,10 @@ class UserMetrics(PipelineBase):
                     follower_rank = 0
                 return follower_rank
 
-            user_info['follower_rank'] =\
-                user_info.apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)
+            profile_info['follower_rank'] =\
+                profile_info.apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)
 
-            profile_records = user_info.drop(columns=['user_id']).to_dict('records')
+            profile_records = profile_info.drop(columns=['user_id']).to_dict('records')
             user_names = [p['user_name'] for p in profile_records]
 
             try:
@@ -207,5 +207,5 @@ class UserMetrics(PipelineBase):
                 logger.debug('profile metrics already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
-                user_info[['user_id', 'user_name', 'follower_rank']],
-                'user_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)
+                profile_info[['user_id', 'user_name', 'follower_rank']],
+                'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)

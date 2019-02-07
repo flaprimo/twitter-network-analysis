@@ -2,8 +2,8 @@ import os
 import logging
 import time
 from datasources.datasources import Datasources
-from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection,\
-    CommunityDetectionMetrics, UserMetrics
+from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
+    CommunityDetectionMetrics, ProfileMetrics, UserEventMetrics
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -39,8 +39,11 @@ class Orchestrator:
             community_detection_metrics = CommunityDetectionMetrics(self.datasources, context_name)
             community_detection_metrics.execute()
 
-            user_metrics = UserMetrics(self.datasources, context_name)
-            user_metrics.execute()
+            profile_metrics = ProfileMetrics(self.datasources, context_name)
+            profile_metrics.execute()
+
+            userevent_metrics = UserEventMetrics(self.datasources, context_name)
+            userevent_metrics.execute()
 
         logger.info('END Orchestrator')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')

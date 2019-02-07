@@ -25,15 +25,19 @@ class ContextDetection(PipelineBase):
                         'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', ')
                     }
                 }
+            },
+            {
+                'stage_name': 'harvest_context',
+                'file_name': 'stream',
+                'file_extension': 'json'
             }
         ]
-        tasks = [self.__create_context, self.__harvest_context]
+        tasks = [self.__create_context]  # , self.__harvest_context]
         super(ContextDetection, self).__init__('context_detection', files, tasks, datasources, file_prefix)
 
     def __create_context(self):
         if not self.datasources.files.exists(
                 'context_detection', 'create_context', 'context', 'csv', self.context_name):
-            logger.info('persist context')
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.reset_index().to_dict('records')[0]
             context_record['hashtags'] = ' '.join(context_record['hashtags'])
@@ -50,20 +54,14 @@ class ContextDetection(PipelineBase):
                 context, 'context_detection', 'create_context', 'context', 'csv', self.context_name)
 
     def __harvest_context(self):
-        self.datasources.files.add_file_model(
-            pipeline_name='context_detection',
-            stage_name='harvest_context',
-            file_name='stream',
-            file_extension='json',
-            file_prefix=self.context_name)
-        # if not self.datasources.files.exists(
-        #         'context_detection', 'harvest_context', 'stream', 'json', self.context_name):
-        #     context = self.datasources.contexts.get_context(self.context_name)
-        #     context_record = context.to_dict('records')[0]
-        #
-        #     stream = tw.tw_premium_api.create_search(query=' OR '.join(context_record['hashtags']),
-        #                                              since=context_record['start_date'],
-        #                                              until=context_record['end_date'],
-        #                                              n=200)
-        #
-        #     self.datasources.files.write_file(stream, 'context_detection', 'harvest_context', 'stream', 'json')
+        if not self.datasources.files.exists(
+                'context_detection', 'harvest_context', 'stream', 'json', self.context_name):
+            context = self.datasources.contexts.get_context(self.context_name)
+            context_record = context.to_dict('records')[0]
+
+            stream = tw.tw_premium_api.create_search(query=' OR '.join(context_record['hashtags']),
+                                                     since=context_record['start_date'],
+                                                     until=context_record['end_date'],
+                                                     n=200)
+
+            self.datasources.files.write_file(stream, 'context_detection', 'harvest_context', 'stream', 'json')

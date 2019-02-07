@@ -155,9 +155,9 @@ class UserMetrics(PipelineBase):
             graph = self.datasources.files.read(
                 'community_detection', 'add_communities_to_graph', 'graph', 'gexf', self.context_name)
 
-            nodes = nodes[nodes.index.isin(user_info['user_id'])]
+            nodes = nodes[nodes.user_id.isin(user_info['user_id'])]
             edges = edges[edges.source_id.isin(user_info['user_id']) & edges.target_id.isin(user_info['user_id'])]
-            graph.remove_nodes_from(graph.nodes - user_info['user_id'].tolist())
+            graph.remove_nodes_from(set(graph.nodes) - set(user_info['user_id'].tolist()))
 
             self.datasources.files.write(
                 nodes, 'user_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name)

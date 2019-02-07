@@ -178,7 +178,7 @@ class CommunityDetection(PipelineBase):
                 'community_detection', 'add_communities_to_nodes', 'nodes', 'csv', self.context_name)
 
             # remove lone nodes
-            graph.remove_nodes_from(graph.nodes - nodes['user_id'].tolist())
+            graph.remove_nodes_from(set(graph.nodes) - set(nodes['user_id'].tolist()))
 
             # community node dictionary (keep only True community attribute)
             communities = pd.get_dummies(nodes.set_index('user_id')['community'], prefix='C')\

@@ -23,7 +23,7 @@ class User(Base):
                            cascade='all, delete-orphan', single_parent=True)
     user_communities = relationship('UserCommunity', back_populates='user',
                                     cascade='all, delete-orphan', single_parent=True)
-    user_events = relationship('UserEvent', back_populates='user',
+    user_contexts = relationship('UserContext', back_populates='user',
                                cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
@@ -55,8 +55,8 @@ class Profile(Base):
             f'rank={self.rank})>'
 
 
-class Event(Base):
-    __tablename__ = 'events'
+class Context(Base):
+    __tablename__ = 'contexts'
 
     id = Column(Integer, primary_key=True)
     name = Column(String(20), unique=True)
@@ -65,13 +65,13 @@ class Event(Base):
     location = Column(String(20))
     hashtags = Column(String(20))
 
-    graph = relationship('Graph', uselist=False, back_populates='event',
+    graph = relationship('Graph', uselist=False, back_populates='context',
                          cascade='all, delete-orphan', single_parent=True)
-    user_events = relationship('UserEvent', back_populates='event',
+    user_contexts = relationship('UserContext', back_populates='context',
                                cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
-        return f'<Event(' \
+        return f'<Context(' \
             f'name={self.name}, ' \
             f'start_date={self.start_date}, ' \
             f'end_date={self.end_date}, ' \
@@ -83,7 +83,7 @@ class Graph(Base):
     __tablename__ = 'graphs'
 
     id = Column(Integer, primary_key=True)
-    event_id = Column(Integer, ForeignKey('events.id'))
+    context_id = Column(Integer, ForeignKey('contexts.id'))
     no_nodes = Column(Integer, CheckConstraint('no_nodes>=0'))
     no_edges = Column(Integer, CheckConstraint('no_edges>=0'))
     avg_degree = Column(Float, CheckConstraint('avg_degree>=0'))
@@ -94,7 +94,7 @@ class Graph(Base):
     avg_clustering = Column(Float, CheckConstraint('avg_clustering>=0'))
     assortativity = Column(Float)
 
-    event = relationship('Event', back_populates='graph')
+    context = relationship('Context', back_populates='graph')
     partition = relationship('Partition', uselist=False, back_populates='graph',
                              cascade='all, delete-orphan', single_parent=True)
 
@@ -180,20 +180,20 @@ class UserCommunity(Base):
             f'hindex={self.hindex})>'
 
 
-class UserEvent(Base):
-    __tablename__ = 'user_events'
+class UserContext(Base):
+    __tablename__ = 'user_contexts'
 
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    event_id = Column(Integer, ForeignKey('events.id'), primary_key=True)
+    context_id = Column(Integer, ForeignKey('contexts.id'), primary_key=True)
     topical_attachment = Column(Float, CheckConstraint('topical_attachment>=0'))
     topical_focus = Column(Float, CheckConstraint('topical_focus>=0'))
     topical_strength = Column(Float, CheckConstraint('topical_strength>=0'))
 
-    user = relationship(User, back_populates='user_events')
-    event = relationship(Event, back_populates='user_events')
+    user = relationship(User, back_populates='user_contexts')
+    context = relationship(Context, back_populates='user_contexts')
 
     def __repr__(self):
-        return f'<UserEvent(' \
+        return f'<UserContext(' \
             f'topical_attachment={self.topical_attachment}, ' \
             f'topical_focus={self.topical_focus}, ' \
             f'topical_strength={self.topical_strength})>'

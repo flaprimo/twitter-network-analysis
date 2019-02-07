@@ -3,7 +3,7 @@ import networkx as nx
 import pandas as pd
 import pquality.PartitionQuality as Pq
 from sqlalchemy.exc import IntegrityError
-from datasources.database.model import Graph, Partition, Event, Community, User, UserCommunity
+from datasources.database import Graph, Partition, Context, Community, User, UserCommunity
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -108,8 +108,8 @@ class CommunityDetectionMetrics(PipelineBase):
 
             try:
                 with self.datasources.database.session_scope() as session:
-                    graph_entity = session.query(Graph).join(Graph.event) \
-                        .filter(Event.name == self.context_name).first()
+                    graph_entity = session.query(Graph).join(Graph.context) \
+                        .filter(Context.name == self.context_name).first()
                     partition_entity = Partition(**partition_record, graph=graph_entity)
                     session.add(partition_entity)
                 logger.debug('partition successfully persisted')
@@ -164,8 +164,8 @@ class CommunityDetectionMetrics(PipelineBase):
 
             try:
                 with self.datasources.database.session_scope() as session:
-                    partition_entity = session.query(Partition).join(Partition.graph).join(Graph.event) \
-                        .filter(Event.name == self.context_name).first()
+                    partition_entity = session.query(Partition).join(Partition.graph).join(Graph.context) \
+                        .filter(Context.name == self.context_name).first()
 
                     community_entities = [Community(**c, partition=partition_entity)
                                           for c in communities]
@@ -228,8 +228,8 @@ class CommunityDetectionMetrics(PipelineBase):
                 with self.datasources.database.session_scope() as session:
                     # get all commmunities for current dataset partition
                     community_entities = session.query(Community) \
-                        .join(Community.partition).join(Partition.graph).join(Graph.event) \
-                        .filter(Event.name == self.context_name).all()
+                        .join(Community.partition).join(Partition.graph).join(Graph.context) \
+                        .filter(Context.name == self.context_name).all()
 
                     # get all users for current dataset
                     user_entities = session.query(User) \

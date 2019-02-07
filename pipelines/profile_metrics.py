@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
-from datasources.database.model import User, Profile
+from datasources.database import User, Profile
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
 

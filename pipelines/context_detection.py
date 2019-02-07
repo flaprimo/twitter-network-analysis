@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy.exc import IntegrityError
-from datasources.database.model import Event
+from datasources.database import Context
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
 
@@ -44,7 +44,7 @@ class ContextDetection(PipelineBase):
 
             try:
                 with self.datasources.database.session_scope() as session:
-                    context_entity = Event(**context_record)
+                    context_entity = Context(**context_record)
                     session.add(context_entity)
                 logger.debug('context successfully persisted')
             except IntegrityError:

@@ -4,7 +4,7 @@ from .network_metrics import NetworkMetrics
 from .community_detection import CommunityDetection
 from .community_detection_metrics import CommunityDetectionMetrics
 from .profile_metrics import ProfileMetrics
-from .userevent_metrics import UserEventMetrics
+from .usercontext_metrics import UserContextMetrics
 
 __all__ = ['ContextDetection', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
-           'ProfileMetrics', 'UserEventMetrics']
+           'ProfileMetrics', 'UserContextMetrics']

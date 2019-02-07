@@ -2,7 +2,7 @@ import logging
 import networkx as nx
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
-from datasources.database.model import Graph, Event
+from datasources.database import Graph, Context
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -76,8 +76,8 @@ class NetworkMetrics(PipelineBase):
             graph_record = summary_df.to_dict('records')[0]
             try:
                 with self.datasources.database.session_scope() as session:
-                    event_entity = session.query(Event).filter(Event.name == self.context_name).first()
-                    graph_entity = Graph(**graph_record, event=event_entity)
+                    context_entity = session.query(Context).filter(Context.name == self.context_name).first()
+                    graph_entity = Graph(**graph_record, context=context_entity)
                     session.add(graph_entity)
                 logger.debug('graph successfully persisted')
             except IntegrityError:

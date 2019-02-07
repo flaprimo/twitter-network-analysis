@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
 
-from datasources.database.model import UserEvent, Event, User
+from datasources.database import UserContext, Context, User
 from datasources.tw.helper import query_builder
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
@@ -10,7 +10,7 @@ from .pipeline_base import PipelineBase
 logger = logging.getLogger(__name__)
 
 
-class UserEventMetrics(PipelineBase):
+class UserContextMetrics(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
@@ -43,7 +43,7 @@ class UserEventMetrics(PipelineBase):
             },
             {
                 'stage_name': 'compute_metrics',
-                'file_name': 'userevent_metrics',
+                'file_name': 'usercontext_metrics',
                 'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
@@ -59,12 +59,12 @@ class UserEventMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__get_user_stream]
-        super(UserEventMetrics, self).__init__('userevent_metrics', files, tasks, datasources, file_prefix)
+        tasks = [self.__get_user_stream, self.__compute_metrics]
+        super(UserContextMetrics, self).__init__('usercontext_metrics', files, tasks, datasources, file_prefix)
 
     def __get_user_stream(self):
         if not self.datasources.files.exists(
-                'userevent_metrics', 'get_user_stream', 'stream', 'csv', self.context_name):
+                'usercontext_metrics', 'get_user_stream', 'stream', 'csv', self.context_name):
             profile_info = self.datasources.files.read(
                 'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name)
 
@@ -90,13 +90,13 @@ class UserEventMetrics(PipelineBase):
             df_stream = pd.DataFrame.from_records(streams)
 
             self.datasources.files.write(
-                df_stream, 'userevent_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
+                df_stream, 'usercontext_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
 
     def __compute_metrics(self):
         if not self.datasources.files.exists(
-                'userevent_metrics', 'compute_metrics', 'userevent_metrics', 'csv', self.context_name):
+                'usercontext_metrics', 'compute_metrics', 'usercontext_metrics', 'csv', self.context_name):
             stream = self.datasources.files.read(
-                'userevent_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
+                'usercontext_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
             nodes = self.datasources.files.read(
                 'profile_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name)
 
@@ -112,7 +112,7 @@ class UserEventMetrics(PipelineBase):
                 return (tw_ontopic + link_ontopic) / (tw_offtopic + link_offtopic + 1)
 
             topical_attachment = \
-                stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author') \
+                stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author')\
                     .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
                                                             x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
                     .to_frame().rename(columns={0: 'topical_attachment'})
@@ -139,39 +139,39 @@ class UserEventMetrics(PipelineBase):
                                                           x[~x['tw_ontopic']]['no_retweets'].sum())) \
                     .to_frame().rename(columns={0: 'topical_strength'})
 
-            userevents = topical_attachment \
+            usercontexts = topical_attachment \
                 .merge(topical_focus, left_index=True, right_index=True) \
                 .merge(topical_strength, left_index=True, right_index=True) \
                 .reset_index().rename(columns={'author': 'user_name'})
 
             # add missing nodes
-            userevents = userevents.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',
+            usercontexts = usercontexts.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',
                                           how='outer', sort='True').fillna(0)
 
-            userevent_records = userevents.set_index('user_name').to_dict('index')
+            usercontext_records = usercontexts.set_index('user_name').to_dict('index')
 
             try:
                 with self.datasources.database.session_scope() as session:
                     # get all users for current dataset
                     user_entities = session.query(User) \
-                        .filter(User.user_name.in_(userevent_records.keys())).all()
+                        .filter(User.user_name.in_(usercontext_records.keys())).all()
 
-                    # get current event
-                    event_entity = session.query(Event).filter(Event.name == self.context_name).first()
+                    # get current context
+                    context_entity = session.query(Context).filter(Context.name == self.context_name).first()
 
-                    userevent_entities = []
-                    for user_name, metrics in userevent_records.items():
-                        # get user entities and userevent info
+                    usercontext_entities = []
+                    for user_name, metrics in usercontext_records.items():
+                        # get user entities and usercontext info
                         user_entity = next(filter(lambda x: x.user_name == user_name, user_entities), None)
 
-                        # create userevent entity
-                        userevent_entity = UserEvent(**metrics, user=user_entity, event=event_entity)
-                        userevent_entities.append(userevent_entity)
+                        # create usercontext entity
+                        usercontext_entity = UserContext(**metrics, user=user_entity, context=context_entity)
+                        usercontext_entities.append(usercontext_entity)
 
-                    session.add_all(userevent_entities)
-                logger.debug('userevent info successfully persisted')
+                    session.add_all(usercontext_entities)
+                logger.debug('usercontext info successfully persisted')
             except IntegrityError:
-                logger.debug('userevent info already exists or constraint is violated and could not be added')
+                logger.debug('usercontext info already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
-                userevents, 'userevent_metrics', 'compute_metrics', 'userevent_metrics', 'csv', self.context_name)
+                usercontexts, 'usercontext_metrics', 'compute_metrics', 'usercontext_metrics', 'csv', self.context_name)

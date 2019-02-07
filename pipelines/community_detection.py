@@ -2,7 +2,7 @@ import logging
 import networkx as nx
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
-from datasources.database.model import User
+from datasources.database import User
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)

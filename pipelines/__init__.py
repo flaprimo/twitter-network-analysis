@@ -5,6 +5,7 @@ from .community_detection import CommunityDetection
 from .community_detection_metrics import CommunityDetectionMetrics
 from .profile_metrics import ProfileMetrics
 from .usercontext_metrics import UserContextMetrics
+from .persistence import Persistence
 
 __all__ = ['ContextDetection', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
-           'ProfileMetrics', 'UserContextMetrics']
+           'ProfileMetrics', 'UserContextMetrics', 'Persistence']

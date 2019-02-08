@@ -2,8 +2,6 @@ import logging
 import networkx as nx
 import pandas as pd
 import pquality.PartitionQuality as Pq
-from sqlalchemy.exc import IntegrityError
-from datasources.database import Graph, Partition, Context, Community, User, UserCommunity
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -103,19 +101,6 @@ class CommunityDetectionMetrics(PipelineBase):
 
             pquality_df = pd.DataFrame(m, columns=['index', 'min', 'max', 'avg', 'std']).set_index('index')
 
-            partition_record = {r['index']: r['avg']
-                                for r in pquality_df['avg'].reset_index().to_dict('records')}
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    graph_entity = session.query(Graph).join(Graph.context) \
-                        .filter(Context.name == self.context_name).first()
-                    partition_entity = Partition(**partition_record, graph=graph_entity)
-                    session.add(partition_entity)
-                logger.debug('partition successfully persisted')
-            except IntegrityError:
-                logger.debug('partition already exists or constraint is violated and could not be added')
-
             self.datasources.files.write(
                 pquality_df, 'community_detection_metrics', 'pquality', 'pquality', 'csv', self.context_name)
 
@@ -159,20 +144,6 @@ class CommunityDetectionMetrics(PipelineBase):
                 c_summary_list.append(c_summary_df)
 
             partition_summary_df = pd.concat(c_summary_list).set_index('community')
-
-            communities = [{'name': c} for c in partition_summary_df.index.tolist()]
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    partition_entity = session.query(Partition).join(Partition.graph).join(Graph.context) \
-                        .filter(Context.name == self.context_name).first()
-
-                    community_entities = [Community(**c, partition=partition_entity)
-                                          for c in communities]
-                    session.add_all(community_entities)
-                logger.debug('communities successfully persisted')
-            except IntegrityError:
-                logger.debug('community already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
                 partition_summary_df, 'community_detection_metrics', 'partition_summary', 'partition_summary',
@@ -223,33 +194,6 @@ class CommunityDetectionMetrics(PipelineBase):
 
                 nodes = pd.merge(nodes, pd.DataFrame(results),
                                  left_on=['user_id', 'community'], right_on=['user_id', 'community'])
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    # get all commmunities for current dataset partition
-                    community_entities = session.query(Community) \
-                        .join(Community.partition).join(Partition.graph).join(Graph.context) \
-                        .filter(Context.name == self.context_name).all()
-
-                    # get all users for current dataset
-                    user_entities = session.query(User) \
-                        .filter(User.user_name.in_(nodes['user_name'].drop_duplicates().tolist())).all()
-
-                    usercommunity_entities = []
-                    for u in nodes.to_dict('records'):
-                        # get user and community entities and usercommunity info
-                        community_entity = next(filter(lambda x: x.name == u['community'], community_entities), None)
-                        user_entity = next(filter(lambda x: x.user_name == u['user_name'], user_entities), None)
-
-                        # create usercommunity entity
-                        usercommunity_entity = UserCommunity(indegree=u['indegree'],
-                                                             indegree_centrality=u['indegree_centrality'],
-                                                             hindex=u['hindex'],
-                                                             user=user_entity, community=community_entity)
-                        usercommunity_entities.append(usercommunity_entity)
-                    session.add_all(usercommunity_entities)
-            except IntegrityError:
-                logger.debug('usercommunity already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
                 nodes, 'community_detection_metrics', 'node_metrics', 'nodes', 'csv', self.context_name)

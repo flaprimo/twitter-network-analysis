@@ -18,8 +18,9 @@ class Contexts:
                                  'location': str
                              },
                              converters={'hashtags': lambda x: x.split(' ')},
-                             parse_dates=['start_date', 'end_date'], index_col='name',
-                             date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d'))
+                             parse_dates=['start_date', 'end_date'],
+                             date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d'),
+                             index_col='name')
         events['start_date'] = events['start_date'].apply(lambda x: x.date())
         events['end_date'] = events['end_date'].apply(lambda x: x.date())
 

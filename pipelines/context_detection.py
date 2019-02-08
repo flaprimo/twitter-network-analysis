@@ -1,6 +1,5 @@
+from datetime import datetime
 import logging
-from sqlalchemy.exc import IntegrityError
-from datasources.database import Context
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
 
@@ -23,7 +22,10 @@ class ContextDetection(PipelineBase):
                     },
                     'converters': {
                         'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', ')
-                    }
+                    },
+                    'parse_dates': ['start_date', 'end_date'],
+                    'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d'),
+                    'index_col': 'name'
                 }
             },
             {
@@ -39,17 +41,6 @@ class ContextDetection(PipelineBase):
         if not self.datasources.files.exists(
                 'context_detection', 'create_context', 'context', 'csv', self.context_name):
             context = self.datasources.contexts.get_context(self.context_name)
-            context_record = context.reset_index().to_dict('records')[0]
-            context_record['hashtags'] = ' '.join(context_record['hashtags'])
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    context_entity = Context(**context_record)
-                    session.add(context_entity)
-                logger.debug('context successfully persisted')
-            except IntegrityError:
-                logger.debug('context already exists or constraint is violated and could not be added')
-
             self.datasources.files.write(
                 context, 'context_detection', 'create_context', 'context', 'csv', self.context_name)
 

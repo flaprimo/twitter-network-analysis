@@ -1,8 +1,6 @@
 import logging
 import networkx as nx
 import pandas as pd
-from sqlalchemy.exc import IntegrityError
-from datasources.database import Graph, Context
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -72,16 +70,6 @@ class NetworkMetrics(PipelineBase):
                 'avg_clustering': nx.average_clustering(graph),
                 'assortativity': assortativity(graph)
             }, index=[0]).round(4)
-
-            graph_record = summary_df.to_dict('records')[0]
-            try:
-                with self.datasources.database.session_scope() as session:
-                    context_entity = session.query(Context).filter(Context.name == self.context_name).first()
-                    graph_entity = Graph(**graph_record, context=context_entity)
-                    session.add(graph_entity)
-                logger.debug('graph successfully persisted')
-            except IntegrityError:
-                logger.debug('graph already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
                 summary_df, 'network_metrics', 'graph_summary', 'graph_summary', 'csv', self.context_name)

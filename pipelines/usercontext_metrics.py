@@ -1,8 +1,5 @@
 import logging
 import pandas as pd
-from sqlalchemy.exc import IntegrityError
-
-from datasources.database import UserContext, Context, User
 from datasources.tw.helper import query_builder
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
@@ -105,7 +102,8 @@ class UserContextMetrics(PipelineBase):
             hashtags = context_record['hashtags'][0]
 
             stream['tw_ontopic'] = stream['hashtags'].apply(lambda t: any(h in hashtags for h in t))
-            stream['link_ontopic'] = stream[stream['tw_ontopic']]['urls'].apply(lambda t: t != ['']).fillna(False)
+            stream['link_ontopic'] = stream[stream['tw_ontopic']]['urls'].apply(lambda t: t != [''])
+            stream['link_ontopic'].fillna(False, inplace=True)
 
             # topical attachment
             def topical_attachment_alg(tw_ontopic, tw_offtopic, link_ontopic, link_offtopic):
@@ -114,7 +112,7 @@ class UserContextMetrics(PipelineBase):
             topical_attachment = \
                 stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author')\
                     .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
-                                                            x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
+                                                            x['link_ontopic'].sum(), (~x['link_ontopic']).sum()))\
                     .to_frame().rename(columns={0: 'topical_attachment'})
 
             # topical focus
@@ -147,31 +145,6 @@ class UserContextMetrics(PipelineBase):
             # add missing nodes
             usercontexts = usercontexts.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',
                                           how='outer', sort='True').fillna(0)
-
-            usercontext_records = usercontexts.set_index('user_name').to_dict('index')
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    # get all users for current dataset
-                    user_entities = session.query(User) \
-                        .filter(User.user_name.in_(usercontext_records.keys())).all()
-
-                    # get current context
-                    context_entity = session.query(Context).filter(Context.name == self.context_name).first()
-
-                    usercontext_entities = []
-                    for user_name, metrics in usercontext_records.items():
-                        # get user entities and usercontext info
-                        user_entity = next(filter(lambda x: x.user_name == user_name, user_entities), None)
-
-                        # create usercontext entity
-                        usercontext_entity = UserContext(**metrics, user=user_entity, context=context_entity)
-                        usercontext_entities.append(usercontext_entity)
-
-                    session.add_all(usercontext_entities)
-                logger.debug('usercontext info successfully persisted')
-            except IntegrityError:
-                logger.debug('usercontext info already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
                 usercontexts, 'usercontext_metrics', 'compute_metrics', 'usercontext_metrics', 'csv', self.context_name)

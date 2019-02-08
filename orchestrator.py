@@ -3,7 +3,7 @@ import logging
 import time
 from datasources import Datasources
 from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
-    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics
+    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -44,6 +44,9 @@ class Orchestrator:
 
             usercontext_metrics = UserContextMetrics(self.datasources, context_name)
             usercontext_metrics.execute()
+
+            persistence = Persistence(self.datasources, context_name)
+            persistence.execute()
 
         logger.info('END Orchestrator')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')

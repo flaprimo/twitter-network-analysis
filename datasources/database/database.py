@@ -6,7 +6,7 @@ import os
 
 
 class Database:
-    def __init__(self, output_path, db_name='database', reset_db=False):
+    def __init__(self, output_path, db_name='database', reset_db=True):
         output_db_dir = os.path.join(output_path, 'db')
         self.output_db_path = os.path.join(output_db_dir, f'{db_name}.db')
 

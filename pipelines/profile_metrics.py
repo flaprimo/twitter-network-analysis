@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime
 import pandas as pd
-from sqlalchemy.exc import IntegrityError
-from datasources.database import User, Profile
 from datasources.tw.tw import tw
 from .pipeline_base import PipelineBase
 
@@ -31,10 +29,8 @@ class ProfileMetrics(PipelineBase):
                         'url': str
                     },
                     'parse_dates': ['join_date'],
-                    'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d')
-                },
-                'w_kwargs': {
-                    'index': False
+                    'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d'),
+                    'index_col': 'user_id'
                 }
             },
             {
@@ -87,10 +83,8 @@ class ProfileMetrics(PipelineBase):
                         'user_id': 'uint32',
                         'user_name': str,
                         'follower_rank': 'float32'
-                    }
-                },
-                'w_kwargs': {
-                    'index': False
+                    },
+                    'index_col': 'user_id'
                 }
             }
         ]
@@ -109,31 +103,7 @@ class ProfileMetrics(PipelineBase):
                         (tw.tw_static_scraper.get_user(u) for u in unique_users['user_name'].tolist()) if x]
 
             userinfo = pd.merge(pd.DataFrame(profiles), unique_users,
-                                how='left', left_on=['user_name'], right_on=['user_name'])
-
-            try:
-                userinfo['join_date'] = userinfo['join_date'].apply(lambda x: x.date())
-            except AttributeError:
-                logger.debug('not loaded from disk')
-
-            userinfo_records = userinfo.drop(columns=['user_id']).to_dict('records')
-            user_names = userinfo['user_name'].drop_duplicates().tolist()
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    # get all users for current dataset
-                    user_entities = session.query(User.id, User.user_name) \
-                        .filter(User.user_name.in_(user_names)).all()
-
-                    # update all users with user infos
-                    for user_entity in user_entities:
-                        user = next(filter(lambda x: x['user_name'] == user_entity.user_name, userinfo_records), None)
-                        user['id'] = user_entity.id
-
-                    session.bulk_update_mappings(User, userinfo_records)
-                logger.debug('user info successfully persisted')
-            except IntegrityError:
-                logger.debug('user info already exists or constraint is violated and could not be added')
+                                how='left', left_on=['user_name'], right_on=['user_name']).set_index('user_id')
 
             self.datasources.files.write(
                 userinfo, 'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name)
@@ -155,9 +125,9 @@ class ProfileMetrics(PipelineBase):
             graph = self.datasources.files.read(
                 'community_detection', 'add_communities_to_graph', 'graph', 'gexf', self.context_name)
 
-            nodes = nodes[nodes.user_id.isin(profile_info['user_id'])]
-            edges = edges[edges.source_id.isin(profile_info['user_id']) & edges.target_id.isin(profile_info['user_id'])]
-            graph.remove_nodes_from(set(graph.nodes) - set(profile_info['user_id'].tolist()))
+            nodes = nodes[nodes.user_id.isin(profile_info.index)]
+            edges = edges[edges.source_id.isin(profile_info.index) & edges.target_id.isin(profile_info.index)]
+            graph.remove_nodes_from(set(graph.nodes) - set(profile_info.index.tolist()))
 
             self.datasources.files.write(
                 nodes, 'profile_metrics', 'remove_nonexistent_users', 'nodes', 'csv', self.context_name)
@@ -180,32 +150,34 @@ class ProfileMetrics(PipelineBase):
                     follower_rank = 0
                 return follower_rank
 
-            profile_info['follower_rank'] =\
-                profile_info.apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)
+            profile_info['follower_rank'] = profile_info[['followers', 'following']]\
+                .apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)
+            profile_info = profile_info[['user_name', 'follower_rank']]
 
-            profile_records = profile_info.drop(columns=['user_id']).to_dict('records')
-            user_names = [p['user_name'] for p in profile_records]
-
-            try:
-                with self.datasources.database.session_scope() as session:
-                    # get all users for current dataset
-                    user_entities = session.query(User) \
-                        .filter(User.user_name.in_(user_names)).all()
-
-                    profile_entities = []
-                    for p in profile_records:
-                        # get user entities and profile info
-                        user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-
-                        # create profile entity
-                        profile_entity = Profile(follower_rank=p['follower_rank'], user=user_entity)
-                        profile_entities.append(profile_entity)
-
-                    session.add_all(profile_entities)
-                logger.debug('profile metrics successfully persisted')
-            except IntegrityError:
-                logger.debug('profile metrics already exists or constraint is violated and could not be added')
+            # NOT INCLUDED
+            # profile_records = profile_info.drop(columns=['user_id']).to_dict('records')
+            # user_names = [p['user_name'] for p in profile_records]
+            #
+            # try:
+            #     with self.datasources.database.session_scope() as session:
+            #         # get all users for current dataset
+            #         user_entities = session.query(User) \
+            #             .filter(User.user_name.in_(user_names)).all()
+            #
+            #         profile_entities = []
+            #         for p in profile_records:
+            #             # get user entities and profile info
+            #             user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
+            #
+            #             # create profile entity
+            #             profile_entity = Profile(follower_rank=p['follower_rank'], user=user_entity)
+            #             profile_entities.append(profile_entity)
+            #
+            #         session.add_all(profile_entities)
+            #     logger.debug('profile metrics successfully persisted')
+            # except IntegrityError:
+            #     logger.debug('profile metrics already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
-                profile_info[['user_id', 'user_name', 'follower_rank']],
+                profile_info,
                 'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)

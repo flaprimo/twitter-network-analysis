@@ -1,8 +1,6 @@
 import logging
 import networkx as nx
 import pandas as pd
-from sqlalchemy.exc import IntegrityError
-from datasources.database import User
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -149,22 +147,6 @@ class CommunityDetection(PipelineBase):
             nodes = pd.merge(communities, nodes, left_on='user_id', right_index=True) \
                 .sort_values(by=['user_id', 'community'])
             nodes = nodes[['user_id', 'user_name', 'community']]
-
-            user_name_list = nodes['user_name'].drop_duplicates().tolist()
-            try:
-                with self.datasources.database.session_scope() as session:
-                    # filter users already present
-                    users_to_filter = session.query(User.user_name) \
-                        .filter(User.user_name.in_(user_name_list)).all()
-                    users_to_filter = [u[0] for u in users_to_filter]
-                    user_name_list = list(filter(lambda x: x not in users_to_filter, user_name_list))
-
-                    # persist new users
-                    user_entities = [User(user_name=u) for u in user_name_list]
-                    session.add_all(user_entities)
-                logger.debug('users successfully persisted')
-            except IntegrityError:
-                logger.debug('users already exists or constraint is violated and could not be added')
 
             self.datasources.files.write(
                 nodes, 'community_detection', 'add_communities_to_nodes', 'nodes', 'csv', self.context_name)

@@ -15,6 +15,7 @@ class User(Base):
     url = Column(String(160))
     location = Column(String(160))
     bio = Column(String(160))
+    likes = Column(Integer, CheckConstraint('likes>=0'))
     tweets = Column(Integer, CheckConstraint('tweets>=0'))
     following = Column(Integer, CheckConstraint('following>=0'))
     followers = Column(Integer, CheckConstraint('followers>=0'))
@@ -24,7 +25,7 @@ class User(Base):
     user_communities = relationship('UserCommunity', back_populates='user',
                                     cascade='all, delete-orphan', single_parent=True)
     user_contexts = relationship('UserContext', back_populates='user',
-                               cascade='all, delete-orphan', single_parent=True)
+                                 cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<User(' \
@@ -34,6 +35,7 @@ class User(Base):
             f'url={self.url}, ' \
             f'location={self.location}, ' \
             f'bio={self.bio}, ' \
+            f'likes={self.likes}, ' \
             f'tweets={self.tweets}, ' \
             f'following={self.following}, ' \
             f'followers={self.followers})>'
@@ -68,7 +70,7 @@ class Context(Base):
     graph = relationship('Graph', uselist=False, back_populates='context',
                          cascade='all, delete-orphan', single_parent=True)
     user_contexts = relationship('UserContext', back_populates='context',
-                               cascade='all, delete-orphan', single_parent=True)
+                                 cascade='all, delete-orphan', single_parent=True)
 
     def __repr__(self):
         return f'<Context(' \

@@ -154,30 +154,6 @@ class ProfileMetrics(PipelineBase):
                 .apply(lambda x: follower_rank_alg(x['followers'], x['following']), axis=1)
             profile_info = profile_info[['user_name', 'follower_rank']]
 
-            # NOT INCLUDED
-            # profile_records = profile_info.drop(columns=['user_id']).to_dict('records')
-            # user_names = [p['user_name'] for p in profile_records]
-            #
-            # try:
-            #     with self.datasources.database.session_scope() as session:
-            #         # get all users for current dataset
-            #         user_entities = session.query(User) \
-            #             .filter(User.user_name.in_(user_names)).all()
-            #
-            #         profile_entities = []
-            #         for p in profile_records:
-            #             # get user entities and profile info
-            #             user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-            #
-            #             # create profile entity
-            #             profile_entity = Profile(follower_rank=p['follower_rank'], user=user_entity)
-            #             profile_entities.append(profile_entity)
-            #
-            #         session.add_all(profile_entities)
-            #     logger.debug('profile metrics successfully persisted')
-            # except IntegrityError:
-            #     logger.debug('profile metrics already exists or constraint is violated and could not be added')
-
             self.datasources.files.write(
                 profile_info,
                 'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)

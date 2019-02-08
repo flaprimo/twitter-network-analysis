@@ -10,7 +10,7 @@ class Persistence(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = []
         tasks = [self.__add_context, self.__add_graph, self.__add_partition, self.__add_communities, self.__add_users,
-                 self.__add_user_communities, self.__add_user_context]
+                 self.__add_profiles, self.__add_user_communities, self.__add_user_context]
         super(Persistence, self).__init__('persistence', files, tasks, datasources, file_prefix)
 
     def __add_context(self):
@@ -87,69 +87,54 @@ class Persistence(PipelineBase):
                 users_toupdate = [u[1] for u in user_entities_toupdate]
                 users_toinsert = set(user_names) - set(users_toupdate)
 
-                # insert new users
-                user_records_toinsert = [u for u in user_records if u['user_name'] in users_toinsert]
-                user_entities_toinsert = [User(**u) for u in user_records_toinsert]
-                session.add_all(user_entities_toinsert)
-
                 # update old users
                 user_records_toupdate =\
                     [dict([u for u in user_records if u['user_name'] == u_username_old][0], **{'id': u_id_old})
                      for u_id_old, u_username_old in user_entities_toupdate]
                 session.bulk_update_mappings(User, user_records_toupdate)
 
+                # insert new users
+                user_records_toinsert = [u for u in user_records if u['user_name'] in users_toinsert]
+                user_entities_toinsert = [User(**u) for u in user_records_toinsert]
+                session.add_all(user_entities_toinsert)
+
             logger.debug('user info successfully persisted')
         except IntegrityError:
             logger.debug('user info already exists or constraint is violated and could not be added')
 
-    # def __add_profiles(self):
-    #     profiles = self.datasources.files.read(
-    #         'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)
-    #
-    #     profile_records = profiles.to_dict('records')
-    #     user_names = [p['user_name'] for p in profile_records]
-    #
-    #     try:
-    #         with self.datasources.database.session_scope() as session:
-    #             # add sample
-    #             user_example = session.query(User)\
-    #                 .filter(User.user_name == '879caldwell').first()
-    #             session.add(Profile(user=user_example, follower_rank=100))
-    #
-    #             # user_entities = session.query(User) \
-    #             #     .filter(User.user_name.in_(user_names)).all()
-    #
-    #             # user_entities_toupdate = session.query(Profile.id, User) \
-    #             #     .join(User.profile).filter(User.user_name.in_(user_names)).all()
-    #             # users_toupdate = [u_old.user_name for p_id, u_old in user_entities_toupdate]
-    #
-    #
-    #             # print(user_entities)
-    #             #
-    #             # update old users
-    #             # profile_records_toupdate =\
-    #             #     [dict([u for u in profile_records if u['user_name'] == u_old.user_name][0], **{'id': p_id})
-    #             #      for p_id, u_old in user_entities_toupdate]
-    #             # print(profile_records_toupdate)
-    #             # session.bulk_update_mappings(Profile, profile_records_toupdate)
-    #
-    #             # get all users for current dataset
-    #             # user_entities = session.query(User) \
-    #             #     .filter(User.user_name.in_(user_names)).all()
-    #             #
-    #             # profile_entities = []
-    #             # for p in profile_records:
-    #             #     # get user entities and profile info
-    #             #     user_entity = next(filter(lambda x: x.user_name == p['user_name'], user_entities), None)
-    #             #
-    #             #     # create profile entity
-    #             #     profile_entity = Profile(follower_rank=p['follower_rank'], user=user_entity)
-    #             #     profile_entities.append(profile_entity)
-    #             #
-    #             # session.add_all(profile_entities)
-    #         logger.debug('profile metrics successfully persisted')
-    #     except IntegrityError:
-    #         logger.debug('profile metrics already exists or constraint is violated and could not be added')
+    def __add_profiles(self):
+        profiles = self.datasources.files.read(
+            'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)
+
+        profile_records = profiles.to_dict('records')
+        user_names = profiles['user_name'].tolist()
+
+        try:
+            with self.datasources.database.session_scope() as session:
+                # update old profiles
+                userprofiles_entities_toupdate = session.query(Profile.id, User) \
+                    .join(User.profile).filter(User.user_name.in_(user_names)).all()
+                profile_records_toupdate =\
+                    [dict([u for u in profile_records if u['user_name'] == u_old.user_name][0], **{'id': p_id})
+                     for p_id, u_old in userprofiles_entities_toupdate]
+                session.bulk_update_mappings(Profile, profile_records_toupdate)
+
+                # insert new profiles
+                profiles_toupdate = [u_old.user_name for p_id, u_old in userprofiles_entities_toupdate]
+                profiles_toinsert = set(user_names) - set(profiles_toupdate)
+                user_entities_toinsert = session.query(User) \
+                    .filter(User.user_name.in_(profiles_toinsert)).all()
+
+                profile_entities = []
+                for user_entity in user_entities_toinsert:
+                    profile_record = list(filter(lambda x: x['user_name'] == user_entity.user_name, profile_records))[0]
+                    profile_entity = Profile(follower_rank=profile_record['follower_rank'], user=user_entity)
+                    profile_entities.append(profile_entity)
+
+                session.add_all(profile_entities)
+            logger.debug('profile metrics successfully persisted')
+        except IntegrityError:
+            logger.debug('profile metrics already exists or constraint is violated and could not be added')
 
     def __add_user_context(self):
         usercontexts = self.datasources.files.read(

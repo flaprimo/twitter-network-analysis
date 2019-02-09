@@ -144,7 +144,7 @@ class UserContextMetrics(PipelineBase):
 
             # add missing nodes
             usercontexts = usercontexts.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',
-                                          how='outer', sort='True').fillna(0)
+                                              how='outer', sort='True').fillna(0)
 
             self.datasources.files.write(
                 usercontexts, 'usercontext_metrics', 'compute_metrics', 'usercontext_metrics', 'csv', self.context_name)

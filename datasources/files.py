@@ -3,6 +3,7 @@ import networkx as nx
 import pandas as pd
 import json
 import logging
+from cachetools import LRUCache
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ class Files:
     def __init__(self, output_path):
         self.output_path = os.path.join(output_path, 'files')
         self.model = {}
+        self.cache = LRUCache(maxsize=30)
 
     @staticmethod
     def __get_full_file_name(file_name, file_extension, file_prefix='', file_suffix=''):
@@ -74,21 +76,30 @@ class Files:
             return graph
 
         full_file_name = Files.__get_full_file_name(file_name, file_extension, file_prefix, file_suffix)
+
         try:
             file_model = self.model[pipeline_name][stage_name][full_file_name]
 
-            if file_model['type'] == 'csv':
-                file_content = read_pandas(file_model['path'], file_model['r_kwargs'])
-            elif file_model['type'] == 'json':
-                file_content = read_json(file_model['path'], file_model['r_kwargs'])
-            elif file_model['type'] == 'gexf':
-                file_content = read_networkx(file_model['path'], file_model['r_kwargs'])
-            else:
-                raise ValueError('error: unknown file type')
+            try:
+                # raise KeyError
+                m = self.cache[file_model['path']]
+                logger.info('loading from cache')
+                logger.debug(f'file read from cache (file "{file_model["path"]}")')
+                return m.copy()
+            except KeyError:
+                if file_model['type'] == 'csv':
+                    file_content = read_pandas(file_model['path'], file_model['r_kwargs'])
+                elif file_model['type'] == 'json':
+                    file_content = read_json(file_model['path'], file_model['r_kwargs'])
+                elif file_model['type'] == 'gexf':
+                    file_content = read_networkx(file_model['path'], file_model['r_kwargs'])
+                else:
+                    raise ValueError('error: unknown file type')
 
-            logger.debug(f'file read (file "{file_model["path"]}")')
+                logger.debug(f'file read (file "{file_model["path"]}")')
+                # self.cache[file_model['path']] = file_content
 
-            return file_content
+                return file_content
         except KeyError:
             return None
 
@@ -120,3 +131,4 @@ class Files:
             raise ValueError('error: unknown file type')
 
         logger.debug(f'file written (file "{file_model["path"]}")')
+        self.cache[file_model['path']] = file_content

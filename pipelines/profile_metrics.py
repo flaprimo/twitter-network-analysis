@@ -155,5 +155,4 @@ class ProfileMetrics(PipelineBase):
             profile_info = profile_info[['user_name', 'follower_rank']]
 
             self.datasources.files.write(
-                profile_info,
-                'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)
+                profile_info, 'profile_metrics', 'follower_rank', 'profiles', 'csv', self.context_name)

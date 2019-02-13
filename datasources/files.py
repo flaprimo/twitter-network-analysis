@@ -81,9 +81,7 @@ class Files:
             file_model = self.model[pipeline_name][stage_name][full_file_name]
 
             try:
-                # raise KeyError
                 m = self.cache[file_model['path']]
-                logger.info('loading from cache')
                 logger.debug(f'file read from cache (file "{file_model["path"]}")')
                 return m.copy()
             except KeyError:
@@ -97,7 +95,6 @@ class Files:
                     raise ValueError('error: unknown file type')
 
                 logger.debug(f'file read (file "{file_model["path"]}")')
-                # self.cache[file_model['path']] = file_content
 
                 return file_content
         except KeyError:

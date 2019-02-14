@@ -51,19 +51,6 @@ class TwStaticScraper:
         url = self.base_url + user_name + '?lang=en-gb'
         logger.debug(f'url to query for "{user_name}": {url}')
 
-        user = {
-            'user_name': user_name,
-            'tweets': 0,
-            'following': 0,
-            'followers': 0,
-            'likes': 0,
-            'name': '',
-            'bio': '',
-            'location': '',
-            'url': '',
-            'join_date': datetime.now().date()
-        }
-
         try:
             response = self.__get_page(url)
 
@@ -77,52 +64,34 @@ class TwStaticScraper:
             profile_nav = root.xpath('//ul[@class="ProfileNav-list"]')[0]
             profile_nav_path = './li[contains(@class, "ProfileNav-item--{0}")]/' \
                                'a/span[@class="ProfileNav-value"]/@data-count'
-            try:
-                user['tweets'] = int(profile_nav.xpath(profile_nav_path.format('tweets'))[0])
-            except IndexError:
-                pass
-            try:
-                user['following'] = int(profile_nav.xpath(profile_nav_path.format('following'))[0])
-            except IndexError:
-                pass
-            try:
-                user['followers'] = int(profile_nav.xpath(profile_nav_path.format('followers'))[0])
-            except IndexError:
-                pass
-            try:
-                user['likes'] = int(profile_nav.xpath(profile_nav_path.format('favorites'))[0])
-            except IndexError:
-                pass
+            profile_header = root.xpath('//div[@class="ProfileHeaderCard"]')[0]
 
-            # get profile personal info
-            profile_header_card = root.xpath('//div[@class="ProfileHeaderCard"]')[0]
-            try:
-                user['name'] = profile_header_card.xpath('./h1[@class="ProfileHeaderCard-name"]/a/text()')[0]
-            except IndexError:
-                pass
-            try:
-                user['bio'] = profile_header_card.xpath('./p[contains(@class, "ProfileHeaderCard-bio")]/text()')[0]
-            except IndexError:
-                pass
-            try:
-                user['location'] = profile_header_card \
-                    .xpath('./div[@class="ProfileHeaderCard-location "]/span[2]/text()')[0].strip()
-            except IndexError:
-                pass
-            try:
-                user['url'] = profile_header_card \
-                    .xpath('./div[@class="ProfileHeaderCard-url "]/span[2]/a/@title')[0]
-            except IndexError:
-                pass
-            join_date = profile_header_card \
-                .xpath('./div[@class="ProfileHeaderCard-joinDate"]/span[2]/text()')[0].replace('Joined ', '')
-            user['join_date'] = datetime.strptime(join_date, '%B %Y').date()
+            user = {
+                'user_name': user_name,
+                'tweets': int(next(iter(profile_nav.xpath(profile_nav_path.format('tweets'))), 0)),
+                'following': int(next(iter(profile_nav.xpath(profile_nav_path.format('following'))), 0)),
+                'followers': int(next(iter(profile_nav.xpath(profile_nav_path.format('followers'))), 0)),
+                'likes': int(next(iter(profile_nav.xpath(profile_nav_path.format('favorites'))), 0)),
 
+                'name': next(iter(profile_header.xpath('./h1[@class="ProfileHeaderCard-name"]/a/text()')), ''),
+                'bio': next(iter(
+                    profile_header.xpath('./p[contains(@class, "ProfileHeaderCard-bio")]/text()')), ''),
+                'location': next(iter(
+                    profile_header.xpath('./div[@class="ProfileHeaderCard-location "]/span[2]/text()')), '').strip(),
+                'url': next(iter(
+                    profile_header.xpath('./div[@class="ProfileHeaderCard-url "]/span[2]/a/@title')), ''),
+                'join_date': datetime.strptime(
+                    profile_header.xpath('./div[@class="ProfileHeaderCard-joinDate"]/span[2]/text()')[0]
+                    .replace('Joined ', ''), '%B %Y').date()
+                if len(profile_header.xpath('./div[@class="ProfileHeaderCard-joinDate"]')) > 0
+                else datetime.now().date()
+            }
             logger.debug(f'user obtained for "{user_name}": {user}\n')
 
-        except HTTPError:
-            logger.debug(f'user "{user_name}" doesn\'t exist anymore, filling with void info\n')
-        except IndexError:
-            logger.debug(f'user "{user_name}" likely suspended, filling with void info\n')
+            return user
 
-        return user
+        except HTTPError:
+            logger.debug(f'user "{user_name}" doesn\'t exist anymore, skipping\n')
+
+        except IndexError:
+            logger.debug(f'user "{user_name}" likely suspended, skipping\n')

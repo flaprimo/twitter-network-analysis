@@ -120,12 +120,28 @@ class Files:
 
         if file_model['type'] == 'csv':
             write_pandas(file_content, file_model['path'], file_model['w_kwargs'])
+            file_preview = self.__df_tostring(file_content, 5)
         elif file_model['type'] == 'json':
             write_json(file_content, file_model['path'], file_model['w_kwargs'])
+            file_preview = ''
         elif file_model['type'] == 'gexf':
             write_networkx(file_content, file_model['path'], file_model['w_kwargs'])
+            file_preview = self.__graph_tostring(file_content, 5, 5)
         else:
             raise ValueError('error: unknown file type')
 
-        logger.debug(f'file written (file "{file_model["path"]}")')
+        logger.debug(f'file written (file "{file_model["path"]}")\n' + file_preview)
         self.cache[file_model['path']] = file_content
+
+    @staticmethod
+    def __df_tostring(df, rows=None):
+        return f'  shape: {df.shape}\n' \
+            f'  dataframe ({"first " + str(rows) if rows else "all"} rows):\n{df.head(rows).to_string()}\n'
+
+    @staticmethod
+    def __graph_tostring(graph, nodes=None, edges=None):
+        return f'  shape: ({len(graph.nodes)}, {len(graph.edges)})\n' \
+            f'  nodes ({"first " + str(nodes) if nodes else "all"} nodes): ' \
+            f'{str(list(graph.nodes(data=True))[:nodes])}\n' \
+            f'  edges ({"first " + str(edges) if edges else "all"} edges): ' \
+            f'{str(list(graph.edges(data=True))[:edges])}\n'

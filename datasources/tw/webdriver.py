@@ -3,35 +3,47 @@ from selenium.common.exceptions import TimeoutException
 import chromedriver_binary
 import logging
 import copy
-import os
 
 logger = logging.getLogger(__name__)
 
 
 class WebDriver:
     def __init__(self, proxy_provider=None):
-        url_blacklist = ['https://twitter.com/i/jot/*', '*.twitter.com/i/jot/*', 'https://google-analytics.com/*',
-                         'https://www.google-analytics.com/*', 'https://analytics.twitter.com/*']
-        profile_dir = os.path.join(os.path.dirname(__file__), 'profile')
-        chrome_options = webdriver.ChromeOptions()
+        self.chrome_options = WebDriver.__get_chrome_options()
+        self.proxy_provider = proxy_provider
+
+    @staticmethod
+    def __get_chrome_options():
+        url_blacklist = [
+            'https://twitter.com/i/jot/*',
+            '*.twitter.com/i/jot/*',
+            'https://google-analytics.com/*',
+            'https://www.google-analytics.com/*',
+            'https://analytics.twitter.com/*'
+        ]
         prefs = {
             'enable_do_not_track': True,
             'profile.default_content_setting_values.cookies': 2,
             'profile.managed_default_content_settings.images': 2,
             'disk-cache-size': 4096
         }
-        chrome_options.add_experimental_option('prefs', prefs)
-        if os.path.isdir(profile_dir):
-            chrome_options.add_argument('--user-data-dir=' + profile_dir)
-        else:
-            chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--lang=en')
-        chrome_options.add_argument('--blink-settings=imagesEnabled=false')
-        chrome_options.add_argument('--host-rules=' + ', '.join([f'MAP {url} localhost' for url in url_blacklist]))
+        arguments = [
+            '--headless',
+            '--no-sandbox',
+            '--lang=en',
+            '--blink-settings=imagesEnabled=false',
+            '--disable-dev-shm-usage',
+            '--window-position=0,0',
+            '--window-size=1024,768',
+            '--host-rules=' + ', '.join([f'MAP {url} localhost' for url in url_blacklist])
+        ]
 
-        self.chrome_options = chrome_options
-        self.proxy_provider = proxy_provider
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_experimental_option('prefs', prefs)
+        for a in arguments:
+            chrome_options.add_argument(a)
+
+        return chrome_options
 
     def __get_driver(self):
         chrome_options = copy.deepcopy(self.chrome_options)
@@ -44,8 +56,6 @@ class WebDriver:
         logger.debug('getting driver')
         driver = webdriver.Chrome(executable_path=chromedriver_binary.chromedriver_filename,
                                   chrome_options=chrome_options)
-        driver.set_window_position(0, 0)
-        driver.set_window_size(1024, 768)
 
         return driver
 

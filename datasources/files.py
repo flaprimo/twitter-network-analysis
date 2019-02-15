@@ -12,7 +12,7 @@ class Files:
     def __init__(self, output_path):
         self.output_path = os.path.join(output_path, 'files')
         self.model = {}
-        self.cache = LRUCache(maxsize=30)
+        self.cache = LRUCache(maxsize=20)
 
     @staticmethod
     def __get_full_file_name(file_name, file_extension, file_prefix='', file_suffix=''):

@@ -16,8 +16,8 @@ class Files:
 
     @staticmethod
     def __get_full_file_name(file_name, file_extension, file_prefix='', file_suffix=''):
-        file_prefix = file_prefix+'__' if file_prefix else ''
-        file_suffix = file_suffix+'__' if file_suffix else ''
+        file_prefix = file_prefix + '__' if file_prefix else ''
+        file_suffix = file_suffix + '__' if file_suffix else ''
 
         return f'{file_prefix}{file_name}{file_suffix}.{file_extension}'
 

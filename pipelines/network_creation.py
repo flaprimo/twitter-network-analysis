@@ -26,7 +26,7 @@ class NetworkCreation(PipelineBase):
                 'stage_name': 'create_nodes',
                 'file_name': 'nodes',
                 'file_extension': 'csv',
-                'r_kwargs':  {
+                'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
                         'user_name': str
@@ -35,25 +35,25 @@ class NetworkCreation(PipelineBase):
                 }
             },
             {
-                'stage_name':  'create_edges',
-                'file_name':  'edges',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'create_edges',
+                'file_name': 'edges',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'source_id': 'uint32',
                         'target_id': 'uint32',
                         'weight': 'uint16'
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             },
             {
-                'stage_name':  'create_graph',
-                'file_name':  'graph',
-                'file_extension':  'gexf',
-                'r_kwargs':  {
+                'stage_name': 'create_graph',
+                'file_name': 'graph',
+                'file_extension': 'gexf',
+                'r_kwargs': {
                     'node_type': int
                 }
             }

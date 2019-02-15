@@ -11,9 +11,9 @@ class UserContextMetrics(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
-                'stage_name':  'get_user_stream',
-                'file_name':  'stream',
-                'file_extension':  'csv',
+                'stage_name': 'get_user_stream',
+                'file_name': 'stream',
+                'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
                         'tw_id': str,

@@ -11,10 +11,10 @@ class CommunityDetectionMetrics(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
-                'stage_name':  'pquality',
-                'file_name':  'pquality',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'pquality',
+                'file_name': 'pquality',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'index': str,
                         'min': 'float32',
@@ -26,10 +26,10 @@ class CommunityDetectionMetrics(PipelineBase):
                 }
             },
             {
-                'stage_name':  'partition_summary',
-                'file_name':  'partition_summary',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'partition_summary',
+                'file_name': 'partition_summary',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
                         'no_nodes': 'uint16',
@@ -46,10 +46,10 @@ class CommunityDetectionMetrics(PipelineBase):
                 }
             },
             {
-                'stage_name':  'node_metrics',
-                'file_name':  'nodes',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'node_metrics',
+                'file_name': 'nodes',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
                         'user_id': 'uint32',
@@ -59,7 +59,7 @@ class CommunityDetectionMetrics(PipelineBase):
                         'hindex': 'uint16'
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             }

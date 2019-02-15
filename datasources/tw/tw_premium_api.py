@@ -16,7 +16,7 @@ class TwPremiumApi:
         logger.debug('INIT Tw premium api')
 
     def __get_api(self):
-        api = TwitterAPI(self.consumerKey, self.consumerSecret, self.accessKey,  self.accessSecret)
+        api = TwitterAPI(self.consumerKey, self.consumerSecret, self.accessKey, self.accessSecret)
 
         return api
 

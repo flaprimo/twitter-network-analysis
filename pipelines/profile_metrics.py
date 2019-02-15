@@ -34,10 +34,10 @@ class ProfileMetrics(PipelineBase):
                 }
             },
             {
-                'stage_name':  'remove_nonexistent_users',
-                'file_name':  'nodes',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'remove_nonexistent_users',
+                'file_name': 'nodes',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
                         'user_id': 'uint32',

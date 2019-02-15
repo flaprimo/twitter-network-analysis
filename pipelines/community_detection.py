@@ -10,54 +10,54 @@ class CommunityDetection(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
-                'stage_name':  'find_communities',
-                'file_name':  'communities',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'find_communities',
+                'file_name': 'communities',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
                         'user_id': 'uint32'
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             },
             {
-                'stage_name':  'add_communities_to_nodes',
-                'file_name':  'nodes',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'add_communities_to_nodes',
+                'file_name': 'nodes',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
                         'user_id': 'uint32',
                         'user_name': str
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             },
             {
-                'stage_name':  'add_communities_to_graph',
-                'file_name':  'graph',
-                'file_extension':  'gexf',
-                'r_kwargs':  {
+                'stage_name': 'add_communities_to_graph',
+                'file_name': 'graph',
+                'file_extension': 'gexf',
+                'r_kwargs': {
                     'node_type': int
                 }
             },
             {
-                'stage_name':  'remove_lone_nodes_from_edges',
-                'file_name':  'edges',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'remove_lone_nodes_from_edges',
+                'file_name': 'edges',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'source_id': 'uint32',
                         'target_id': 'uint32',
                         'weight': 'uint16'
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             }

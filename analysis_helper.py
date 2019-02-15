@@ -72,7 +72,7 @@ class AnalysisHelper:
         partitions = self.__get_contexts_multiple(
             'community_detection_metrics', 'partition_summary', 'partition_summary', 'csv')
 
-        return pd.DataFrame([{'name': context_name, 'community/no_nodes ratio':  len(p.index) / p.no_nodes.sum()}
+        return pd.DataFrame([{'name': context_name, 'community/no_nodes ratio': len(p.index) / p.no_nodes.sum()}
                              for context_name, p in partitions]).set_index('name').round(decimals=2)
 
     def get_pquality(self):
@@ -117,7 +117,7 @@ class AnalysisHelper:
 
         context_stats['is_degenerate'] = \
             context_stats.apply(lambda x: x['no_communities'] == 1 and
-                                         x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
+                                          x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
 
         # summarize each context
         good_contexts = context_stats[~context_stats['is_degenerate']]

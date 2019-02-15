@@ -10,10 +10,10 @@ class NetworkMetrics(PipelineBase):
     def __init__(self, datasources, file_prefix):
         files = [
             {
-                'stage_name':  'graph_summary',
-                'file_name':  'graph_summary',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'graph_summary',
+                'file_name': 'graph_summary',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'no_nodes': 'uint16',
                         'no_edges': 'uint16',
@@ -26,15 +26,15 @@ class NetworkMetrics(PipelineBase):
                         'assortativity': 'float32'
                     }
                 },
-                'w_kwargs':  {
+                'w_kwargs': {
                     'index': False
                 }
             },
             {
-                'stage_name':  'cumsum_deg_dist',
-                'file_name':  'cumsum_deg_dist',
-                'file_extension':  'csv',
-                'r_kwargs':  {
+                'stage_name': 'cumsum_deg_dist',
+                'file_name': 'cumsum_deg_dist',
+                'file_extension': 'csv',
+                'r_kwargs': {
                     'dtype': {
                         'degree': 'uint32',
                         'cumsum_of_the_no_of_nodes': 'float32'

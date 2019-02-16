@@ -8,10 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class WebDriver:
-    def __init__(self, proxy_provider=None):
+    def __init__(self, proxy_provider=None, timeout=20):
         self.chrome_options = WebDriver.__get_chrome_options()
         self.proxy_provider = proxy_provider
-        self.timeout = 20
+        self.timeout = timeout
 
     @staticmethod
     def __get_chrome_options():

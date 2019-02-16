@@ -4,8 +4,7 @@ import logging
 import time
 import random
 import re
-from selenium.common.exceptions import TimeoutException
-
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from .webdriver import WebDriver
 
 logger = logging.getLogger(__name__)
@@ -14,26 +13,16 @@ logger = logging.getLogger(__name__)
 class TwDynamicScraper:
     def __init__(self, base_url, proxy_provider):
         self.webdriver = WebDriver(proxy_provider)
-        self.base_url = base_url + 'search'
+        self.base_url = base_url + 'search?{0}&lang=en-gb'
 
     @staticmethod
-    def __load_tw_from_stream(driver, n):
-        tw_stream_len_after = None
-        while tw_stream_len_after is None:
-            try:
-                tw_stream_len_after = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
-                                                                        'li[contains(@class, "stream-item")]'))
-            except TimeoutException:
-                logger.debug('timeout exception in fetching stream length, retrying')
-                tw_stream_len_after = None
+    def __load_tw_stream(driver, n):
+        stream_len_before = 0
+        stream_len_after =\
+            len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/li[contains(@class, "stream-item")]'))
 
-        # load required number of tws
-        tw_stream_len = {
-            'before': 0,
-            'after': tw_stream_len_after
-        }
-        while n > tw_stream_len['after'] > tw_stream_len['before']:
-            tw_stream_len['before'] = tw_stream_len['after']
+        while n > stream_len_after > stream_len_before:
+            stream_len_before = stream_len_after
 
             has_scrolled = False
             tt_wait = 0
@@ -48,15 +37,28 @@ class TwDynamicScraper:
 
             tt_wait = random.uniform(3, 5)
             time.sleep(tt_wait)
-            tw_stream_len['after'] = len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/'
-                                                                       'li[contains(@class, "stream-item")]'))
+            stream_len_after =\
+                len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/li[contains(@class, "stream-item")]'))
+
             logger.debug(f'time waited: {round(tt_wait, 2)}\n'
                          f'loading condition: tw to retrieve({n}) > '
-                         f'tw retrieved after({tw_stream_len["after"]}) > '
-                         f'tw retrieved before({tw_stream_len["before"]})')
+                         f'tw retrieved after({stream_len_after}) > '
+                         f'tw retrieved before({stream_len_before})')
 
         logger.debug('query results fetched')
         return driver
+
+    @staticmethod
+    def __get_tw_list(tw_stream_xml, n):
+        tw_list = []
+        for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]')[:n]:
+            tw_current = TwDynamicScraper.__get_tw(t)
+            tw_list.append(tw_current)
+            logger.debug(f'added tw: {tw_current}')
+
+        logger.info(f'collected {len(tw_list)} tw')
+
+        return tw_list
 
     @staticmethod
     def __get_tw(t):
@@ -97,41 +99,36 @@ class TwDynamicScraper:
 
     def search(self, query, n=30):
         # get query url
-        query_url = f'{self.base_url}?{query}&lang=en-gb'
+        query_url = self.base_url.format(query)
         logger.info(f'getting search results for: {query_url}')
 
-        # load queried web page
-        driver = None
-        while driver is None:
+        is_stream_loaded = False
+        tw_stream_xml = None
+
+        while not is_stream_loaded:
             driver = self.webdriver.get_page(query_url, '//div[@class="SearchEmptyTimeline" or @class="stream"]')
-        logger.debug('tw results page loaded')
 
-        tw_list = []
-        if len(driver.find_elements_by_xpath('//div[@class="SearchEmptyTimeline"]')) == 0:
-            logger.debug('results are available')
+            try:
+                # load queried web page
+                logger.debug('tw results page loaded')
 
-            driver = TwDynamicScraper.__load_tw_from_stream(driver, n)
+                # load tw stream
+                driver = TwDynamicScraper.__load_tw_stream(driver, n)
+                tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
+                tw_stream_xml = html.fromstring(tw_stream)
+                is_stream_loaded = True
 
-            # analyze loaded tws
-            logger.debug('analyzing query results')
-            tw_stream = None
-            while tw_stream is None:
-                try:
-                    tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
-                except TimeoutException:
-                    logger.debug('timeout exception in fetching stream, retrying')
-                    tw_stream = None
-            driver.quit()
-            tw_stream_xml = html.fromstring(tw_stream)
+            except NoSuchElementException as e:
+                logger.debug(f'timeline is empty: {str(e)}')
+                is_stream_loaded = True
 
-            for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]')[:n]:
-                tw_current = TwDynamicScraper.__get_tw(t)
-                tw_list.append(tw_current)
-                logger.debug(f'added tw: {tw_current}')
+            except TimeoutException as e:
+                logger.debug(f'parsing tw failed, retrying: {str(e)}')
+
+            finally:
+                driver.quit()
+
+        if tw_stream_xml:
+            return TwDynamicScraper.__get_tw_list(tw_stream_xml, n)
         else:
-            driver.quit()
-            logger.debug('no results are available')
-
-        logger.info(f'collected {len(tw_list)} tw')
-
-        return tw_list
+            return []

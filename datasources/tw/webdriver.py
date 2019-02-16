@@ -11,6 +11,7 @@ class WebDriver:
     def __init__(self, proxy_provider=None):
         self.chrome_options = WebDriver.__get_chrome_options()
         self.proxy_provider = proxy_provider
+        self.timeout = 20
 
     @staticmethod
     def __get_chrome_options():
@@ -56,28 +57,27 @@ class WebDriver:
         logger.debug('getting driver')
         driver = webdriver.Chrome(executable_path=chromedriver_binary.chromedriver_filename,
                                   chrome_options=chrome_options)
+        driver.set_page_load_timeout(self.timeout)
+        driver.implicitly_wait(self.timeout)
 
         return driver
 
-    def get_page(self, url, test_path, timeout=20):
+    def get_page(self, url, test_path):
         logger.info('loading page')
-        driver = self.__get_driver()
 
-        try:
-            driver.set_page_load_timeout(timeout)
-            driver.implicitly_wait(timeout)
-            driver.get(url)
+        while True:
+            driver = self.__get_driver()
 
-            # test if page loaded correctly
-            if len(driver.find_elements_by_xpath(test_path)) > 0:
-                logger.debug('page correctly loaded')
-                return driver
-            else:
-                logger.debug('page not loaded correctly')
-                driver.quit()
-                return None
+            try:
+                driver.get(url)
+                # test if page loaded correctly
+                if len(driver.find_elements_by_xpath(test_path)) > 0:
+                    logger.debug('page correctly loaded')
+                    return driver
+                else:
+                    logger.debug('page not loaded correctly, retrying')
 
-        except TimeoutException as e:
-            logger.debug(f'url not loaded {str(e)}')
+            except TimeoutException as e:
+                logger.debug(f'url not loaded, retrying: {str(e)}')
+
             driver.quit()
-            return None

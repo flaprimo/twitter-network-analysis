@@ -16,7 +16,7 @@ class TwDynamicScraper:
         self.base_url = base_url + 'search?{0}&lang=en-gb'
 
     @staticmethod
-    def __load_tw_stream(driver, n):
+    def __get_tw_stream(driver, n):
         stream_len_before = 0
         stream_len_after =\
             len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/li[contains(@class, "stream-item")]'))
@@ -33,10 +33,8 @@ class TwDynamicScraper:
                 except TimeoutException:
                     tt_wait += 1
                     time.sleep(tt_wait)
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
 
-            tt_wait = random.uniform(3, 5)
-            time.sleep(tt_wait)
+            time.sleep(random.uniform(3, 5))
             stream_len_after =\
                 len(driver.find_elements_by_xpath('//ol[@id="stream-items-id"]/li[contains(@class, "stream-item")]'))
 
@@ -113,7 +111,7 @@ class TwDynamicScraper:
                 logger.debug('tw results page loaded')
 
                 # load tw stream
-                driver = TwDynamicScraper.__load_tw_stream(driver, n)
+                driver = TwDynamicScraper.__get_tw_stream(driver, n)
                 tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
                 tw_stream_xml = html.fromstring(tw_stream)
                 is_stream_loaded = True

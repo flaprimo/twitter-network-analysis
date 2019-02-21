@@ -21,7 +21,7 @@ class Orchestrator:
 
     def execute(self):
         start_time = time.time()
-        logger.info('EXEC Orchestrator')
+        logger.info('START Orchestrator')
 
         for context_name in self.datasources.contexts.get_context_names():
             context_detection = ContextDetection(self.datasources, context_name)

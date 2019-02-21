@@ -65,7 +65,7 @@ class Context(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     location = Column(String(20))
-    hashtags = Column(String(20))
+    hashtags = Column(String(200))
 
     graph = relationship('Graph', uselist=False, back_populates='context',
                          cascade='all, delete-orphan', single_parent=True)

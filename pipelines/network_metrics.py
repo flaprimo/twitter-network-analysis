@@ -43,7 +43,7 @@ class NetworkMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__graph_summary, self.__cumsum_deg_dist]
+        tasks = [[self.__graph_summary, self.__cumsum_deg_dist]]
         super(NetworkMetrics, self).__init__('network_metrics', files, tasks, datasources, file_prefix)
 
     def __graph_summary(self):

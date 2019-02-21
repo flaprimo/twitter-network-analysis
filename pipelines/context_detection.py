@@ -34,7 +34,7 @@ class ContextDetection(PipelineBase):
                 'file_extension': 'json'
             }
         ]
-        tasks = [self.__create_context]  # , self.__harvest_context]
+        tasks = [self.__create_context]  # [[self.__create_context, self.__harvest_context]]
         super(ContextDetection, self).__init__('context_detection', files, tasks, datasources, file_prefix)
 
     def __create_context(self):

@@ -62,8 +62,8 @@ class CommunityDetection(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__find_communities, self.__add_communities_to_nodes, self.__add_communities_to_graph,
-                 self.__remove_lone_nodes_from_edges]
+        tasks = [self.__find_communities, self.__add_communities_to_nodes,
+                 [self.__add_communities_to_graph, self.__remove_lone_nodes_from_edges]]
         super(CommunityDetection, self).__init__('community_detection', files, tasks, datasources, file_prefix)
 
     def __find_communities(self):

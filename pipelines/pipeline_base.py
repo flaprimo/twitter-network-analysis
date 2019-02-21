@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 import time
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,13 @@ class PipelineBase:
         logger.info(f'START PIPELINE {self.pipeline_name} for {self.context_name}')
 
         for task in self.tasks:
-            self.__task_execution(task)
+            if isinstance(task, list):
+                logger.debug(f'parallel execution of [{", ".join(t.__name__ for t in task)}] for {self.context_name}')
+                with ThreadPoolExecutor() as executor:
+                    for t in task:
+                        executor.submit(t)
+            else:
+                self.__task_execution(task)
 
         logger.info(f'END PIPELINE {self.pipeline_name} for {self.context_name}')
 

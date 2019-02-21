@@ -64,7 +64,7 @@ class CommunityDetectionMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__pquality, self.__partition_summary, self.__node_metrics]
+        tasks = [[self.__pquality, self.__partition_summary, self.__node_metrics]]
         super(CommunityDetectionMetrics, self)\
             .__init__('community_detection_metrics', files, tasks, datasources, file_prefix)
 

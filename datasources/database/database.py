@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from datasources.database.model import Base
 from contextlib import contextmanager
 import os
@@ -17,7 +17,8 @@ class Database:
 
         self.engine = create_engine('sqlite:///' + self.output_db_path)
         Base.metadata.create_all(self.engine)
-        self.session = sessionmaker(bind=self.engine)
+        self.session_factory = sessionmaker(bind=self.engine)
+        self.session = scoped_session(self.session_factory)
 
     @contextmanager
     def session_scope(self):

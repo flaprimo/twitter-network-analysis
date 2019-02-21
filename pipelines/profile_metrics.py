@@ -88,7 +88,7 @@ class ProfileMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__profile_info, self.__remove_nonexistent_users, self.__follower_rank]
+        tasks = [self.__profile_info, [self.__remove_nonexistent_users, self.__follower_rank]]
         super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources, file_prefix)
 
     def __profile_info(self):

@@ -2,7 +2,6 @@ from datasources.tw.proxy_provider import ProxyProvider
 from datasources.tw.tw_static_scraper import TwStaticScraper
 from datasources.tw.tw_dynamic_scraper import TwDynamicScraper
 from datasources.tw.tw_api import TwApi
-from datasources.tw.tw_premium_api import TwPremiumApi
 import logging
 import json
 import os
@@ -31,12 +30,6 @@ class Tw:
 
         # apis
         self.tw_api = TwApi(
-            self.configs['tw_api']['consumer_key'],
-            self.configs['tw_api']['consumer_key_secret'],
-            self.configs['tw_api']['access_token'],
-            self.configs['tw_api']['access_token_secret'],
-        )
-        self.tw_premium_api = TwPremiumApi(
             self.configs['tw_api']['consumer_key'],
             self.configs['tw_api']['consumer_key_secret'],
             self.configs['tw_api']['access_token'],

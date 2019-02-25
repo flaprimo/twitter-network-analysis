@@ -50,9 +50,9 @@ class ContextDetection(PipelineBase):
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
 
-            stream = tw.tw_premium_api.create_search(query=' OR '.join(context_record['hashtags']),
-                                                     since=context_record['start_date'],
-                                                     until=context_record['end_date'],
-                                                     n=200)
+            stream = tw.tw_api.premium_search(query=' OR '.join(context_record['hashtags']),
+                                              since=context_record['start_date'],
+                                              until=context_record['end_date'],
+                                              n=200)
 
             self.datasources.files.write_file(stream, 'context_detection', 'harvest_context', 'stream', 'json')

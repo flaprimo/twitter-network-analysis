@@ -62,7 +62,7 @@ class Ranking(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__get_active_users, self.__rank_1, self.__rank_2, self.__rank_3]
+        tasks = [self.__get_active_users, [self.__rank_1, self.__rank_2, self.__rank_3]]
         super(Ranking, self).__init__('ranking', files, tasks, datasources)
 
     @staticmethod

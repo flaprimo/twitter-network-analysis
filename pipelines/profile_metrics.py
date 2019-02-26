@@ -8,12 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class ProfileMetrics(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'profile_info',
                 'file_name': 'profile_info',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
@@ -37,6 +38,7 @@ class ProfileMetrics(PipelineBase):
                 'stage_name': 'remove_nonexistent_users',
                 'file_name': 'nodes',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
@@ -55,6 +57,7 @@ class ProfileMetrics(PipelineBase):
                 'stage_name': 'remove_nonexistent_users',
                 'file_name': 'edges',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'source_id': 'uint32',
@@ -70,6 +73,7 @@ class ProfileMetrics(PipelineBase):
                 'stage_name': 'remove_nonexistent_users',
                 'file_name': 'graph',
                 'file_extension': 'gexf',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'node_type': int
                 }
@@ -78,6 +82,7 @@ class ProfileMetrics(PipelineBase):
                 'stage_name': 'follower_rank',
                 'file_name': 'profiles',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
@@ -89,7 +94,8 @@ class ProfileMetrics(PipelineBase):
             }
         ]
         tasks = [self.__profile_info, [self.__remove_nonexistent_users, self.__follower_rank]]
-        super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources)
 
     def __profile_info(self):
         if not self.datasources.files.exists(

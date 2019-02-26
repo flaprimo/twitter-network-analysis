@@ -8,12 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkCreation(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'create_network',
                 'file_name': 'network',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'from_username': str,
@@ -26,6 +27,7 @@ class NetworkCreation(PipelineBase):
                 'stage_name': 'create_nodes',
                 'file_name': 'nodes',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'user_id': 'uint32',
@@ -38,6 +40,7 @@ class NetworkCreation(PipelineBase):
                 'stage_name': 'create_edges',
                 'file_name': 'edges',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'source_id': 'uint32',
@@ -53,13 +56,15 @@ class NetworkCreation(PipelineBase):
                 'stage_name': 'create_graph',
                 'file_name': 'graph',
                 'file_extension': 'gexf',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'node_type': int
                 }
             }
         ]
         tasks = [self.__create_network, self.__create_nodes, self.__create_edges, self.__create_graph]
-        super(NetworkCreation, self).__init__('network_creation', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(NetworkCreation, self).__init__('network_creation', files, tasks, datasources)
 
     def __create_network(self):
         if not self.datasources.files.exists(

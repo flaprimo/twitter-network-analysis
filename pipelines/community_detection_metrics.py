@@ -8,12 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class CommunityDetectionMetrics(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'pquality',
                 'file_name': 'pquality',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'index': str,
@@ -29,6 +30,7 @@ class CommunityDetectionMetrics(PipelineBase):
                 'stage_name': 'partition_summary',
                 'file_name': 'partition_summary',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
@@ -49,6 +51,7 @@ class CommunityDetectionMetrics(PipelineBase):
                 'stage_name': 'node_metrics',
                 'file_name': 'nodes',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
@@ -65,8 +68,9 @@ class CommunityDetectionMetrics(PipelineBase):
             }
         ]
         tasks = [[self.__pquality, self.__partition_summary, self.__node_metrics]]
+        self.context_name = context_name
         super(CommunityDetectionMetrics, self)\
-            .__init__('community_detection_metrics', files, tasks, datasources, file_prefix)
+            .__init__('community_detection_metrics', files, tasks, datasources)
 
     def __pquality(self):
         if not self.datasources.files.exists(

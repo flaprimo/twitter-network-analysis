@@ -7,11 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 class Persistence(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = []
         tasks = [self.__add_context, self.__add_graph, self.__add_partition, self.__add_communities, self.__add_users,
                  self.__add_profiles, self.__add_user_communities, self.__add_user_context]
-        super(Persistence, self).__init__('persistence', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(Persistence, self).__init__('persistence', files, tasks, datasources)
 
     def __add_context(self):
         context = self.datasources.files.read(

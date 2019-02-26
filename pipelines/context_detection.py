@@ -7,12 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class ContextDetection(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'create_context',
                 'file_name': 'context',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'name': str,
@@ -31,11 +32,13 @@ class ContextDetection(PipelineBase):
             {
                 'stage_name': 'harvest_context',
                 'file_name': 'stream',
-                'file_extension': 'json'
+                'file_extension': 'json',
+                'file_prefix': context_name
             }
         ]
         tasks = [self.__create_context]  # [[self.__create_context, self.__harvest_context]]
-        super(ContextDetection, self).__init__('context_detection', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(ContextDetection, self).__init__('context_detection', files, tasks, datasources)
 
     def __create_context(self):
         if not self.datasources.files.exists(
@@ -55,4 +58,4 @@ class ContextDetection(PipelineBase):
                                               until=context_record['end_date'],
                                               n=200)
 
-            self.datasources.files.write_file(stream, 'context_detection', 'harvest_context', 'stream', 'json')
+            self.datasources.files.write(stream, 'context_detection', 'harvest_context', 'stream', 'json')

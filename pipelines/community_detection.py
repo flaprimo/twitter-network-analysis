@@ -7,12 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class CommunityDetection(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'find_communities',
                 'file_name': 'communities',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
@@ -27,6 +28,7 @@ class CommunityDetection(PipelineBase):
                 'stage_name': 'add_communities_to_nodes',
                 'file_name': 'nodes',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'community': 'uint16',
@@ -42,6 +44,7 @@ class CommunityDetection(PipelineBase):
                 'stage_name': 'add_communities_to_graph',
                 'file_name': 'graph',
                 'file_extension': 'gexf',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'node_type': int
                 }
@@ -50,6 +53,7 @@ class CommunityDetection(PipelineBase):
                 'stage_name': 'remove_lone_nodes_from_edges',
                 'file_name': 'edges',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'source_id': 'uint32',
@@ -64,7 +68,8 @@ class CommunityDetection(PipelineBase):
         ]
         tasks = [self.__find_communities, self.__add_communities_to_nodes,
                  [self.__add_communities_to_graph, self.__remove_lone_nodes_from_edges]]
-        super(CommunityDetection, self).__init__('community_detection', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(CommunityDetection, self).__init__('community_detection', files, tasks, datasources)
 
     def __find_communities(self):
         if not self.datasources.files.exists(

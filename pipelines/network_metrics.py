@@ -7,12 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class NetworkMetrics(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'graph_summary',
                 'file_name': 'graph_summary',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'no_nodes': 'uint16',
@@ -34,6 +35,7 @@ class NetworkMetrics(PipelineBase):
                 'stage_name': 'cumsum_deg_dist',
                 'file_name': 'cumsum_deg_dist',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'degree': 'uint32',
@@ -44,7 +46,8 @@ class NetworkMetrics(PipelineBase):
             }
         ]
         tasks = [[self.__graph_summary, self.__cumsum_deg_dist]]
-        super(NetworkMetrics, self).__init__('network_metrics', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(NetworkMetrics, self).__init__('network_metrics', files, tasks, datasources)
 
     def __graph_summary(self):
         if not self.datasources.files.exists(

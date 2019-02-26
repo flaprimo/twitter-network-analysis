@@ -3,7 +3,7 @@ import logging
 import time
 from datasources import Datasources
 from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
-    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence
+    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -23,30 +23,18 @@ class Orchestrator:
         start_time = time.time()
         logger.info('START Orchestrator')
 
+        pipeline_1 = [ContextDetection, NetworkCreation, NetworkMetrics, CommunityDetection, CommunityDetectionMetrics,
+                      ProfileMetrics, UserContextMetrics, Persistence]
         for context_name in self.datasources.contexts.get_context_names():
-            context_detection = ContextDetection(self.datasources, context_name)
-            context_detection.execute()
+            logger.info(f'EXEC pipeline for {context_name}')
+            for p in pipeline_1:
+                current_pipeline = p(self.datasources, context_name)
+                current_pipeline.execute()
 
-            network_creation = NetworkCreation(self.datasources, context_name)
-            network_creation.execute()
-
-            network_metrics = NetworkMetrics(self.datasources, context_name)
-            network_metrics.execute()
-
-            community_detection = CommunityDetection(self.datasources, context_name)
-            community_detection.execute()
-
-            community_detection_metrics = CommunityDetectionMetrics(self.datasources, context_name)
-            community_detection_metrics.execute()
-
-            profile_metrics = ProfileMetrics(self.datasources, context_name)
-            profile_metrics.execute()
-
-            usercontext_metrics = UserContextMetrics(self.datasources, context_name)
-            usercontext_metrics.execute()
-
-            persistence = Persistence(self.datasources, context_name)
-            persistence.execute()
+        pipeline_2 = [Ranking]
+        for p in pipeline_2:
+            current_pipeline = p(self.datasources)
+            current_pipeline.execute()
 
         logger.info('END Orchestrator')
         logger.debug(f'elapsed time: {round(time.time() - start_time, 4)} s')

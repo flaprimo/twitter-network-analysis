@@ -8,12 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class UserContextMetrics(PipelineBase):
-    def __init__(self, datasources, file_prefix):
+    def __init__(self, datasources, context_name):
         files = [
             {
                 'stage_name': 'get_user_stream',
                 'file_name': 'stream',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         'tw_id': str,
@@ -42,6 +43,7 @@ class UserContextMetrics(PipelineBase):
                 'stage_name': 'compute_metrics',
                 'file_name': 'usercontext_metrics',
                 'file_extension': 'csv',
+                'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
                         # 'user_id': 'uint32',
@@ -57,7 +59,8 @@ class UserContextMetrics(PipelineBase):
             }
         ]
         tasks = [self.__get_user_stream, self.__compute_metrics]
-        super(UserContextMetrics, self).__init__('usercontext_metrics', files, tasks, datasources, file_prefix)
+        self.context_name = context_name
+        super(UserContextMetrics, self).__init__('usercontext_metrics', files, tasks, datasources)
 
     def __get_user_stream(self):
         if not self.datasources.files.exists(

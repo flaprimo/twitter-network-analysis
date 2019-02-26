@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sqlalchemy import func, desc, and_
-from datasources.database import User, Profile, Context, Graph, Partition, Community, UserCommunity, UserContext
+from datasources.database import User, Profile, Context, Graph
 
 
 class AnalysisHelper:
@@ -206,98 +205,11 @@ class AnalysisHelper:
 
         return node_participations.set_index('context_name')
 
-    def __get_active_users(self):
-        with self.datasources.database.session_scope() as session:
-            active_users = pd.read_sql(session.query(User.id, User.user_name, User.tweets)
-                                       .join(Profile)
-                                       .filter(Profile.follower_rank > 0).statement,
-                                       con=session.bind, index_col='id')
+    def get_rank_1(self):
+        return self.datasources.files.read('ranking', 'rank_1', 'rank_1', 'csv')
 
-            active_users['tweets'] = (active_users['tweets'] - active_users['tweets'].min()) /\
-                                     (active_users['tweets'].max() - active_users['tweets'].min())
-            active_users = active_users[active_users.tweets > 0.00005]
+    def get_rank_2(self):
+        return self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')
 
-        return active_users.index.tolist()
-
-    def rank_1(self):
-        active_users = self.__get_active_users()
-
-        with self.datasources.database.session_scope() as session:
-            userinfo = pd.read_sql(session.query(User.user_name, User.name, User.location,
-                                                 (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 1) +
-                                                  func.ifnull(func.sum(UserContext.topical_focus), 0)).label('rank'))
-                                   .join(UserCommunity).join(UserContext)
-                                   .filter(User.id.in_(active_users))
-                                   .group_by(UserCommunity.user_id)
-                                   .order_by(desc('rank')).statement,
-                                   con=session.bind).round(decimals=3)
-
-        return userinfo
-
-    def rank_2(self):
-        active_users = self.__get_active_users()
-
-        def min_max(df):
-            min = df.min()
-            max = df.max()
-
-            return (df - min) / (max - min)
-
-        with self.datasources.database.session_scope() as session:
-            data = pd.read_sql(session.query(User.user_name,
-                                             Profile.follower_rank,
-                                             UserContext.topical_attachment,
-                                             UserCommunity.indegree_centrality)
-                               .join(Profile, User.id == Profile.user_id)
-                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
-                               .join(Community, UserCommunity.community_id == Community.id)
-                               .join(Partition, Community.partition_id == Partition.id)
-                               .join(Graph, Partition.graph_id == Graph.id)
-                               .join(UserContext, and_(Graph.context_id == UserContext.context_id,
-                                     User.id == UserContext.user_id))
-                               .filter(User.id.in_(active_users)).statement,
-                               con=session.bind, index_col='user_name')
-
-        data['topical_attachment'] = min_max(data['topical_attachment'])
-
-        rank = data.groupby('user_name')\
-            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                             (x['topical_attachment'].sum() + x['indegree_centrality'].sum()))\
-            .reset_index(level=0, drop=True).sort_values(ascending=False)\
-            .to_frame().rename(columns={'follower_rank': 'rank'})
-
-        return rank
-
-    def rank_3(self):
-        active_users = self.__get_active_users()
-
-        def min_max(df):
-            min = df.min()
-            max = df.max()
-
-            return (df - min) / (max - min)
-
-        with self.datasources.database.session_scope() as session:
-            data = pd.read_sql(session.query(User.user_name,
-                                             Profile.follower_rank,
-                                             UserContext.topical_attachment,
-                                             UserCommunity.indegree_centrality)
-                               .join(Profile, User.id == Profile.user_id)
-                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
-                               .join(Community, UserCommunity.community_id == Community.id)
-                               .join(Partition, Community.partition_id == Partition.id)
-                               .join(Graph, Partition.graph_id == Graph.id)
-                               .join(UserContext, and_(Graph.context_id == UserContext.context_id,
-                                     User.id == UserContext.user_id))
-                               .filter(User.id.in_(active_users)).statement,
-                               con=session.bind, index_col='user_name')
-
-        data['topical_attachment'] = min_max(data['topical_attachment'])
-
-        rank = data.groupby('user_name')\
-            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                             (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1)))\
-            .reset_index(level=0, drop=True).sort_values(ascending=False)\
-            .to_frame().rename(columns={'follower_rank': 'rank'})
-
-        return rank
+    def get_rank_3(self):
+        return self.datasources.files.read('ranking', 'rank_3', 'rank_3', 'csv')

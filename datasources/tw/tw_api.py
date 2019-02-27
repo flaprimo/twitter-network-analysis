@@ -51,7 +51,9 @@ class TwApi:
         stream = []
         for u in user_name_list:
             user_stream = self.get_user_timeline(u, n)
-            stream.append({'user_name': u, 'stream': user_stream.json()})
+            user_stream_json = user_stream.json()
+            if isinstance(user_stream_json, list):  # filter out user timelines with errors
+                stream.append({'user_name': u, 'stream': user_stream.json()})
             time.sleep(2)
 
         return stream

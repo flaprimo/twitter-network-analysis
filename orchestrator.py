@@ -3,7 +3,7 @@ import logging
 import time
 from datasources import Datasources
 from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
-    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking
+    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking, UserTimelines
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -31,7 +31,7 @@ class Orchestrator:
                 current_pipeline = p(self.datasources, context_name)
                 current_pipeline.execute()
 
-        pipeline_2 = [Ranking]
+        pipeline_2 = [Ranking, UserTimelines]
         for p in pipeline_2:
             current_pipeline = p(self.datasources)
             current_pipeline.execute()

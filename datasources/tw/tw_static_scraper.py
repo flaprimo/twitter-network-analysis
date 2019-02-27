@@ -3,22 +3,20 @@ from lxml import html
 import requests
 import requests_cache
 import logging
-import os
 from requests import Timeout
 from requests.exceptions import ProxyError, SSLError, HTTPError, ConnectionError
 
 logger = logging.getLogger(__name__)
-requests_cache.install_cache(cache_name=os.path.join(os.path.dirname(__file__), 'cache/twitter_static_scraper_cache'),
-                             expire_after=2.628e+6)
 
 
 class TwStaticScraper:
-    def __init__(self, base_url, proxy_provider):
+    def __init__(self, base_url, proxy_provider, cache_path='tw_static_scraper_cache'):
         self.proxy_provider = proxy_provider
         self.base_url = base_url
+        self.cache_path = cache_path
         self.timeout = 2
 
-    def __get_page(self, url, timeout=2):
+    def __get_page(self, url):
         response = None
 
         while not response:
@@ -30,11 +28,12 @@ class TwStaticScraper:
             logger.debug(f'url to query: {url}')
 
             try:
-                response = requests.get(url=url, proxies=proxy, timeout=timeout)
-                logger.debug(f'from cache: {response.from_cache}')
-                if not response.ok:
-                    logger.debug('failed getting user')
-                    response.raise_for_status()
+                with requests_cache.enabled(self.cache_path, expire_after=2.628e+6):
+                    response = requests.get(url=url, proxies=proxy, timeout=self.timeout)
+                    logger.debug(f'from cache: {response.from_cache}')
+                    if not response.ok:
+                        logger.debug('failed getting user')
+                        response.raise_for_status()
             except Timeout:
                 logger.debug(f'proxy {proxy_ip}:{proxy_port} too slow, retrying')
             except HTTPError:

@@ -25,7 +25,8 @@ class Tw:
         # load tw accesses
         # scrapers
         self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path + 'proxy_list.json')
-        self.tw_static_scraper = TwStaticScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
+        self.tw_static_scraper = TwStaticScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider,
+                                                 cache_path + 'tw_static_scraper_cache')
         self.tw_dynamic_scraper = TwDynamicScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
 
         # apis
@@ -34,6 +35,7 @@ class Tw:
             self.configs['tw_api']['consumer_key_secret'],
             self.configs['tw_api']['access_token'],
             self.configs['tw_api']['access_token_secret'],
+            cache_path + 'tw_api_cache'
         )
         logger.info('INIT Tw')
 

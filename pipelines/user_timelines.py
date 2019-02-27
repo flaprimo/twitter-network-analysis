@@ -56,18 +56,18 @@ class UserTimelines(PipelineBase):
 
             tw_list = []
             for s in stream:
-                for tw in s['stream']:
+                for t in s['stream']:
                     tw_record = {
                         'user_name': s['user_name'],
-                        'date': datetime.strptime(tw['created_at'], '%a %b %d %H:%M:%S %z %Y')
+                        'date': datetime.strptime(t['created_at'], '%a %b %d %H:%M:%S %z %Y')
                         .astimezone(pytz.UTC).replace(tzinfo=None),
-                        'text': tw['text'],
-                        'likes': tw['favorite_count'],
-                        'retweets': tw['retweet_count'],
-                        'is_retweet': 'retweeted_status' in tw,
-                        'hashtags': ['#' + h['text'].lower() for h in tw['entities']['hashtags']],
-                        'mentions': [m['screen_name'].lower() for m in tw['entities']['user_mentions']],
-                        'urls': [u['expanded_url'] for u in tw['entities']['urls']]
+                        'text': t['text'],
+                        'likes': t['favorite_count'],
+                        'retweets': t['retweet_count'],
+                        'is_retweet': 'retweeted_status' in t,
+                        'hashtags': ['#' + h['text'].lower() for h in t['entities']['hashtags']],
+                        'mentions': [m['screen_name'].lower() for m in t['entities']['user_mentions']],
+                        'urls': [u['expanded_url'] for u in t['entities']['urls']]
                     }
                     tw_list.append(tw_record)
 

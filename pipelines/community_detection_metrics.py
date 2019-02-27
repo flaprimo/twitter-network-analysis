@@ -69,7 +69,7 @@ class CommunityDetectionMetrics(PipelineBase):
         ]
         tasks = [[self.__pquality, self.__partition_summary, self.__node_metrics]]
         self.context_name = context_name
-        super(CommunityDetectionMetrics, self)\
+        super(CommunityDetectionMetrics, self) \
             .__init__('community_detection_metrics', files, tasks, datasources)
 
     def __pquality(self):
@@ -130,7 +130,7 @@ class CommunityDetectionMetrics(PipelineBase):
             }, index=[0]).round(4)
 
             return summary_df
-        
+
         if not self.datasources.files.exists(
                 'community_detection_metrics', 'partition_summary', 'partition_summary', 'csv', self.context_name):
             graph = self.datasources.files.read(

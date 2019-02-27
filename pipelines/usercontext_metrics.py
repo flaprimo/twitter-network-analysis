@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 from datasources.tw.helper import query_builder
-from datasources.tw.tw import tw
+from datasources.tw import tw
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -113,9 +113,9 @@ class UserContextMetrics(PipelineBase):
                 return (tw_ontopic + link_ontopic) / (tw_offtopic + link_offtopic + 1)
 
             topical_attachment = \
-                stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author')\
+                stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author') \
                     .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
-                                                            x['link_ontopic'].sum(), (~x['link_ontopic']).sum()))\
+                                                            x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
                     .to_frame().rename(columns={0: 'topical_attachment'})
 
             # topical focus

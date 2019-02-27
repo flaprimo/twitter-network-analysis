@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, scoped_session
 from datasources.database.model import Base
 from contextlib import contextmanager
@@ -27,7 +28,7 @@ class Database:
         try:
             yield session
             session.commit()
-        except:
+        except SQLAlchemyError:
             session.rollback()
             raise
         finally:

@@ -83,7 +83,7 @@ class AnalysisHelper:
 
         fig, ax = plt.subplots(figsize=(15, 8))
         for context_name, cdd in cumsum_deg_dist:
-            sns.lineplot(x=cdd['cumsum_of_the_no_of_nodes'], y=zscore(cdd.index), ax=ax, label=context_name)\
+            sns.lineplot(x=cdd['cumsum_of_the_no_of_nodes'], y=zscore(cdd.index), ax=ax, label=context_name) \
                 .set_title('Cumulative sum of degree distribution')
 
         ax.axhline(0, ls='--')
@@ -99,7 +99,7 @@ class AnalysisHelper:
         partitions_summary = self.__get_contexts_multiple(
             'community_detection_metrics', 'partition_summary', 'partition_summary', 'csv')
         no_all_nodes = self.__get_contexts_single(
-            'network_metrics', 'graph_summary', 'graph_summary', 'csv')[['no_nodes']]\
+            'network_metrics', 'graph_summary', 'graph_summary', 'csv')[['no_nodes']] \
             .rename(columns={'no_nodes': 'no_all_nodes'})
         no_cd_nodes = self.__get_contexts_single('network_creation', 'create_nodes', 'nodes', 'csv')[['user_name']] \
             .reset_index().drop_duplicates().set_index('name').groupby('name').count() \
@@ -128,7 +128,7 @@ class AnalysisHelper:
             'avg_sociable_users_ratio': (good_contexts['no_cd_nodes'] / good_contexts['no_all_nodes']).sum() / len(
                 good_contexts.index)
         }
-        c_summary = pd.DataFrame(data=list(c_summary_dict.values()), index=list(c_summary_dict.keys()))\
+        c_summary = pd.DataFrame(data=list(c_summary_dict.values()), index=list(c_summary_dict.keys())) \
             .rename(columns={0: 'values'}).round(2)
 
         return c_summary
@@ -188,11 +188,11 @@ class AnalysisHelper:
         # get total number of different users per context
         node_participations = node_participations.sum().to_frame().reset_index()
 
-        node_participations = node_participations\
+        node_participations = node_participations \
             .rename(columns={'index': 'context_name', 0: 'total'}).sort_values(by='total', ascending=False)
 
         fig, ax = plt.subplots(figsize=(15, 8))
-        sns.barplot(x='context_name', y='total', data=node_participations)\
+        sns.barplot(x='context_name', y='total', data=node_participations) \
             .set_title('Number of users per event that appear in multiple contexts')
         for i, v in enumerate(node_participations['total']):
             ax.text(i, v + .2, str(v), ha='center')

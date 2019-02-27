@@ -122,7 +122,7 @@ class Ranking(PipelineBase):
 
         rank = data.groupby(['id', 'user_name']) \
             .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                             (x['topical_attachment'].sum() + x['indegree_centrality'].sum())) \
+                   (x['topical_attachment'].sum() + x['indegree_centrality'].sum())) \
             .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
             .sort_values(by=['rank', 'user_name'], ascending=[False, True])
         rank.reset_index(drop=True, inplace=True)
@@ -151,7 +151,7 @@ class Ranking(PipelineBase):
 
         rank = data.groupby(['id', 'user_name']) \
             .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                             (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1))) \
+                   (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1))) \
             .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
             .sort_values(by=['rank', 'user_name'], ascending=[False, True])
         rank.reset_index(drop=True, inplace=True)

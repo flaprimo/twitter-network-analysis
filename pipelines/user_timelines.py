@@ -1,5 +1,5 @@
 import logging
-from datasources.tw import tw
+from datasources import tw
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)

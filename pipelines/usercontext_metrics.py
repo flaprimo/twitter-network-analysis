@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 from datasources.tw.helper import query_builder
-from datasources.tw import tw
+from datasources import tw
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -114,9 +114,9 @@ class UserContextMetrics(PipelineBase):
 
             topical_attachment = \
                 stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author') \
-                    .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
-                                                            x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
-                    .to_frame().rename(columns={0: 'topical_attachment'})
+                .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
+                                                        x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
+                .to_frame().rename(columns={0: 'topical_attachment'})
 
             # topical focus
             def topical_focus_alg(t_ontopic, t_offtopic):
@@ -124,8 +124,8 @@ class UserContextMetrics(PipelineBase):
 
             topical_focus = \
                 stream[['author', 'tw_ontopic']].groupby('author') \
-                    .apply(lambda x: topical_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum())) \
-                    .to_frame().rename(columns={0: 'topical_focus'})
+                .apply(lambda x: topical_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum())) \
+                .to_frame().rename(columns={0: 'topical_focus'})
 
             # topical strength
             def topical_strength_alg(link_ontopic, link_offtopic, rtw_ontopic, rtw_offtopic):
@@ -135,10 +135,10 @@ class UserContextMetrics(PipelineBase):
 
             topical_strength = \
                 stream[['author', 'tw_ontopic', 'link_ontopic', 'no_retweets']].groupby('author') \
-                    .apply(lambda x: topical_strength_alg(x['link_ontopic'].sum(), (~x['link_ontopic']).sum(),
-                                                          x[x['tw_ontopic']]['no_retweets'].sum(),
-                                                          x[~x['tw_ontopic']]['no_retweets'].sum())) \
-                    .to_frame().rename(columns={0: 'topical_strength'})
+                .apply(lambda x: topical_strength_alg(x['link_ontopic'].sum(), (~x['link_ontopic']).sum(),
+                                                      x[x['tw_ontopic']]['no_retweets'].sum(),
+                                                      x[~x['tw_ontopic']]['no_retweets'].sum())) \
+                .to_frame().rename(columns={0: 'topical_strength'})
 
             usercontexts = topical_attachment \
                 .merge(topical_focus, left_index=True, right_index=True) \

@@ -116,7 +116,7 @@ class AnalysisHelper:
 
         context_stats['is_degenerate'] = \
             context_stats.apply(lambda x: x['no_communities'] == 1 and
-                                          x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
+                                x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
 
         # summarize each context
         good_contexts = context_stats[~context_stats['is_degenerate']]

@@ -1,4 +1,5 @@
 import logging
+import re
 import pandas as pd
 from datasources import tw
 from datetime import datetime
@@ -36,6 +37,9 @@ class UserTimelines(PipelineBase):
                     },
                     'parse_dates': 'date',
                     'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+                },
+                'w_kwargs': {
+                    'index': False
                 }
             }
         ]
@@ -69,6 +73,17 @@ class UserTimelines(PipelineBase):
                         'mentions': [m['screen_name'].lower() for m in t['entities']['user_mentions']],
                         'urls': [u['expanded_url'] for u in t['entities']['urls']]
                     }
+
+                    # text cleanup
+                    if tw_record['text'].startswith('RT '):
+                        tw_record['text'] = re.sub(r'^RT @.*?: ', '', tw_record['text'], flags=re.IGNORECASE)
+                    tw_record['text'] = re.sub(r'https*:\/\/t.co\/\w+', '', tw_record['text'])
+                    tw_record['text'] = re.sub(r'(@|#)\w*', '', tw_record['text'])
+                    tw_record['text'] = re.sub(r'\n|\t|  +', ' ', tw_record['text'])
+                    tw_record['text'] = re.sub(r'(\w+…|…)$', '', tw_record['text'])
+                    tw_record['text'] = re.sub(r'  +', '', tw_record['text'])
+                    tw_record['text'] = tw_record['text'].strip()
+
                     tw_list.append(tw_record)
 
             tw_df = pd.DataFrame.from_records(tw_list)

@@ -75,12 +75,10 @@ class UserTimelines(PipelineBase):
                     }
 
                     # text cleanup
-                    if tw_record['text'].startswith('RT '):
-                        tw_record['text'] = re.sub(r'^RT @.*?: ', '', tw_record['text'], flags=re.IGNORECASE)
+                    tw_record['text'] = re.sub(r'^RT @\w+: ', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'https*:\/\/t.co\/\w+', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'(@|#)\w*', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'\n|\t|  +', ' ', tw_record['text'])
-                    tw_record['text'] = re.sub(r'(\w+…|…)$', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'  +', '', tw_record['text'])
                     tw_record['text'] = tw_record['text'].strip()
 

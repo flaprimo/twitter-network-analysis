@@ -79,6 +79,7 @@ class UserTimelines(PipelineBase):
                     tw_record['text'] = re.sub(r'https*:\/\/t.co\/\w+', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'(@|#)\w*', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'\n|\t|  +', ' ', tw_record['text'])
+                    tw_record['text'] = re.sub(r'(\w+…|…)$', '', tw_record['text'])
                     tw_record['text'] = re.sub(r'  +', '', tw_record['text'])
                     tw_record['text'] = tw_record['text'].strip()
 

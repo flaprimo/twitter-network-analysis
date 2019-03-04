@@ -103,20 +103,6 @@ class ProfileMetrics(PipelineBase):
         self.context_name = context_name
         super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources)
 
-    @staticmethod
-    def __expand_url(url):
-        import requests
-
-        longurl = None
-        try:
-            r = requests.get(url)
-            if r.status_code != 200:
-                longurl = r.url
-        except requests.exceptions.RequestException:
-            pass
-
-        return longurl
-
     def __harvest_profiles(self):
         if not self.datasources.files.exists(
                 'profile_metrics', 'harvest_profiles', 'stream', 'json', self.context_name):

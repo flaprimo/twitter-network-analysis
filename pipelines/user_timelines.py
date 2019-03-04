@@ -109,6 +109,6 @@ class UserTimelines(PipelineBase):
 
             hashtags = list(set([h for h_sublist in user_timelines['hashtags'].tolist() for h in h_sublist]))
 
-            tw_df = pd.DataFrame.from_records({'hashtag': hashtags})
+            tw_df = pd.DataFrame({'hashtag': hashtags})
 
             self.datasources.files.write(tw_df, 'user_timelines', 'get_hashtags', 'hashtags', 'csv')

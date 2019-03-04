@@ -10,7 +10,7 @@ from .webdriver import WebDriver
 logger = logging.getLogger(__name__)
 
 
-class TwDynamicScraper:
+class TwScraper:
     def __init__(self, base_url, proxy_provider):
         self.webdriver = WebDriver(proxy_provider)
         self.base_url = base_url + 'search?{0}&lang=en-gb'
@@ -50,7 +50,7 @@ class TwDynamicScraper:
     def __get_tw_list(tw_stream_xml, n):
         tw_list = []
         for t in tw_stream_xml.xpath('./li[contains(@class, "stream-item")]/div/div[@class="content"]')[:n]:
-            tw_current = TwDynamicScraper.__get_tw(t)
+            tw_current = TwScraper.__get_tw(t)
             tw_list.append(tw_current)
             logger.debug(f'added tw: {tw_current}')
 
@@ -111,7 +111,7 @@ class TwDynamicScraper:
                 logger.debug('tw results page loaded')
 
                 # load tw stream
-                driver = TwDynamicScraper.__get_tw_stream(driver, n)
+                driver = TwScraper.__get_tw_stream(driver, n)
                 tw_stream = driver.find_element_by_id('stream-items-id').get_attribute('innerHTML')
                 tw_stream_xml = html.fromstring(tw_stream)
                 is_stream_loaded = True
@@ -127,6 +127,6 @@ class TwDynamicScraper:
                 driver.quit()
 
         if tw_stream_xml:
-            return TwDynamicScraper.__get_tw_list(tw_stream_xml, n)
+            return TwScraper.__get_tw_list(tw_stream_xml, n)
         else:
             return []

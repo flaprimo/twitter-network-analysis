@@ -80,7 +80,7 @@ class UserContextMetrics(PipelineBase):
                         'since': context_record['start_date'],
                         'until': context_record['end_date']
                     })
-                stream = tw.tw_dynamic_scraper.search(query)
+                stream = tw.tw_scraper.search(query)
 
                 # only keeps tws from current user_name
                 stream = [s for s in stream if s['author'] == u]

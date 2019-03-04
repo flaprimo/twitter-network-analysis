@@ -15,6 +15,7 @@ class User(Base):
     url = Column(String(160))
     location = Column(String(160))
     bio = Column(String(160))
+    language = Column(String(160))
     likes = Column(Integer, CheckConstraint('likes>=0'))
     tweets = Column(Integer, CheckConstraint('tweets>=0'))
     following = Column(Integer, CheckConstraint('following>=0'))
@@ -35,6 +36,7 @@ class User(Base):
             f'url={self.url}, ' \
             f'location={self.location}, ' \
             f'bio={self.bio}, ' \
+            f'language={self.language}, ' \
             f'likes={self.likes}, ' \
             f'tweets={self.tweets}, ' \
             f'following={self.following}, ' \

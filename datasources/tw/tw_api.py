@@ -58,6 +58,21 @@ class TwApi:
 
         return stream
 
+    def get_user_profiles(self, user_name_list):
+        logger.info(f'tw api profiles for {len(user_name_list)} users')
+
+        # group usernames in 100 lists
+        user_groups = [user_name_list[n:n + 100] for n in range(0, len(user_name_list), 100)]
+
+        stream = []
+        for u_list in user_groups:
+            with requests_cache.enabled(self.cache_path, expire_after=86400):
+                user_stream = self.api.request('users/lookup', {'screen_name': u_list, 'include_entities': 'false'})
+            stream.extend(user_stream)
+            time.sleep(3)
+
+        return stream
+
     def get_rate_limit_status(self, resources):
         rate_limit_status = self.api.request('application/rate_limit_status', {'resources': resources})
 

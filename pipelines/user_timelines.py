@@ -41,9 +41,22 @@ class UserTimelines(PipelineBase):
                 'w_kwargs': {
                     'index': False
                 }
+            },
+            {
+                'stage_name': 'get_hashtags',
+                'file_name': 'hashtags',
+                'file_extension': 'csv',
+                'r_kwargs': {
+                    'dtype': {
+                        'hashtags': str
+                    }
+                },
+                'w_kwargs': {
+                    'index': False
+                }
             }
         ]
-        tasks = [self.__get_user_timelines, self.__parse_user_timelines]
+        tasks = [self.__get_user_timelines, self.__parse_user_timelines, self.__get_hashtags]
         super(UserTimelines, self).__init__('user_timelines', files, tasks, datasources)
 
     def __get_user_timelines(self):
@@ -88,3 +101,14 @@ class UserTimelines(PipelineBase):
             tw_df = pd.DataFrame.from_records(tw_list)
 
             self.datasources.files.write(tw_df, 'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
+
+    def __get_hashtags(self):
+        if not self.datasources.files.exists('user_timelines', 'get_hashtags', 'hashtags', 'csv'):
+            user_timelines = self.datasources.files.read(
+                'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
+
+            hashtags = list(set([h for h_sublist in user_timelines['hashtags'].tolist() for h in h_sublist]))
+
+            tw_df = pd.DataFrame.from_records({'hashtag': hashtags})
+
+            self.datasources.files.write(tw_df, 'user_timelines', 'get_hashtags', 'hashtags', 'csv')

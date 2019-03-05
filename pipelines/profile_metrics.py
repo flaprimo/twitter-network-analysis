@@ -120,7 +120,7 @@ class ProfileMetrics(PipelineBase):
         def expand_url(url):
             import requests
             try:
-                r = requests.get(url)
+                r = requests.get(url, timeout=5)
                 return r.url if r.status_code != 200 else None
             except requests.exceptions.RequestException:
                 return None

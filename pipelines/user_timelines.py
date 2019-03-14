@@ -35,7 +35,7 @@ class UserTimelines(PipelineBase):
                         'urls': lambda x: x.strip('[]').replace('\'', '').split(', '),
                         'mentions': lambda x: x.strip('[]').replace('\'', '').split(', '),
                     },
-                    'parse_dates': 'date',
+                    'parse_dates': ['date'],
                     'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
                 },
                 'w_kwargs': {

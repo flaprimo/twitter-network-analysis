@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 import pandas as pd
 from datasources import tw
@@ -137,7 +138,7 @@ class ProfileMetrics(PipelineBase):
             profiles = [
                 {
                     'user_name': u['screen_name'].lower(),
-                    'bio': u['description'].replace('\n', ''),
+                    'bio': re.sub(r'[\n\r\t]', ' ', u['description']),
                     'url': expand_url(u['url']) if u['url'] else None,
                     'location': u['location'],
                     'followers': u['followers_count'],

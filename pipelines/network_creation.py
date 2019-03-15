@@ -122,7 +122,7 @@ class NetworkCreation(PipelineBase):
                 .sort_values(by=['source_id', 'target_id'])
 
             # rename edges
-            nodes_dict = {v: k for k, v in nodes.to_dict()['user_name'].items()}
+            nodes_dict = pd.Series(nodes['user_name'].index, index=nodes['user_name']).to_dict()
             edges.source_id = edges.source_id.map(nodes_dict.get)
             edges.target_id = edges.target_id.map(nodes_dict.get)
 
@@ -139,7 +139,7 @@ class NetworkCreation(PipelineBase):
             graph = nx.from_pandas_edgelist(edges,
                                             source='source_id', target='target_id', edge_attr=['weight'],
                                             create_using=nx.DiGraph())
-            nx.set_node_attributes(graph, pd.Series(nodes.user_name).to_dict(), 'user_name')
+            nx.set_node_attributes(graph, pd.Series(nodes['user_name']).to_dict(), 'user_name')
 
             self.datasources.files.write(
                 graph, 'network_creation', 'create_graph', 'graph', 'gexf', self.context_name)

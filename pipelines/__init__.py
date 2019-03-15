@@ -8,6 +8,7 @@ from .usercontext_metrics import UserContextMetrics
 from .persistence import Persistence
 from .ranking import Ranking
 from .user_timelines import UserTimelines
+from .hashtag_network import HashtagNetwork
 
 __all__ = ['ContextDetection', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
-           'ProfileMetrics', 'UserContextMetrics', 'Persistence', 'Ranking', 'UserTimelines']
+           'ProfileMetrics', 'UserContextMetrics', 'Persistence', 'Ranking', 'UserTimelines', 'HashtagNetwork']

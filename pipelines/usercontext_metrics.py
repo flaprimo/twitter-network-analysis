@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 from datasources.tw.helper import query_builder
 from datasources import tw
+from pipelines.helper import str_to_list
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -28,11 +29,11 @@ class UserContextMetrics(PipelineBase):
                         'no_likes': 'uint32'
                     },
                     'converters': {
-                        'reply': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'emojis': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'urls': lambda x: x.strip('[]').replace('\'', '').split(', '),
-                        'mentions': lambda x: x.strip('[]').replace('\'', '').split(', ')
+                        'reply': str_to_list,
+                        'hashtags': str_to_list,
+                        'emojis': str_to_list,
+                        'urls': str_to_list,
+                        'mentions': str_to_list
                     }
                 },
                 'w_kwargs': {

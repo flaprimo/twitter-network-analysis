@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 from datasources.tw import tw
+from pipelines.helper import str_to_list
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class ContextDetection(PipelineBase):
                         'location': str
                     },
                     'converters': {
-                        'hashtags': lambda x: x.strip('[]').replace('\'', '').split(', ')
+                        'hashtags': str_to_list
                     },
                     'parse_dates': ['start_date', 'end_date'],
                     'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d'),

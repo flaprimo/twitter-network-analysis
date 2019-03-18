@@ -65,7 +65,7 @@ class UserTimelines(PipelineBase):
                     tw_record = {
                         'user_name': s['user_name'],
                         'date': datetime.strptime(t['created_at'], '%a %b %d %H:%M:%S %z %Y')
-                            .astimezone(pytz.UTC).replace(tzinfo=None),
+                        .astimezone(pytz.UTC).replace(tzinfo=None),
                         'text': t['text'],
                         'likes': t['favorite_count'],
                         'retweets': t['retweet_count'],

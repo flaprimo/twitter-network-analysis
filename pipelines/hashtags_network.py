@@ -6,7 +6,7 @@ from .pipeline_base import PipelineBase
 logger = logging.getLogger(__name__)
 
 
-class HashtagNetwork(PipelineBase):
+class HashtagsNetwork(PipelineBase):
     def __init__(self, datasources):
         files = [
             {
@@ -46,10 +46,10 @@ class HashtagNetwork(PipelineBase):
             }
         ]
         tasks = [self.__get_hashtag_nodes, self.__get_hashtag_edges, self.__create_graph]
-        super(HashtagNetwork, self).__init__('hashtag_network', files, tasks, datasources)
+        super(HashtagsNetwork, self).__init__('hashtags_network', files, tasks, datasources)
 
     def __get_hashtag_nodes(self):
-        if not self.datasources.files.exists('hashtag_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv'):
+        if not self.datasources.files.exists('hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv'):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
 
@@ -58,7 +58,7 @@ class HashtagNetwork(PipelineBase):
             hashtag_nodes = pd.Series(hashtag_nodes.sum()).drop_duplicates().reset_index(drop=True).to_frame('hashtag')
             hashtag_nodes.index.names = ['hashtag_id']
 
-            self.datasources.files.write(hashtag_nodes, 'hashtag_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
+            self.datasources.files.write(hashtag_nodes, 'hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
 
     def __get_hashtag_edges(self):
         def flat_list(l):
@@ -67,10 +67,10 @@ class HashtagNetwork(PipelineBase):
         def tuple_combinations(l):
             return flat_list([[(h, m) for m in l[i:]] for i, h in enumerate(l[:-1], 1)])
 
-        if not self.datasources.files.exists('hashtag_network', 'get_hashtag_edges', 'hashtag_edges', 'csv'):
+        if not self.datasources.files.exists('hashtags_network', 'get_hashtag_edges', 'hashtag_edges', 'csv'):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
-            hashtag_nodes = self.datasources.files.read('hashtag_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
+            hashtag_nodes = self.datasources.files.read('hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
 
             hashtag_edges = user_timelines['hashtags']
             hashtag_edges = hashtag_edges[hashtag_edges.apply(len) > 0]
@@ -89,15 +89,16 @@ class HashtagNetwork(PipelineBase):
             hashtag_edges = hashtag_edges.groupby(['source_id', 'target_id']).sum().reset_index() \
                 .sort_values(by=['source_id', 'target_id'])
 
-            self.datasources.files.write(hashtag_edges, 'hashtag_network', 'get_hashtag_edges', 'hashtag_edges', 'csv')
+            self.datasources.files.write(hashtag_edges, 'hashtags_network', 'get_hashtag_edges', 'hashtag_edges', 'csv')
 
     def __create_graph(self):
-        if not self.datasources.files.exists('hashtag_network', 'create_graph', 'graph', 'gexf'):
-            nodes = self.datasources.files.read('hashtag_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
-            edges = self.datasources.files.read('hashtag_network', 'get_hashtag_edges', 'hashtag_edges', 'csv')
+        if not self.datasources.files.exists('hashtags_network', 'create_graph', 'graph', 'gexf'):
+            nodes = self.datasources.files.read('hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
+            edges = self.datasources.files.read('hashtags_network', 'get_hashtag_edges', 'hashtag_edges', 'csv')
+
             graph = nx.from_pandas_edgelist(edges,
                                             source='source_id', target='target_id', edge_attr=['weight'],
                                             create_using=nx.Graph())
             nx.set_node_attributes(graph, pd.Series(nodes['hashtag']).to_dict(), 'hashtag')
 
-            self.datasources.files.write(graph, 'hashtag_network', 'create_graph', 'graph', 'gexf')
+            self.datasources.files.write(graph, 'hashtags_network', 'create_graph', 'graph', 'gexf')

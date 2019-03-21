@@ -73,87 +73,94 @@ class Ranking(PipelineBase):
         return (df - min) / (max - min)
 
     def __get_active_users(self):
-        with self.datasources.database.session_scope() as session:
-            active_users = pd.read_sql(session.query(User.id, User.user_name, User.tweets)
-                                       .join(Profile)
-                                       .filter(Profile.follower_rank > 0).statement,
-                                       con=session.bind, index_col='id')
+        if not self.datasources.files.exists('ranking', 'get_active_users', 'active_users', 'csv'):
+            with self.datasources.database.session_scope() as session:
+                active_users = pd.read_sql(session.query(User.id, User.user_name, User.tweets)
+                                           .join(Profile)
+                                           .filter(Profile.follower_rank > 0).statement,
+                                           con=session.bind, index_col='id')
 
-            active_users['tweets'] = self.__min_max(active_users['tweets'])
-            active_users = active_users[active_users.tweets > 0.00005]
-            active_users.drop(columns='tweets', inplace=True)
+                active_users['tweets'] = self.__min_max(active_users['tweets'])
+                active_users = active_users[active_users.tweets > 0.00005]
+                active_users.drop(columns='tweets', inplace=True)
 
-        self.datasources.files.write(active_users, 'ranking', 'get_active_users', 'active_users', 'csv')
+            self.datasources.files.write(active_users, 'ranking', 'get_active_users', 'active_users', 'csv')
 
     def __rank_1(self):
-        active_users = self.datasources.files.read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
+        if not self.datasources.files.exists('ranking', 'rank_1', 'rank_1', 'csv'):
+            active_users = self.datasources.files\
+                .read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
 
-        with self.datasources.database.session_scope() as session:
-            rank = pd.read_sql(session.query(User.id, User.user_name,
-                                             (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 1) +
-                                              func.ifnull(func.sum(UserContext.topical_focus), 0)).label('rank'))
-                               .join(UserCommunity).join(UserContext)
-                               .filter(User.id.in_(active_users))
-                               .group_by(UserCommunity.user_id)
-                               .order_by(desc('rank'), User.user_name.asc()).statement,
-                               con=session.bind).round(decimals=3)
+            with self.datasources.database.session_scope() as session:
+                rank = pd.read_sql(session.query(User.id, User.user_name,
+                                                 (func.ifnull(func.sum(1 / UserCommunity.indegree_centrality), 1) +
+                                                  func.ifnull(func.sum(UserContext.topical_focus), 0)).label('rank'))
+                                   .join(UserCommunity).join(UserContext)
+                                   .filter(User.id.in_(active_users))
+                                   .group_by(UserCommunity.user_id)
+                                   .order_by(desc('rank'), User.user_name.asc()).statement,
+                                   con=session.bind).round(decimals=3)
 
-        self.datasources.files.write(rank, 'ranking', 'rank_1', 'rank_1', 'csv')
+            self.datasources.files.write(rank, 'ranking', 'rank_1', 'rank_1', 'csv')
 
     def __rank_2(self):
-        active_users = self.datasources.files.read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
+        if not self.datasources.files.exists('ranking', 'rank_2', 'rank_2', 'csv'):
+            active_users = self.datasources.files\
+                .read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
 
-        with self.datasources.database.session_scope() as session:
-            data = pd.read_sql(session.query(User.id, User.user_name,
-                                             Profile.follower_rank,
-                                             UserContext.topical_attachment,
-                                             UserCommunity.indegree_centrality)
-                               .join(Profile, User.id == Profile.user_id)
-                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
-                               .join(Community, UserCommunity.community_id == Community.id)
-                               .join(Partition, Community.partition_id == Partition.id)
-                               .join(Graph, Partition.graph_id == Graph.id)
-                               .join(UserContext, and_(Graph.context_id == UserContext.context_id,
-                                                       User.id == UserContext.user_id))
-                               .filter(User.id.in_(active_users)).statement,
-                               con=session.bind, index_col='id')
+            with self.datasources.database.session_scope() as session:
+                data = pd.read_sql(session.query(User.id, User.user_name,
+                                                 Profile.follower_rank,
+                                                 UserContext.topical_attachment,
+                                                 UserCommunity.indegree_centrality)
+                                   .join(Profile, User.id == Profile.user_id)
+                                   .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
+                                   .join(Community, UserCommunity.community_id == Community.id)
+                                   .join(Partition, Community.partition_id == Partition.id)
+                                   .join(Graph, Partition.graph_id == Graph.id)
+                                   .join(UserContext, and_(Graph.context_id == UserContext.context_id,
+                                                           User.id == UserContext.user_id))
+                                   .filter(User.id.in_(active_users)).statement,
+                                   con=session.bind, index_col='id')
 
-        data['topical_attachment'] = self.__min_max(data['topical_attachment'])
+            data['topical_attachment'] = self.__min_max(data['topical_attachment'])
 
-        rank = data.groupby(['id', 'user_name']) \
-            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                   (x['topical_attachment'].sum() + x['indegree_centrality'].sum())) \
-            .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
-            .sort_values(by=['rank', 'user_name'], ascending=[False, True])
-        rank.reset_index(drop=True, inplace=True)
+            rank = data.groupby(['id', 'user_name']) \
+                .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
+                       (x['topical_attachment'].sum() + x['indegree_centrality'].sum())) \
+                .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
+                .sort_values(by=['rank', 'user_name'], ascending=[False, True])
+            rank.reset_index(drop=True, inplace=True)
 
-        self.datasources.files.write(rank, 'ranking', 'rank_2', 'rank_2', 'csv')
+            self.datasources.files.write(rank, 'ranking', 'rank_2', 'rank_2', 'csv')
 
     def __rank_3(self):
-        active_users = self.datasources.files.read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
+        if not self.datasources.files.exists('ranking', 'rank_3', 'rank_3', 'csv'):
+            active_users = self.datasources.files\
+                .read('ranking', 'get_active_users', 'active_users', 'csv').index.tolist()
 
-        with self.datasources.database.session_scope() as session:
-            data = pd.read_sql(session.query(User.id, User.user_name,
-                                             Profile.follower_rank,
-                                             UserContext.topical_attachment,
-                                             UserCommunity.indegree_centrality)
-                               .join(Profile, User.id == Profile.user_id)
-                               .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
-                               .join(Community, UserCommunity.community_id == Community.id)
-                               .join(Partition, Community.partition_id == Partition.id)
-                               .join(Graph, Partition.graph_id == Graph.id)
-                               .join(UserContext, and_(Graph.context_id == UserContext.context_id,
-                                                       User.id == UserContext.user_id))
-                               .filter(User.id.in_(active_users)).statement,
-                               con=session.bind, index_col='id')
+            with self.datasources.database.session_scope() as session:
+                data = pd.read_sql(session.query(User.id, User.user_name,
+                                                 Profile.follower_rank,
+                                                 UserContext.topical_attachment,
+                                                 UserCommunity.indegree_centrality)
+                                   .join(Profile, User.id == Profile.user_id)
+                                   .join(UserCommunity, Profile.user_id == UserCommunity.user_id)
+                                   .join(Community, UserCommunity.community_id == Community.id)
+                                   .join(Partition, Community.partition_id == Partition.id)
+                                   .join(Graph, Partition.graph_id == Graph.id)
+                                   .join(UserContext, and_(Graph.context_id == UserContext.context_id,
+                                                           User.id == UserContext.user_id))
+                                   .filter(User.id.in_(active_users)).statement,
+                                   con=session.bind, index_col='id')
 
-        data['topical_attachment'] = self.__min_max(data['topical_attachment'])
+            data['topical_attachment'] = self.__min_max(data['topical_attachment'])
 
-        rank = data.groupby(['id', 'user_name']) \
-            .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
-                   (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1))) \
-            .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
-            .sort_values(by=['rank', 'user_name'], ascending=[False, True])
-        rank.reset_index(drop=True, inplace=True)
+            rank = data.groupby(['id', 'user_name']) \
+                .apply(lambda x: abs(x['follower_rank'].head(1) - 1) *
+                       (x['topical_attachment'].sum() + 1 / (x['indegree_centrality'].sum() + 1))) \
+                .reset_index(level=[0, 1]).rename(columns={'follower_rank': 'rank'}) \
+                .sort_values(by=['rank', 'user_name'], ascending=[False, True])
+            rank.reset_index(drop=True, inplace=True)
 
-        self.datasources.files.write(rank, 'ranking', 'rank_3', 'rank_3', 'csv')
+            self.datasources.files.write(rank, 'ranking', 'rank_3', 'rank_3', 'csv')

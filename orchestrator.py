@@ -3,7 +3,8 @@ import logging
 import time
 from datasources import Datasources
 from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
-    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking, UserTimelines, HashtagNetwork
+    CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking, UserTimelines,\
+    HashtagsNetwork, HashtagsRepresentation
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -12,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 class Orchestrator:
     def __init__(self, project_name, input_path, output_path):
+        if not os.path.isdir(os.path.join(input_path, project_name)):
+            raise FileNotFoundError(f'project {project_name} doesn\'t exist')
+
         self.project_name = project_name
         self.project_input_path = os.path.join(input_path, project_name)
         self.project_output_path = os.path.join(output_path, project_name)
@@ -31,7 +35,7 @@ class Orchestrator:
                 current_pipeline = p(self.datasources, context_name)
                 current_pipeline.execute()
 
-        pipeline_2 = [Ranking, UserTimelines, HashtagNetwork]
+        pipeline_2 = [Ranking, UserTimelines, HashtagsNetwork, HashtagsRepresentation]
         for p in pipeline_2:
             current_pipeline = p(self.datasources)
             current_pipeline.execute()

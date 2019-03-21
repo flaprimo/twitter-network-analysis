@@ -30,7 +30,7 @@ class Ranking(PipelineBase):
                     'dtype': {
                         'id': 'uint32',
                         'user_name': str,
-                        'rank': 'uint'
+                        'rank': float
                     },
                     'index_col': 'id'
                 }
@@ -43,7 +43,7 @@ class Ranking(PipelineBase):
                     'dtype': {
                         'id': 'uint32',
                         'user_name': str,
-                        'rank': 'uint'
+                        'rank': float
                     },
                     'index_col': 'id'
                 }
@@ -56,7 +56,7 @@ class Ranking(PipelineBase):
                     'dtype': {
                         'id': 'uint32',
                         'user_name': str,
-                        'rank': 'uint'
+                        'rank': float
                     },
                     'index_col': 'id'
                 }

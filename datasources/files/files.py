@@ -1,11 +1,7 @@
 import os
-import sys
-import networkx as nx
-import pandas as pd
-import json
 import logging
 from cachetools import LRUCache
-from gensim.models import KeyedVectors, Word2Vec
+from .model import file_models
 
 logger = logging.getLogger(__name__)
 
@@ -63,31 +59,6 @@ class Files:
         logger.debug(f'added file model (file "{new_file[full_file_name]["path"]}")')
 
     def read(self, pipeline_name, stage_name, file_name, file_extension, file_prefix='', file_suffix=''):
-        def read_pandas(file_path, kwargs):
-            return pd.read_csv(file_path, **kwargs)
-
-        def read_json(file_path, kwargs):
-            with open(file_path) as json_file:
-                json_content = json.load(json_file, **kwargs)
-            return json_content
-
-        def read_networkx(path, kwargs):
-            graph = nx.read_gexf(path, **kwargs)
-            for n in graph.nodes(data=True):
-                del n[1]['label']
-
-            for e in graph.edges(data=True):
-                del e[2]['id']
-                e[2]['weight'] = int(e[2]['weight'])
-
-            return graph
-
-        def read_word2vec_embedding(path, kwargs):
-            return KeyedVectors.load_word2vec_format(path, **kwargs)
-
-        def read_word2vec_embedding_model(path, kwargs):
-            return Word2Vec.load(path, **kwargs)
-
         full_file_name = self.__get_full_file_name(file_name, file_extension, file_prefix, file_suffix)
 
         try:
@@ -98,18 +69,10 @@ class Files:
                 logger.debug(f'file read from cache (file "{file_model["path"]}")')
                 return m.copy()
             except KeyError:
-                file_readers = {
-                    'csv': read_pandas,
-                    'json': read_json,
-                    'gexf': read_networkx,
-                    'embedding': read_word2vec_embedding,
-                    'embedding_model': read_word2vec_embedding_model
-                }
+                file_driver = file_models.get(file_model['type'])
 
-                reader = file_readers.get(file_model['type'])
-
-                if reader:
-                    file_content = reader(file_model['path'], file_model['r_kwargs'])
+                if file_driver:
+                    file_content = file_driver.reader(file_model['path'], file_model['r_kwargs'])
                 else:
                     raise KeyError('error: unknown file type')
 
@@ -121,60 +84,18 @@ class Files:
 
     def write(self, file_content,
               pipeline_name, stage_name, file_name, file_extension, file_prefix='', file_suffix=''):
-        def write_pandas(df, file_path, kwargs):
-            df.to_csv(file_path, **kwargs)
-            return self.__df_tostring(file_content, 5)
-
-        def write_json(json_content, file_path, kwargs):
-            with open(file_path, 'w') as json_file:
-                json.dump(json_content, json_file, **kwargs)
-            return ''
-
-        def write_networkx(graph, file_path, kwargs):
-            nx.write_gexf(graph, file_path, **kwargs)
-            return self.__graph_tostring(file_content, 5, 5)
-
-        def write_word2vec_embedding(model, file_path, kwargs):
-            model.wv.save_word2vec_format(file_path, **kwargs)
-            return ''
-
-        def write_word2vec_embedding_model(model, file_path, kwargs):
-            model.save(file_path, **kwargs)
-            return ''
-
         full_file_name = self.__get_full_file_name(file_name, file_extension, file_prefix, file_suffix)
         file_model = self.model[pipeline_name][stage_name][full_file_name]
 
         if not os.path.exists(file_model['path_dir']):
             os.makedirs(file_model['path_dir'])
 
-        file_writers = {
-            'csv': write_pandas,
-            'json': write_json,
-            'gexf': write_networkx,
-            'embedding': write_word2vec_embedding,
-            'embedding_model': write_word2vec_embedding_model
-        }
+        file_driver = file_models.get(file_model['type'])
 
-        writer = file_writers.get(file_model['type'])
-
-        if writer:
-            file_preview = writer(file_content, file_model['path'], file_model['w_kwargs'])
+        if file_driver:
+            file_preview = file_driver.writer(file_content, file_model['path'], file_model['w_kwargs'])
         else:
             raise KeyError('error: unknown file type')
 
         logger.debug(f'file written (file "{file_model["path"]}")\n' + str(file_preview))
         # self.cache[file_model['path']] = file_content
-
-    @staticmethod
-    def __df_tostring(df, rows=None):
-        return f'  shape: {df.shape}\n' \
-            f'  dataframe ({"first " + str(rows) if rows else "all"} rows):\n{df.head(rows).to_string()}\n'
-
-    @staticmethod
-    def __graph_tostring(graph, nodes=None, edges=None):
-        return f'  shape: ({len(graph.nodes)}, {len(graph.edges)})\n' \
-            f'  nodes ({"first " + str(nodes) if nodes else "all"} nodes): ' \
-            f'{str(list(graph.nodes(data=True))[:nodes])}\n' \
-            f'  edges ({"first " + str(edges) if edges else "all"} edges): ' \
-            f'{str(list(graph.edges(data=True))[:edges])}\n'

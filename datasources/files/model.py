@@ -45,7 +45,7 @@ class JsonFileDriver(FileDriverBase):
     def writer(json_content, file_path, kwargs):
         with open(file_path, 'w') as json_file:
             json.dump(json_content, json_file, **kwargs)
-        return JsonFileDriver.__tostring(json_content)
+        return ''
 
     @staticmethod
     def reader(file_path, kwargs):
@@ -89,7 +89,7 @@ class Word2VecEmbeddingFileDriver(FileDriverBase):
     @staticmethod
     def writer(model, file_path, kwargs):
         model.wv.save_word2vec_format(file_path, **kwargs)
-        return Word2VecEmbeddingFileDriver.__tostring(model)
+        return ''
 
     @staticmethod
     def reader(file_path, kwargs):
@@ -102,7 +102,7 @@ class Word2VecEmbeddingModelDriverFile(FileDriverBase):
     @staticmethod
     def writer(model, file_path, kwargs):
         model.save(file_path, **kwargs)
-        return Word2VecEmbeddingModelDriverFile.__tostring(model)
+        return ''
 
     @staticmethod
     def reader(file_path, kwargs):

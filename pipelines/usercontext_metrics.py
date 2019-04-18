@@ -1,6 +1,6 @@
 import logging
+from datetime import datetime
 import pandas as pd
-from datasources.tw.helper import query_builder
 from datasources import tw
 from pipelines.helper import str_to_list
 from .pipeline_base import PipelineBase
@@ -18,23 +18,27 @@ class UserContextMetrics(PipelineBase):
                 'file_prefix': context_name,
                 'r_kwargs': {
                     'dtype': {
-                        'tw_id': str,
-                        'user_id': 'uint32',
-                        'author': str,
+                        'tw_id': int,
+                        'user_name': str,
                         'date': str,
-                        'language': str,
                         'text': str,
-                        'no_replies': 'uint32',
+                        'lang': str,
+                        'reply': str,
+                        'no_likes': 'uint32',
                         'no_retweets': 'uint32',
-                        'no_likes': 'uint32'
+                        'no_replies': 'uint32',
+                        'is_retweet': bool,
+                        'is_media': bool
+
                     },
                     'converters': {
-                        'reply': str_to_list,
                         'hashtags': str_to_list,
-                        'emojis': str_to_list,
                         'urls': str_to_list,
-                        'mentions': str_to_list
-                    }
+                        'mentions': str_to_list,
+                        'retweeted_hashtags': str_to_list
+                    },
+                    'parse_dates': ['date'],
+                    'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
                 },
                 'w_kwargs': {
                     'index': False
@@ -73,25 +77,11 @@ class UserContextMetrics(PipelineBase):
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.reset_index().to_dict('records')[0]
 
-            streams = []
-            for u in user_names:
-                query = query_builder(
-                    people={'from': u},
-                    date={
-                        'since': context_record['start_date'],
-                        'until': context_record['end_date']
-                    })
-                stream = tw.tw_scraper.search(query)
-
-                # only keeps tws from current user_name
-                stream = [s for s in stream if s['author'] == u]
-
-                streams.extend(stream)
-            # can try merging for having users_id and filtering proper users
-            df_stream = pd.DataFrame.from_records(streams)
+            tw_df = pd.DataFrame.from_records(tw.tw_api.get_user_timelines(
+                user_names, n=3200, from_date=context_record['start_date'], to_date=context_record['end_date']))
 
             self.datasources.files.write(
-                df_stream, 'usercontext_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
+                tw_df, 'usercontext_metrics', 'get_user_stream', 'stream', 'csv', self.context_name)
 
     def __compute_metrics(self):
         if not self.datasources.files.exists(
@@ -114,7 +104,7 @@ class UserContextMetrics(PipelineBase):
                 return (tw_ontopic + link_ontopic) / (tw_offtopic + link_offtopic + 1)
 
             topical_attachment = \
-                stream[['author', 'tw_ontopic', 'link_ontopic']].groupby('author') \
+                stream[['user_name', 'tw_ontopic', 'link_ontopic']].groupby('user_name') \
                 .apply(lambda x: topical_attachment_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum(),
                                                         x['link_ontopic'].sum(), (~x['link_ontopic']).sum())) \
                 .to_frame().rename(columns={0: 'topical_attachment'})
@@ -124,7 +114,7 @@ class UserContextMetrics(PipelineBase):
                 return t_ontopic / (t_offtopic + 1)
 
             topical_focus = \
-                stream[['author', 'tw_ontopic']].groupby('author') \
+                stream[['user_name', 'tw_ontopic']].groupby('user_name') \
                 .apply(lambda x: topical_focus_alg(x['tw_ontopic'].sum(), (~x['tw_ontopic']).sum())) \
                 .to_frame().rename(columns={0: 'topical_focus'})
 
@@ -135,7 +125,7 @@ class UserContextMetrics(PipelineBase):
                        (link_offtopic * math.log10(link_offtopic + rtw_offtopic + 1) + 1)
 
             topical_strength = \
-                stream[['author', 'tw_ontopic', 'link_ontopic', 'no_retweets']].groupby('author') \
+                stream[['user_name', 'tw_ontopic', 'link_ontopic', 'no_retweets']].groupby('user_name') \
                 .apply(lambda x: topical_strength_alg(x['link_ontopic'].sum(), (~x['link_ontopic']).sum(),
                                                       x[x['tw_ontopic']]['no_retweets'].sum(),
                                                       x[~x['tw_ontopic']]['no_retweets'].sum())) \
@@ -144,7 +134,7 @@ class UserContextMetrics(PipelineBase):
             usercontexts = topical_attachment \
                 .merge(topical_focus, left_index=True, right_index=True) \
                 .merge(topical_strength, left_index=True, right_index=True) \
-                .reset_index().rename(columns={'author': 'user_name'})
+                .reset_index()
 
             # add missing nodes
             usercontexts = usercontexts.merge(nodes[['user_name']], left_on='user_name', right_on='user_name',

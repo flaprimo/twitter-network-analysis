@@ -1,5 +1,4 @@
 import logging
-import re
 from datetime import datetime
 import pandas as pd
 from datasources import tw
@@ -11,12 +10,6 @@ logger = logging.getLogger(__name__)
 class ProfileMetrics(PipelineBase):
     def __init__(self, datasources, context_name):
         files = [
-            {
-                'stage_name': 'harvest_profiles',
-                'file_name': 'stream',
-                'file_extension': 'json',
-                'file_prefix': context_name
-            },
             {
                 'stage_name': 'profile_info',
                 'file_name': 'profile_info',
@@ -100,57 +93,21 @@ class ProfileMetrics(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__harvest_profiles, self.__profile_info, [self.__remove_nonexistent_users, self.__follower_rank]]
+        tasks = [self.__profile_info, [self.__remove_nonexistent_users, self.__follower_rank]]
         self.context_name = context_name
         super(ProfileMetrics, self).__init__('profile_metrics', files, tasks, datasources)
 
-    def __harvest_profiles(self):
-        if not self.datasources.files.exists(
-                'profile_metrics', 'harvest_profiles', 'stream', 'json', self.context_name):
-            nodes = self.datasources.files.read(
-                'community_detection_metrics', 'node_metrics', 'nodes', 'csv', self.context_name)
-
-            unique_users = nodes['user_name'].drop_duplicates().tolist()
-
-            profiles = tw.tw_api.get_user_profiles(unique_users)
-
-            self.datasources.files.write(
-                profiles, 'profile_metrics', 'harvest_profiles', 'stream', 'json', self.context_name)
-
     def __profile_info(self):
-        def expand_url(url):
-            import requests
-            try:
-                r = requests.get(url, timeout=5)
-                return r.url if r.status_code != 200 else None
-            except requests.exceptions.RequestException:
-                return None
-
         if not self.datasources.files.exists(
                 'profile_metrics', 'profile_info', 'profile_info', 'csv', self.context_name):
             nodes = self.datasources.files.read(
                 'community_detection_metrics', 'node_metrics', 'nodes', 'csv', self.context_name)
-            stream = self.datasources.files.read(
-                'profile_metrics', 'harvest_profiles', 'stream', 'json', self.context_name)
 
             unique_users = nodes[['user_id', 'user_name']].drop_duplicates()
 
-            profiles = [
-                {
-                    'user_name': u['screen_name'].lower(),
-                    'bio': re.sub(r'[\n\r\t]', ' ', u['description']),
-                    'url': expand_url(u['url']) if u['url'] else None,
-                    'location': u['location'],
-                    'followers': u['followers_count'],
-                    'following': u['friends_count'],
-                    'likes': u['favourites_count'],
-                    'tweets': u['statuses_count'],
-                    'language': u['lang'],
-                    'join_date': datetime.strptime(u['created_at'], '%a %b %d %H:%M:%S %z %Y').date(),
-                    'name': u['name']
-                } for u in stream]
+            profiles = tw.tw_api.get_user_profiles(unique_users['user_name'].tolist())
 
-            userinfo = pd.merge(pd.DataFrame(profiles), unique_users,
+            userinfo = pd.merge(pd.DataFrame.from_records(profiles), unique_users,
                                 how='left', left_on=['user_name'], right_on=['user_name']).set_index('user_id')
 
             self.datasources.files.write(

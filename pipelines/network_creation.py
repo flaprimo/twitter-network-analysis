@@ -1,5 +1,4 @@
 import logging
-import re
 import networkx as nx
 import pandas as pd
 from .pipeline_base import PipelineBase
@@ -18,8 +17,7 @@ class NetworkCreation(PipelineBase):
                 'r_kwargs': {
                     'dtype': {
                         'from_username': str,
-                        'to_username': str,
-                        'text': str,
+                        'to_username': str
                     }
                 }
             },
@@ -70,27 +68,18 @@ class NetworkCreation(PipelineBase):
         if not self.datasources.files.exists(
                 'network_creation', 'create_network', 'network', 'csv', self.context_name):
             stream = self.datasources.files.read(
-                'context_detection', 'harvest_context', 'stream', 'json', self.context_name)
-            tw_list = []
-            for tw in stream:
-                # also consider RT as an added value (like +1)?
-                # if tw['full_text'].startswith('RT'):
-                text = tw['extended_tweet']['full_text'] if tw['truncated'] else tw['text']
-                from_username = tw['user']['screen_name'].lower()
-                mentions = re.findall(r'@\w+', text)
+                'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
 
-                for user in mentions:
-                    tw_record = {
-                        'from_username': from_username,
-                        'to_username': user.replace('@', '').lower(),
-                        'text': text.replace('\n', ''),
-                    }
-                    tw_list.append(tw_record)
-
-            tw_df = pd.DataFrame.from_records(tw_list, columns=['from_username', 'to_username', 'text'])
+            stream = stream[['user_name', 'mentions']]
+            stream = stream['mentions'].apply(pd.Series) \
+                .merge(stream, right_index=True, left_index=True) \
+                .drop(['mentions'], axis=1) \
+                .melt(id_vars=['user_name'], value_name='mentions') \
+                .drop('variable', axis=1) \
+                .dropna().rename(columns={'user_name': 'from_username', 'mentions': 'to_username'})
 
             self.datasources.files.write(
-                tw_df, 'network_creation', 'create_network', 'network', 'csv', self.context_name)
+                stream, 'network_creation', 'create_network', 'network', 'csv', self.context_name)
 
     def __create_nodes(self):
         if not self.datasources.files.exists(

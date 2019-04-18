@@ -1,7 +1,6 @@
 import json
 import networkx as nx
 import pandas as pd
-from gensim.models import KeyedVectors, Word2Vec
 
 
 class FileDriverBase:
@@ -83,36 +82,8 @@ class NetworkxFileDriver(FileDriverBase):
             f'{str(list(graph.edges(data=True))[:edges])}\n'
 
 
-class Word2VecEmbeddingFileDriver(FileDriverBase):
-    file_extension = 'word2vec_embedding'
-
-    @staticmethod
-    def writer(model, file_path, kwargs):
-        model.wv.save_word2vec_format(file_path, **kwargs)
-        return ''
-
-    @staticmethod
-    def reader(file_path, kwargs):
-        return KeyedVectors.load_word2vec_format(file_path, **kwargs)
-
-
-class Word2VecEmbeddingModelDriverFile(FileDriverBase):
-    file_extension = 'word2vec_embedding_model'
-
-    @staticmethod
-    def writer(model, file_path, kwargs):
-        model.save(file_path, **kwargs)
-        return ''
-
-    @staticmethod
-    def reader(file_path, kwargs):
-        return Word2Vec.load(file_path, **kwargs)
-
-
 file_models = {
     'csv': PandasFileDriver(),
     'json': JsonFileDriver(),
-    'gexf': NetworkxFileDriver(),
-    'embedding': Word2VecEmbeddingFileDriver(),
-    'embedding_model': Word2VecEmbeddingModelDriverFile()
+    'gexf': NetworkxFileDriver()
 }

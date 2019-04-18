@@ -9,8 +9,8 @@ from .persistence import Persistence
 from .ranking import Ranking
 from .user_timelines import UserTimelines
 from .hashtags_network import HashtagsNetwork
-from .hashtags_representation import HashtagsRepresentation
+from .hashtags_vector import HashtagsVector
 
 __all__ = ['ContextDetection', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
            'ProfileMetrics', 'UserContextMetrics', 'Persistence', 'Ranking', 'UserTimelines', 'HashtagsNetwork',
-           'HashtagsRepresentation']
+           'HashtagsVector']

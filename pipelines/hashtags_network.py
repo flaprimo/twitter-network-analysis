@@ -51,9 +51,10 @@ class HashtagsNetwork(PipelineBase):
     def __get_hashtag_nodes(self):
         if not self.datasources.files.exists('hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv'):
             user_timelines = self.datasources.files.read(
-                'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
+            users = self.datasources.files.read('hashtags_vector', 'biggest_cluster_users', 'users', 'csv')
 
-            hashtag_nodes = user_timelines['hashtags']
+            hashtag_nodes = user_timelines[user_timelines['user_name'].isin(users['user_name'])]['hashtags']
             hashtag_nodes = hashtag_nodes[hashtag_nodes.apply(len) > 0]
             hashtag_nodes = pd.Series(hashtag_nodes.sum()).drop_duplicates().reset_index(drop=True).to_frame('hashtag')
             hashtag_nodes.index.names = ['hashtag_id']
@@ -69,10 +70,11 @@ class HashtagsNetwork(PipelineBase):
 
         if not self.datasources.files.exists('hashtags_network', 'get_hashtag_edges', 'hashtag_edges', 'csv'):
             user_timelines = self.datasources.files.read(
-                'user_timelines', 'parse_user_timelines', 'user_timelines', 'csv')
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
             hashtag_nodes = self.datasources.files.read('hashtags_network', 'get_hashtag_nodes', 'hashtag_nodes', 'csv')
+            users = self.datasources.files.read('hashtags_vector', 'biggest_cluster_users', 'users', 'csv')
 
-            hashtag_edges = user_timelines['hashtags']
+            hashtag_edges = user_timelines[user_timelines['user_name'].isin(users['user_name'])]['hashtags']
             hashtag_edges = hashtag_edges[hashtag_edges.apply(len) > 0]
 
             # rename hashtags with id

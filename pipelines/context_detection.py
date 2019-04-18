@@ -102,19 +102,20 @@ class ContextDetection(PipelineBase):
                 'context_detection', 'harvest_context', 'stream', 'json', self.context_name)
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
-            tw_df = pd.DataFrame.from_records([tw.tw_api.parse_tweet(raw_tw) for raw_tw in stream]).head(3)
-            print(tw_df)
+            tw_df = pd.DataFrame.from_records([tw.tw_api.parse_tweet(raw_tw) for raw_tw in stream])
             users = list(set(tw_df['user_name'].tolist() + tw_df['mentions'].sum()))
 
             tw_df_expanded = pd.DataFrame.from_records(tw.tw_api.get_user_timelines(
                 users, n=3200, from_date=context_record['start_date'], to_date=context_record['end_date']))
 
-            print(tw_df_expanded)
-            tw_df_expanded = tw_df_expanded[
-                tw_df_expanded['hashtags'].apply(lambda t: any(h in context_record['hashtags'] for h in t)) |
-                tw_df_expanded['retweeted_hashtags'].apply(lambda t: any(h in context_record['hashtags'] for h in t))]
+            if not tw_df_expanded.empty:
+                tw_df_expanded = tw_df_expanded[
+                    tw_df_expanded['hashtags']
+                        .apply(lambda t: any(h in context_record['hashtags'] for h in t)) |
+                    tw_df_expanded['retweeted_hashtags']
+                        .apply(lambda t: any(h in context_record['hashtags'] for h in t))]
 
-            tw_df_expanded = pd.concat([tw_df_expanded, tw_df], ignore_index=True)\
+            tw_df_expanded = pd.concat([tw_df_expanded, tw_df], ignore_index=True) \
                 .drop_duplicates(subset=['tw_id'], keep='first')
 
             self.datasources.files.write(

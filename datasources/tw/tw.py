@@ -1,5 +1,3 @@
-from datasources.tw.proxy_provider import ProxyProvider
-from datasources.tw.tw_scraper import TwScraper
 from datasources.tw.tw_api import TwApi
 import logging
 import json
@@ -21,12 +19,7 @@ class Tw:
         # load configs
         self.configs = Tw.load_config(config_file_path)
 
-        # load tw accesses
-        # scrapers
-        self.proxy_provider = ProxyProvider(self.configs['proxy_provider']['base_url'], cache_path + 'proxy_list.json')
-        self.tw_scraper = TwScraper(self.configs['tw_scraper']['base_url'], self.proxy_provider)
-
-        # apis
+        # api
         self.tw_api = TwApi(
             self.configs['tw_api']['consumer_key'],
             self.configs['tw_api']['consumer_key_secret'],

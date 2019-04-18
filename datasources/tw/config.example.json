@@ -1,10 +1,4 @@
 {
-  "proxy_provider": {
-    "base_url": "https://exampleurl-jdkhlkfahdfjhasdj.com/"
-  },
-  "tw_scraper": {
-    "base_url": "https://exampleurl-jdkhlkfahdfjhasdj.com/"
-  },
   "tw_api": {
     "consumer_key": "1234567890abcdefghijklmnopqrstuvwxyz",
     "consumer_key_secret": "1234567890abcdefghijklmnopqrstuvwxyz",

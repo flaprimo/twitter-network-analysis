@@ -106,7 +106,7 @@ class ContextDetection(PipelineBase):
             tw_df = pd.DataFrame.from_records([self.datasources.tw_api.parse_tweet(raw_tw) for raw_tw in stream])
             users = list(set(tw_df['user_name'].tolist() + tw_df['mentions'].sum()))
 
-            number_of_expansions = 1
+            number_of_expansions = 0
             for i in range(number_of_expansions):
                 # harvest new tweets
                 tw_df_expansion = pd.DataFrame.from_records(self.datasources.tw_api.get_user_timelines(

@@ -8,5 +8,5 @@ Analysis is performed in several sequential/parallel pipelines, which produce in
 Steps are WIP stay tuned ;)
 
 ## Installation
-1. Intall required linux packages: `sudo apt install python3 python3-dev build-essential chromium-browser`
+1. Intall required linux packages: `sudo apt install python3 python3-dev build-essential`
 2. Install python required modules `pip install -r requirements.txt`

@@ -102,21 +102,35 @@ class ContextDetection(PipelineBase):
                 'context_detection', 'harvest_context', 'stream', 'json', self.context_name)
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
+
+            # parse harvested tweets from the premium tw api
             tw_df = pd.DataFrame.from_records([tw.tw_api.parse_tweet(raw_tw) for raw_tw in stream])
             users = list(set(tw_df['user_name'].tolist() + tw_df['mentions'].sum()))
 
-            tw_df_expanded = pd.DataFrame.from_records(tw.tw_api.get_user_timelines(
-                users, n=3200, from_date=context_record['start_date'], to_date=context_record['end_date']))
+            number_of_expansions = 1
+            for i in range(number_of_expansions):
+                # harvest new tweets
+                tw_df_expansion = pd.DataFrame.from_records(tw.tw_api.get_user_timelines(
+                    users, n=3200, from_date=context_record['start_date'], to_date=context_record['end_date']))
 
-            if not tw_df_expanded.empty:
-                tw_df_expanded = tw_df_expanded[
-                    tw_df_expanded['hashtags']
+                # filter harvested tweets wrt hashtags
+                if not tw_df_expansion.empty:
+                    tw_df_expansion = tw_df_expansion[
+                        tw_df_expansion['hashtags']
                         .apply(lambda t: any(h in context_record['hashtags'] for h in t)) |
-                    tw_df_expanded['retweeted_hashtags']
+                        tw_df_expansion['retweeted_hashtags']
                         .apply(lambda t: any(h in context_record['hashtags'] for h in t))]
 
-            tw_df_expanded = pd.concat([tw_df_expanded, tw_df], ignore_index=True) \
-                .drop_duplicates(subset=['tw_id'], keep='first')
+                # merge results
+                tw_df = pd.concat([tw_df, tw_df_expansion])
+
+                logger.debug(f'expansion {i}: harvested {tw_df_expansion.shape[0]} new tweets from {len(users)} users')
+
+                # get new users to harvest
+                users = list(set(tw_df['mentions'].sum()) - set(tw_df['user_name'].tolist()))
+
+            tw_df.drop_duplicates(subset=['tw_id'], inplace=True, keep='last')
+            tw_df.sort_values(by=['user_name', 'date'], inplace=True)
 
             self.datasources.files.write(
-                tw_df_expanded, 'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
+                tw_df, 'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)

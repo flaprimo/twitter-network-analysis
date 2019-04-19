@@ -93,9 +93,11 @@ class UserContextMetrics(PipelineBase):
 
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.reset_index().to_dict('records')[0]
-            hashtags = context_record['hashtags'][0]
 
-            stream['tw_ontopic'] = stream['hashtags'].apply(lambda t: any(h in hashtags for h in t))
+            stream['tw_ontopic'] =\
+                stream['hashtags'].apply(lambda t: any(h in context_record['hashtags'] for h in t)) |\
+                stream['retweeted_hashtags'].apply(lambda t: any(h in context_record['hashtags'] for h in t))
+
             stream['link_ontopic'] = stream[stream['tw_ontopic']]['urls'].apply(lambda t: t != [''])
             stream['link_ontopic'].fillna(False, inplace=True)
 

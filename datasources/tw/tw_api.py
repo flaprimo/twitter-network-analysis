@@ -43,22 +43,35 @@ class TwApi:
 
     @staticmethod
     def parse_tweet(raw_tw):
+
+        raw_tw_content = raw_tw['extended_tweet'] if 'extended_tweet' in raw_tw else raw_tw
+        raw_tw_rt_content = \
+            (raw_tw['retweeted_status']['extended_tweet']
+             if 'extended_tweet' in raw_tw['retweeted_status'] else raw_tw['retweeted_status']) \
+            if 'retweeted_status' in raw_tw else None
+
         tw = {
             'tw_id': raw_tw['id'],
             'user_name': raw_tw['user']['screen_name'].lower(),
             'date': datetime.strptime(raw_tw['created_at'], '%a %b %d %H:%M:%S %z %Y')
             .astimezone(pytz.UTC).replace(tzinfo=None),
-            'text': raw_tw['extended_tweet']['full_text'] if 'extended_tweet' in raw_tw else raw_tw['text'],
             'lang': raw_tw['lang'],
             'no_likes': raw_tw['favorite_count'],
             'no_retweets': raw_tw['retweet_count'],
             'is_retweet': 'retweeted_status' in raw_tw,
-            'is_media': 'retweeted_status' in raw_tw['entities'],
-            'hashtags': ['#' + h['text'].lower() for h in raw_tw['entities']['hashtags']],
-            'mentions': [m['screen_name'].lower() for m in raw_tw['entities']['user_mentions']],
-            'urls': [u['expanded_url'] for u in raw_tw['entities']['urls']],
             'reply': raw_tw['in_reply_to_screen_name'].lower() if raw_tw['in_reply_to_screen_name'] else None,
-            'retweeted_hashtags': ['#' + h['text'].lower() for h in raw_tw['retweeted_status']['entities']['hashtags']]
+
+            # text
+            'text': raw_tw_content['full_text'] if 'extended_tweet' in raw_tw else raw_tw_content['text'],
+
+            # entities
+            'is_media': 'retweeted_status' in raw_tw_content['entities'],
+            'hashtags': ['#' + h['text'].lower() for h in raw_tw_content['entities']['hashtags']],
+            'mentions': [m['screen_name'].lower() for m in raw_tw_content['entities']['user_mentions']],
+            'urls': [u['expanded_url'] for u in raw_tw_content['entities']['urls']],
+
+            # retweet
+            'retweeted_hashtags': ['#' + h['text'].lower() for h in raw_tw_rt_content['entities']['hashtags']]
             if 'retweeted_status' in raw_tw else []
         }
 

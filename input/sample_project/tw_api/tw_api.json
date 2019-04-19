@@ -1,0 +1,8 @@
+{
+  "tw_api": {
+    "consumer_key": "1234567890abcdefghijklmnopqrstuvwxyz",
+    "consumer_key_secret": "1234567890abcdefghijklmnopqrstuvwxyz",
+    "access_token": "1234567890abcdefghijklmnopqrstuvwxyz",
+    "access_token_secret": "1234567890abcdefghijklmnopqrstuvwxyz"
+  }
+}

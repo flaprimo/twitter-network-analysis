@@ -4,5 +4,4 @@
 /.ipynb_checkpoints
 
 /output/*
-/input/*
-!/input/sample_project.example.csv
+!/input/sample_project/*

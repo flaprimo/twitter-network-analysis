@@ -1,6 +1,5 @@
 import logging
 import pandas as pd
-from datasources import tw
 from datetime import datetime
 from .pipeline_base import PipelineBase
 from .helper import str_to_list
@@ -51,7 +50,7 @@ class UserTimelines(PipelineBase):
             rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'].head(2000).tolist()
 
             tw_df = pd.DataFrame.from_records(
-                tw.tw_api.get_user_timelines(
+                self.datasources.tw_api.get_user_timelines(
                     rank_2, n=3200, from_date=self.datasources.contexts.min(), to_date=self.datasources.contexts.max()))
 
             # custom limiting for analysis

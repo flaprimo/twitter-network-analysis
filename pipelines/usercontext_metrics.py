@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 import pandas as pd
-from datasources import tw
 from pipelines.helper import str_to_list
 from .pipeline_base import PipelineBase
 
@@ -77,7 +76,7 @@ class UserContextMetrics(PipelineBase):
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.reset_index().to_dict('records')[0]
 
-            tw_df = pd.DataFrame.from_records(tw.tw_api.get_user_timelines(
+            tw_df = pd.DataFrame.from_records(self.datasources.tw_api.get_user_timelines(
                 user_names, n=3200, from_date=context_record['start_date'], to_date=context_record['end_date']))
 
             self.datasources.files.write(

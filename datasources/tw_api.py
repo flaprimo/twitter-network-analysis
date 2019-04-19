@@ -1,3 +1,5 @@
+import json
+import os
 import re
 from datetime import datetime
 import pytz
@@ -7,14 +9,27 @@ import time
 import logging
 from tqdm import tqdm
 
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
 class TwApi:
-    def __init__(self, consumer_key, consumer_key_secret, access_token, access_token_secret, cache_path='tw_api'):
-        self.cache_path = cache_path
-        self.api = TwitterAPI(consumer_key, consumer_key_secret, access_token, access_token_secret,
-                              auth_type='oAuth2')
+    def __init__(self, input_path, output_path):
+        # set up http cache
+        cache_path = os.path.join(output_path, 'tw_api')
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        self.cache_path = os.path.join(cache_path, 'cache')
+
+        # read tw api config
+        input_path = os.path.join(input_path, 'tw_api/tw_api.json')
+        with open(input_path, 'r') as json_file:
+            tw_api_account = json.load(json_file)
+        self.api = TwitterAPI(
+            tw_api_account['consumer_key'], tw_api_account['consumer_key_secret'],
+            tw_api_account['access_token'], tw_api_account['access_token_secret'],
+            auth_type='oAuth2')
+
         logger.debug('INIT Tw api')
 
     @staticmethod

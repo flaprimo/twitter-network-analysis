@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 import pandas as pd
-from datasources import tw
 from .pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
@@ -105,7 +104,7 @@ class ProfileMetrics(PipelineBase):
 
             unique_users = nodes[['user_id', 'user_name']].drop_duplicates()
 
-            profiles = tw.tw_api.get_user_profiles(unique_users['user_name'].tolist())
+            profiles = self.datasources.tw_api.get_user_profiles(unique_users['user_name'].tolist())
 
             userinfo = pd.merge(pd.DataFrame.from_records(profiles), unique_users,
                                 how='left', left_on=['user_name'], right_on=['user_name']).set_index('user_id')

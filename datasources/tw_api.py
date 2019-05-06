@@ -98,7 +98,7 @@ class TwApi:
         ]
 
         tw['text'] = re.sub('|'.join(f'({p})' for p in patterns), '', tw['text'])
-        tw['text'] = re.sub(r'(\n|\t| {2})+', ' ', tw['text'])
+        tw['text'] = re.sub(r'(\n|\r|\t| {2})+', ' ', tw['text'])
         tw['text'] = tw['text'].strip()
 
         # tw_record['text'] = re.sub(r'^RT @\w+: ', '', tw_record['text'])

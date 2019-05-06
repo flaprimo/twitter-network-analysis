@@ -128,8 +128,7 @@ class ContextDetection(PipelineBase):
                 # get new users to harvest
                 users = list(set(tw_df['mentions'].sum()) - set(tw_df['user_name'].tolist()))
 
-            tw_df.drop_duplicates(subset=['tw_id'], inplace=True, keep='last')
-            tw_df.sort_values(by=['user_name', 'date'], inplace=True)
+            tw_df = tw_df.drop_duplicates(subset=['tw_id']).sort_values(by=['user_name', 'date'])
 
             self.datasources.files.write(
                 tw_df, 'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)

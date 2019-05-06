@@ -133,6 +133,7 @@ class TwApi:
 
         return tw_list
 
+    # https://developer.twitter.com/en/docs/tweets/search/api-reference/premium-search
     def premium_search(self, product='fullarchive', label='prod', query='', since=None, until=None, n=100):
         logger.info(f'tw api search for: {query}')
 
@@ -143,7 +144,8 @@ class TwApi:
 
         return self.__get_tweets(pager, n, parse=False)
 
-    # limits are 200 per page, top 3200. app auth is 1500 req/15min.
+    # API limits: 200 results per page (for a maximum of 3200). App auth rate is 1500 req/15min.
+    # https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-user_timeline
     def get_user_timeline(self, user_name, n=200, from_date=None, to_date=None):
         logger.info(f'tw api timeline for user: {user_name}')
 
@@ -171,6 +173,7 @@ class TwApi:
 
         return stream
 
+    # https://developer.twitter.com/en/docs/accounts-and-users/follow-search-get-users/api-reference/get-users-lookup
     def get_user_profiles(self, user_name_list):
         logger.info(f'tw api profiles for {len(user_name_list)} users')
         # group usernames in 100 lists
@@ -193,6 +196,7 @@ class TwApi:
 
         return stream
 
+    # https://developer.twitter.com/en/docs/developer-utilities/rate-limit-status/api-reference/get-application-rate_limit_status
     def get_rate_limit_status(self, resources):
         rate_limit_status = self.api.request('application/rate_limit_status', {'resources': resources}).json()
 

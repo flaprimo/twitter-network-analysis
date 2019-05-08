@@ -75,6 +75,14 @@ class HashtagsVector(PipelineBase):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
+            # limit users and tweets
+            n_users = 300
+            n_tws = 200
+            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'].head(n_users)
+            user_timelines = user_timelines[user_timelines['user_name'].isin(rank_2)]
+            user_timelines = user_timelines.groupby('user_name')\
+                .apply(lambda x: x.sort_values(by='date', ascending=True).head(n_tws)).reset_index(drop=True)
+
             # hashtag list per user_name
             hashtags_vector = user_timelines[['user_name', 'hashtags']].groupby('user_name').sum()
             # hashtags_vector['hashtags'] =\

@@ -52,6 +52,7 @@ class UserTimelines(PipelineBase):
 
             tw_df = pd.DataFrame.from_records(
                 self.datasources.tw_api.get_user_timelines(
-                    rank_2, n=3200, from_date=self.datasources.contexts.min(), to_date=self.datasources.contexts.max()))
+                    rank_2, n=3200, from_date=self.datasources.contexts['start_date'].min(),
+                    to_date=self.datasources.contexts['end_date'].max()))
 
             self.datasources.files.write(tw_df, 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')

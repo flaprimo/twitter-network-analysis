@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from .pipeline_base import PipelineBase
 from .helper import str_to_list
 
@@ -48,11 +48,11 @@ class UserTimelines(PipelineBase):
     def __get_user_timelines(self):
         if not self.datasources.files.exists('user_timelines', 'get_user_timelines', 'user_timelines', 'csv'):
             rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name']\
-                .head(3000).tolist()
+                .head(1000).tolist()
 
+            from_date = date(2018, 1, 1)  # self.datasources.contexts.contexts['start_date'].min()
+            to_date = date(2018, 12, 31)  # self.datasources.contexts.contexts['end_date'].max()
             tw_df = pd.DataFrame.from_records(
-                self.datasources.tw_api.get_user_timelines(
-                    rank_2, n=3200, from_date=self.datasources.contexts.contexts['start_date'].min(),
-                    to_date=self.datasources.contexts.contexts['end_date'].max()))
+                self.datasources.tw_api.get_user_timelines(rank_2, n=3200, from_date=from_date, to_date=to_date))
 
             self.datasources.files.write(tw_df, 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')

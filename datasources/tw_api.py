@@ -114,22 +114,22 @@ class TwApi:
     def __get_tweets(self, pager, n, from_date=None, to_date=None, wait=5, parse=True):
         tw_list = []
 
-        with requests_cache.enabled(self.cache_path, expire_after=86400):
-            try:
-                for i, raw_tw in zip(range(n), pager.get_iterator(wait=wait)):
-                    if 'message' in raw_tw:
-                        logger.debug(f'{raw_tw["message"]} ({raw_tw["code"]})')
-                    else:
-                        tw = self.parse_tweet(raw_tw)
-                        date = tw['date'].date()
+        # with requests_cache.enabled(self.cache_path, expire_after=86400):
+        try:
+            for i, raw_tw in zip(range(n), pager.get_iterator(wait=wait)):
+                if 'message' in raw_tw:
+                    logger.debug(f'{raw_tw["message"]} ({raw_tw["code"]})')
+                else:
+                    tw = self.parse_tweet(raw_tw)
+                    date = tw['date'].date()
 
-                        if from_date and from_date > date:
-                            return tw_list
-                        elif not (to_date and to_date < date):
-                            tw_list.append(tw if parse else raw_tw)
+                    if from_date and from_date > date:
+                        return tw_list
+                    elif not (to_date and to_date < date):
+                        tw_list.append(tw if parse else raw_tw)
 
-            except TwitterError.TwitterError:
-                pass
+        except (TwitterError.TwitterError, json.decoder.JSONDecodeError):
+            pass
 
         return tw_list
 

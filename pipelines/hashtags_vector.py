@@ -67,7 +67,7 @@ class HashtagsVector(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__get_bag_of_words]  #, self.__get_corr_users, self.__cluster_hashtags, self.__biggest_cluster_users]
+        tasks = [self.__get_bag_of_words, self.__get_corr_users]  #, self.__get_corr_users, self.__cluster_hashtags, self.__biggest_cluster_users]
         super(HashtagsVector, self).__init__('hashtags_vector', files, tasks, datasources)
 
     def __get_bag_of_words(self):
@@ -76,10 +76,10 @@ class HashtagsVector(PipelineBase):
                 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
             # limit users and tweets
-            n_users = 300
-            n_tws = 200
+            n_users = 1000
             rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'].head(n_users)
             user_timelines = user_timelines[user_timelines['user_name'].isin(rank_2)]
+            n_tws = int(user_timelines.groupby('user_name').size().mean())
             user_timelines = user_timelines.groupby('user_name')\
                 .apply(lambda x: x.sort_values(by='date', ascending=True).head(n_tws)).reset_index(drop=True)
 

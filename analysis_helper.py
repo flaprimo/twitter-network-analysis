@@ -214,9 +214,6 @@ class AnalysisHelper:
     def get_rank_3(self):
         return self.datasources.files.read('ranking', 'rank_3', 'rank_3', 'csv')
 
-    def get_users_hashtags_table(self):
-        return self.datasources.files.read('hashtags_vector', 'get_hashtags_vector', 'hashtags_vector', 'csv')
-
     def get_hashtags_corr(self):
         return self.datasources.files.read('hashtags_vector', 'get_corr_hashtags', 'corr_hashtags', 'csv')
 

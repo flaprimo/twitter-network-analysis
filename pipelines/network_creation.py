@@ -70,13 +70,8 @@ class NetworkCreation(PipelineBase):
             stream = self.datasources.files.read(
                 'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
 
-            stream = stream[['user_name', 'mentions']]
-            stream = stream['mentions'].apply(pd.Series) \
-                .merge(stream, right_index=True, left_index=True) \
-                .drop(['mentions'], axis=1) \
-                .melt(id_vars=['user_name'], value_name='mentions') \
-                .drop('variable', axis=1) \
-                .dropna().rename(columns={'user_name': 'from_username', 'mentions': 'to_username'})
+            stream = stream[['user_name', 'mentions']].explode('mentions').dropna() \
+                .rename(columns={'user_name': 'from_username', 'mentions': 'to_username'})
 
             self.datasources.files.write(
                 stream, 'network_creation', 'create_network', 'network', 'csv', self.context_name)
@@ -86,7 +81,7 @@ class NetworkCreation(PipelineBase):
                 'network_creation', 'create_nodes', 'nodes', 'csv', self.context_name):
             network = self.datasources.files.read(
                 'network_creation', 'create_network', 'network', 'csv', self.context_name)
-            nodes = pd.concat([network.from_username, network.to_username], axis=0).drop_duplicates()\
+            nodes = pd.concat([network.from_username, network.to_username], axis=0).drop_duplicates() \
                 .sort_values().reset_index(drop=True).to_frame('user_name')
             nodes.index.names = ['user_id']
 
@@ -102,12 +97,12 @@ class NetworkCreation(PipelineBase):
                 'network_creation', 'create_nodes', 'nodes', 'csv', self.context_name)
 
             # create edges
-            edges = network[['from_username', 'to_username']]\
+            edges = network[['from_username', 'to_username']] \
                 .rename(columns={'from_username': 'source_id', 'to_username': 'target_id'})
 
             # assign weights
             edges['weight'] = 1
-            edges = edges.groupby(['source_id', 'target_id']).sum().reset_index()\
+            edges = edges.groupby(['source_id', 'target_id']).sum().reset_index() \
                 .sort_values(by=['source_id', 'target_id'])
 
             # rename edges

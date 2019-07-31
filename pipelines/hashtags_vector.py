@@ -9,6 +9,36 @@ class HashtagsVector(PipelineBase):
     def __init__(self, datasources):
         files = [
             {
+                'stage_name': 'get_users_network',
+                'file_name': 'users_network',
+                'file_extension': 'csv',
+                'r_kwargs': {
+                    'dtype': {
+                        'from_username': str,
+                        'to_username': str,
+                        'weight': 'uint16'
+                    }
+                },
+                'w_kwargs': {
+                    'index': False
+                }
+            },
+            {
+                'stage_name': 'get_hashtags_network',
+                'file_name': 'hashtags_network',
+                'file_extension': 'csv',
+                'r_kwargs': {
+                    'dtype': {
+                        'from_hashtag': str,
+                        'to_hashtag': str,
+                        'weight': 'uint16'
+                    }
+                },
+                'w_kwargs': {
+                    'index': False
+                }
+            },
+            {
                 'stage_name': 'get_bag_of_words',
                 'file_name': 'hashtags_bow',
                 'file_extension': 'csv',
@@ -67,34 +97,69 @@ class HashtagsVector(PipelineBase):
                 }
             }
         ]
-        tasks = [self.__get_bag_of_words, self.__get_corr_users]  #, self.__get_corr_users, self.__cluster_hashtags, self.__biggest_cluster_users]
+        tasks = [[self.__get_users_network, self.__get_hashtags_network, self.__get_bag_of_words],
+                 self.__get_corr_users]
+        #  , self.__cluster_hashtags, self.__biggest_cluster_users]
         super(HashtagsVector, self).__init__('hashtags_vector', files, tasks, datasources)
+
+    def __get_users_network(self):
+        if not self.datasources.files.exists('hashtags_vector', 'get_users_network', 'users_network', 'csv'):
+            user_timelines = self.datasources.files.read(
+                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'mentions']]
+
+            # create user edges
+            users_network = user_timelines[user_timelines['mentions'].map(lambda m: len(m) > 0)].explode('mentions') \
+                .rename(columns={'user_name': 'from_username', 'mentions': 'to_username'})\
+                .drop_duplicates()
+
+            # count users co-occurrences
+            users_network['from_username'], users_network['to_username'] = \
+                users_network.min(axis=1), users_network.max(axis=1)
+            users_network['weight'] = 1
+            users_network = users_network.groupby(['from_username', 'to_username']).sum().reset_index()
+
+            self.datasources.files.write(
+                users_network, 'hashtags_vector', 'get_users_network', 'users_network', 'csv')
+
+    def __get_hashtags_network(self):
+        if not self.datasources.files.exists('hashtags_vector', 'get_hashtags_network', 'hashtags_network', 'csv'):
+            hashtags_network = self.datasources.files.read(
+                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')['hashtags']
+
+            # pair co-occurred hashtags
+            hashtags_network = hashtags_network \
+                .map(lambda h_list: [(h1, h2) if h1 < h2 else (h2, h1)
+                                     for i, h1 in enumerate(h_list)
+                                     for h2 in h_list[:i]])
+
+            # create hashtag edges
+            hashtags_network = hashtags_network.explode().dropna()
+            hashtags_network = pd.DataFrame(hashtags_network.tolist(),
+                                            columns=['from_hashtag', 'to_hashtag'],
+                                            index=hashtags_network.index)
+
+            # count hashtags co-occurrences
+            hashtags_network['weight'] = 1
+            hashtags_network = hashtags_network.groupby(['from_hashtag', 'to_hashtag']).sum().reset_index()
+
+            self.datasources.files.write(
+                hashtags_network, 'hashtags_vector', 'get_hashtags_network', 'hashtags_network', 'csv')
 
     def __get_bag_of_words(self):
         if not self.datasources.files.exists('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv'):
             user_timelines = self.datasources.files.read(
-                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
-
-            # limit users and tweets
-            n_users = 1000
-            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'].head(n_users)
-            user_timelines = user_timelines[user_timelines['user_name'].isin(rank_2)]
-            n_tws = int(user_timelines.groupby('user_name').size().mean())
-            user_timelines = user_timelines.groupby('user_name')\
-                .apply(lambda x: x.sort_values(by='date', ascending=True).head(n_tws)).reset_index(drop=True)
+                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'hashtags']]
 
             # hashtag list per user_name
-            hashtags_vector = user_timelines[['user_name', 'hashtags']].groupby('user_name').sum()
-            # hashtags_vector['hashtags'] =\
-            #     hashtags_vector['hashtags'].apply(lambda h_list: [(x, h_list.count(x)) for x in set(h_list)])
+            hashtags_vector = user_timelines.groupby('user_name').sum()
 
-            # explode and count hashtags wrt user_name
-            hashtags_vector = hashtags_vector['hashtags'].apply(pd.Series) \
-                .merge(hashtags_vector, right_index=True, left_index=True) \
-                .drop(['hashtags'], axis=1).reset_index() \
-                .melt(id_vars=['user_name'], value_name='hashtag').drop('variable', axis=1).dropna() \
-                .groupby(['user_name', 'hashtag']).size().reset_index(name='counts') \
-                .sort_values(by=['user_name', 'counts', 'hashtag'], ascending=[True, False, True])\
+            # explode hashtags
+            hashtags_vector = hashtags_vector.explode('hashtags')\
+                .rename(columns={'hashtags': 'hashtag'}).reset_index().dropna()
+
+            # count hashtags wrt user_name
+            hashtags_vector = hashtags_vector.groupby(['user_name', 'hashtag']).size().reset_index(name='counts') \
+                .sort_values(by=['user_name', 'counts', 'hashtag'], ascending=[True, False, True]) \
                 .reset_index(drop=True)
 
             # pivot hashtags and counts wrt user_name
@@ -115,7 +180,7 @@ class HashtagsVector(PipelineBase):
 
     def __get_corr_users(self):
         if not self.datasources.files.exists('hashtags_vector', 'get_corr_users', 'corr_users', 'csv'):
-            bag_of_words = self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv')\
+            bag_of_words = self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv') \
                 .to_sparse()
 
             corr_hashtags = bag_of_words.T.corr()

@@ -116,7 +116,7 @@ class AnalysisHelper:
 
         context_stats['is_degenerate'] = \
             context_stats.apply(lambda x: x['no_communities'] == 1 and
-                                x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
+                                          x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
 
         # summarize each context
         good_contexts = context_stats[~context_stats['is_degenerate']]
@@ -222,3 +222,17 @@ class AnalysisHelper:
 
     def get_bow(self):
         return self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv')
+
+    @staticmethod
+    def print_full(x):
+        pd.set_option('display.max_rows', len(x))
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', 2000)
+        pd.set_option('display.float_format', '{:20,.2f}'.format)
+        pd.set_option('display.max_colwidth', -1)
+        print(x)
+        pd.reset_option('display.max_rows')
+        pd.reset_option('display.max_columns')
+        pd.reset_option('display.width')
+        pd.reset_option('display.float_format')
+        pd.reset_option('display.max_colwidth')

@@ -173,6 +173,10 @@ class HashtagsVector(PipelineBase):
         if not self.datasources.files.exists('hashtags_vector', 'get_corr_hashtags', 'corr_hashtags', 'csv'):
             bag_of_words = self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv')
 
+            # set as sparse
+            sparse_dtype = pd.SparseDtype('Int64', fill_value=0)
+            bag_of_words.astype(sparse_dtype)
+
             corr_hashtags = bag_of_words.corr()
 
             self.datasources.files.write(
@@ -180,8 +184,11 @@ class HashtagsVector(PipelineBase):
 
     def __get_corr_users(self):
         if not self.datasources.files.exists('hashtags_vector', 'get_corr_users', 'corr_users', 'csv'):
-            bag_of_words = self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv') \
-                .to_sparse()
+            bag_of_words = self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv')
+
+            # set as sparse
+            sparse_dtype = pd.SparseDtype('Int64', fill_value=0)
+            bag_of_words.astype(sparse_dtype)
 
             corr_hashtags = bag_of_words.T.corr()
 

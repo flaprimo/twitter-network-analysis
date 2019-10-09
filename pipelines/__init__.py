@@ -1,4 +1,4 @@
-from .context_detection import ContextDetection
+from .context_harvesting import ContextHarvesting
 from .network_creation import NetworkCreation
 from .network_metrics import NetworkMetrics
 from .community_detection import CommunityDetection
@@ -10,7 +10,8 @@ from .ranking import Ranking
 from .user_timelines import UserTimelines
 from .hashtags_network import HashtagsNetwork
 from .hashtags_vector import HashtagsVector
+from .context_detector import ContextDetector
 
-__all__ = ['ContextDetection', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
+__all__ = ['ContextHarvesting', 'NetworkCreation', 'NetworkMetrics', 'CommunityDetection', 'CommunityDetectionMetrics',
            'ProfileMetrics', 'UserContextMetrics', 'Persistence', 'Ranking', 'UserTimelines', 'HashtagsNetwork',
-           'HashtagsVector']
+           'HashtagsVector', 'ContextDetector']

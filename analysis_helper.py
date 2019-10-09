@@ -223,6 +223,56 @@ class AnalysisHelper:
     def get_bow(self):
         return self.datasources.files.read('hashtags_vector', 'get_bag_of_words', 'hashtags_bow', 'csv')
 
+    def get_hashtags_network(self):
+        return self.datasources.files.read('hashtags_vector', 'get_hashtags_network', 'hashtags_network', 'csv')
+
+    def get_users_network(self):
+        return self.datasources.files.read('hashtags_vector', 'get_users_network', 'users_network', 'csv')
+
+    def get_user_timelines(self):
+        return self.datasources.files.read('user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')
+
+    def show_peaks(self, hashtag_list):
+        hashtag_frequency = \
+            self.datasources.files.read('context_detector', 'hashtags_frequency', 'hashtags_frequency', 'csv')
+        hashtag_peaks = \
+            self.datasources.files.read('context_detector', 'find_peaks', 'hashtags_peaks', 'csv')
+
+        hashtag_frequency = hashtag_frequency[
+            hashtag_frequency['hashtag'].isin(hashtag_peaks['hashtag'].drop_duplicates())]
+
+        if hashtag_list:
+            hashtag_frequency = hashtag_frequency[hashtag_frequency['hashtag'].isin(hashtag_list)]
+            hashtag_peaks = hashtag_peaks[hashtag_peaks['hashtag'].isin(hashtag_list)]
+
+        for hashtag, timeline in hashtag_frequency.groupby('hashtag'):
+            empty_timeline = pd.date_range(timeline['date'].min(), timeline['date'].max())
+            timeline = timeline.set_index('date')['count']
+            timeline = timeline.reindex(empty_timeline, fill_value=0).to_frame()
+
+            peaks = hashtag_peaks[hashtag_peaks['hashtag'] == hashtag]
+            ranges = peaks.apply(lambda x: pd.date_range(x['start_date'], x['end_date']).date, axis=1).explode()
+
+            timeline['is_peak_interval'] = timeline.index.isin(ranges)
+            timeline['is_peak'] = timeline.index.isin(peaks['peak_date'])
+
+            # plotting
+            fig, ax = plt.subplots(figsize=(20, 6))
+            ax.step(timeline.index, timeline['count'], color='blue')
+            ax.fill_between(timeline.index, (timeline['count'].max() * timeline['is_peak_interval']),
+                            step='pre', alpha=0.4, color='red')
+            ax.plot(timeline.index, (timeline['count'].max() * timeline['is_peak_interval']),
+                    color='red', drawstyle='steps')
+            ax.scatter(x=timeline.index, y=(timeline['count'] * timeline['is_peak']).replace(0, np.nan),
+                       color='red', marker='o', s=100)
+            ax.axhline(y=0, color='gray', linestyle='--', lw=1)
+
+            plt.title(hashtag)
+            ax.set_xlabel('dates (d)')
+            ax.set_ylabel('hashtag frequency')
+            plt.xticks(ticks=timeline.index.values, rotation=90)
+            plt.show()
+
     @staticmethod
     def print_full(x):
         pd.set_option('display.max_rows', len(x))

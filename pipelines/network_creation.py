@@ -68,7 +68,7 @@ class NetworkCreation(PipelineBase):
         if not self.datasources.files.exists(
                 'network_creation', 'create_network', 'network', 'csv', self.context_name):
             stream = self.datasources.files.read(
-                'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
+                'context_harvesting', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
 
             stream = stream[['user_name', 'mentions']].explode('mentions').dropna() \
                 .rename(columns={'user_name': 'from_username', 'mentions': 'to_username'})

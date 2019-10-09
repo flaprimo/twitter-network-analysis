@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Contexts:
     def __init__(self, input_path):
-        self.input_contexts_path = os.path.join(input_path, 'contexts/contexts.csv')
+        self.input_contexts_path = os.path.join(input_path, 'contexts.csv')
         self.contexts = Contexts.__import_contexts(self.input_contexts_path)
 
     @staticmethod

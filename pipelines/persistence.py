@@ -16,7 +16,7 @@ class Persistence(PipelineBase):
 
     def __add_context(self):
         context = self.datasources.files.read(
-            'context_detection', 'create_context', 'context', 'csv', self.context_name)
+            'context_harvesting', 'create_context', 'context', 'csv', self.context_name)
         context_record = context.reset_index().to_dict('records')[0]
         context_record['hashtags'] = ' '.join(context_record['hashtags'])
 

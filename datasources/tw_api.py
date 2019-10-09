@@ -22,7 +22,7 @@ class TwApi:
         self.cache_path = os.path.join(cache_path, 'cache')
 
         # read tw api config
-        input_path = os.path.join(input_path, 'tw_api/tw_api.json')
+        input_path = os.path.join(input_path, 'tw_api.json')
         with open(input_path, 'r') as json_file:
             tw_api_account = json.load(json_file)
         self.api = TwitterAPI(

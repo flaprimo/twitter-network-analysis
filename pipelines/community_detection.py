@@ -117,7 +117,7 @@ class CommunityDetection(PipelineBase):
 
             graph = self.datasources.files.read(
                 'network_creation', 'create_graph', 'graph', 'gexf', self.context_name)
-            cd_config = self.datasources.community_detection.get_community_detection_settings()
+            cd_config = self.datasources.community_detection.get_config()
 
             cd_algs = {
                 'demon': demon_alg,

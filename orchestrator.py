@@ -2,9 +2,9 @@ import os
 import logging
 import time
 from datasources import Datasources
-from pipelines import NetworkCreation, ContextDetection, NetworkMetrics, CommunityDetection, \
+from pipelines import NetworkCreation, ContextHarvesting, NetworkMetrics, CommunityDetection, \
     CommunityDetectionMetrics, ProfileMetrics, UserContextMetrics, Persistence, Ranking, UserTimelines,\
-    HashtagsNetwork, HashtagsVector
+    HashtagsNetwork, HashtagsVector, ContextDetector
 
 logging.basicConfig(level=logging.DEBUG, filename='logs/debug.log',
                     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
@@ -27,7 +27,7 @@ class Orchestrator:
         start_time = time.time()
         logger.info('START Orchestrator')
 
-        pipeline_1 = [ContextDetection, NetworkCreation, NetworkMetrics, CommunityDetection, CommunityDetectionMetrics,
+        pipeline_1 = [ContextHarvesting, NetworkCreation, NetworkMetrics, CommunityDetection, CommunityDetectionMetrics,
                       ProfileMetrics, UserContextMetrics, Persistence]
         for context_name in self.datasources.contexts.get_context_names():
             logger.info(f'EXEC pipeline for {context_name}')
@@ -35,7 +35,7 @@ class Orchestrator:
                 current_pipeline = p(self.datasources, context_name)
                 current_pipeline.execute()
 
-        pipeline_2 = [Ranking, UserTimelines, HashtagsVector] #, HashtagsNetwork]
+        pipeline_2 = [Ranking, UserTimelines, HashtagsVector, ContextDetector] #, HashtagsNetwork]
         for p in pipeline_2:
             current_pipeline = p(self.datasources)
             current_pipeline.execute()

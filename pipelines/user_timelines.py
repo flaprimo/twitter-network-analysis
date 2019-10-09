@@ -78,13 +78,18 @@ class UserTimelines(PipelineBase):
 
     def __get_user_timelines(self):
         if not self.datasources.files.exists('user_timelines', 'get_user_timelines', 'user_timelines', 'csv'):
-            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'] \
-                .head(1000).tolist()
+            cd_config = self.datasources.context_detection.get_config()
 
-            from_date = date(2018, 1, 1)  # self.datasources.contexts.contexts['start_date'].min()
-            to_date = date(2018, 12, 31)  # self.datasources.contexts.contexts['end_date'].max()
+            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'] \
+                .head(cd_config['top_no_users']).tolist()
+
             tw_df = pd.DataFrame.from_records(
-                self.datasources.tw_api.get_user_timelines(rank_2, n=3200, from_date=from_date, to_date=to_date))
+                self.datasources.tw_api.get_user_timelines(
+                    rank_2,
+                    n=cd_config['max_no_tweets'],
+                    from_date=datetime.strptime(cd_config['start_date'], '%Y-%m-%d').date(),
+                    to_date=datetime.strptime(cd_config['end_date'], '%Y-%m-%d').date()
+                ))
 
             self.datasources.files.write(tw_df, 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
@@ -94,9 +99,11 @@ class UserTimelines(PipelineBase):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
+            cd_config = self.datasources.context_detection.get_config()
+
             # limit users and tweets
-            n_users = 1000
-            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'].head(n_users)
+            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')['user_name'] \
+                .head(cd_config['top_no_users'])
             user_timelines = user_timelines[user_timelines['user_name'].isin(rank_2)]
             n_tws = int(user_timelines.groupby('user_name').size().mean())
             user_timelines = user_timelines.groupby('user_name') \

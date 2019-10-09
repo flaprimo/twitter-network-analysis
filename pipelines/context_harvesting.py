@@ -7,7 +7,7 @@ from .pipeline_base import PipelineBase
 logger = logging.getLogger(__name__)
 
 
-class ContextDetection(PipelineBase):
+class ContextHarvesting(PipelineBase):
     def __init__(self, datasources, context_name):
         files = [
             {
@@ -72,18 +72,18 @@ class ContextDetection(PipelineBase):
         ]
         tasks = [self.__create_context, self.__harvest_context, self.__expand_context]
         self.context_name = context_name
-        super(ContextDetection, self).__init__('context_detection', files, tasks, datasources)
+        super(ContextHarvesting, self).__init__('context_harvesting', files, tasks, datasources)
 
     def __create_context(self):
         if not self.datasources.files.exists(
-                'context_detection', 'create_context', 'context', 'csv', self.context_name):
+                'context_harvesting', 'create_context', 'context', 'csv', self.context_name):
             context = self.datasources.contexts.get_context(self.context_name)
             self.datasources.files.write(
-                context, 'context_detection', 'create_context', 'context', 'csv', self.context_name)
+                context, 'context_harvesting', 'create_context', 'context', 'csv', self.context_name)
 
     def __harvest_context(self):
         if not self.datasources.files.exists(
-                'context_detection', 'harvest_context', 'stream', 'json', self.context_name):
+                'context_harvesting', 'harvest_context', 'stream', 'json', self.context_name):
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
 
@@ -92,13 +92,13 @@ class ContextDetection(PipelineBase):
                                                             until=context_record['end_date'],
                                                             n=200)
             self.datasources.files.write(
-                stream, 'context_detection', 'harvest_context', 'stream', 'json', self.context_name)
+                stream, 'context_harvesting', 'harvest_context', 'stream', 'json', self.context_name)
 
     def __expand_context(self):
         if not self.datasources.files.exists(
-                'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name):
+                'context_harvesting', 'harvest_context', 'stream_expanded', 'csv', self.context_name):
             stream = self.datasources.files.read(
-                'context_detection', 'harvest_context', 'stream', 'json', self.context_name)
+                'context_harvesting', 'harvest_context', 'stream', 'json', self.context_name)
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
 
@@ -131,4 +131,4 @@ class ContextDetection(PipelineBase):
             tw_df = tw_df.drop_duplicates(subset=['tw_id']).sort_values(by=['user_name', 'date'])
 
             self.datasources.files.write(
-                tw_df, 'context_detection', 'harvest_context', 'stream_expanded', 'csv', self.context_name)
+                tw_df, 'context_harvesting', 'harvest_context', 'stream_expanded', 'csv', self.context_name)

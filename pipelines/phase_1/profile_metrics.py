@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import pandas as pd
-from .pipeline_base import PipelineBase
+from pipelines.pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
 

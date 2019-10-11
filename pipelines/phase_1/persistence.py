@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.exc import IntegrityError
 from datasources.database import User, Profile, Context, Graph, Partition, Community, UserCommunity, UserContext
-from .pipeline_base import PipelineBase
+from pipelines.pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
 

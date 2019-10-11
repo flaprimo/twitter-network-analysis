@@ -4,7 +4,7 @@ from datetime import datetime
 
 from scipy.signal import find_peaks
 
-from .pipeline_base import PipelineBase
+from pipelines.pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,24 @@ class ContextDetector(PipelineBase):
 
     def __find_peaks(self):
         if not self.datasources.files.exists('context_detector', 'find_peaks', 'hashtags_peaks', 'csv'):
+            # get bounds of the peak
+            def get_bound(peak, t_series, t, direction):
+                k = 0
+                bound = peak
+                current = bound - 1 if direction == 'l' else bound + 1
+
+                while ((current > 0 and direction == 'l') or
+                       (current < t_series.size - 1 and direction == 'r')) \
+                        and k <= t:
+                    current = bound - k - 1 if direction == 'l' else bound + k + 1
+                    if t_series[current] > 0:
+                        bound = current
+                        k = 0
+                    else:
+                        k += 1
+
+                return bound
+
             hashtags = self.datasources.files.read(
                 'context_detector', 'hashtags_frequency', 'hashtags_frequency', 'csv')
 
@@ -99,27 +117,8 @@ class ContextDetector(PipelineBase):
                     tolerance = 2
 
                     for p in peaks:
-                        k = 0
-                        left_bound = p
-                        current = left_bound - 1
-                        while current > 0 and k <= tolerance:
-                            current = left_bound - k - 1
-                            if timeline[current] > 0:
-                                left_bound = current
-                                k = 0
-                            else:
-                                k += 1
-
-                        k = 0
-                        right_bound = p
-                        current = right_bound + 1
-                        while current < timeline.size - 1 and k <= tolerance:
-                            current = right_bound + k + 1
-                            if timeline[current] > 0:
-                                right_bound = current
-                                k = 0
-                            else:
-                                k += 1
+                        left_bound = get_bound(p, timeline, tolerance, 'l')
+                        right_bound = get_bound(p, timeline, tolerance, 'r')
 
                         hashtag_peaks.append({
                             'hashtag': hashtag,

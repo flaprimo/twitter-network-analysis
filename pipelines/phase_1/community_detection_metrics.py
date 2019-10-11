@@ -2,7 +2,7 @@ import logging
 import networkx as nx
 import pandas as pd
 import pquality.PartitionQuality as Pq
-from .pipeline_base import PipelineBase
+from pipelines.pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
 

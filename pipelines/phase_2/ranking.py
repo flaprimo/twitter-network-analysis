@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from sqlalchemy import func, desc, and_
 from datasources.database import User, Profile, Graph, Partition, Community, UserCommunity, UserContext
-from .pipeline_base import PipelineBase
+from pipelines.pipeline_base import PipelineBase
 
 logger = logging.getLogger(__name__)
 

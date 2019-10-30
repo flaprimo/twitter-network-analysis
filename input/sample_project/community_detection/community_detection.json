@@ -1,7 +1,0 @@
-{
-  "name": "demon",
-  "kwargs": {
-    "epsilon": 0.25,
-    "min_community_size": 3
-  }
-}

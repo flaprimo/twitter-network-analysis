@@ -37,14 +37,16 @@ class PipelineBase:
 
         is_executed = False
         retries = 0
-        while not is_executed and retries < self.retries:
+        while not is_executed:
             try:
                 task()
                 is_executed = True
                 logger.debug(f'SUCCESSFUL TASK {task.__name__}')
             except Exception as e:
-                logger.error(f'ERROR TASK {task.__name__}: {traceback.print_exc(e)}')
+                logger.exception(f'ERROR TASK {task.__name__}')
                 retries += 1
                 time.sleep(retries)
+                if retries >= self.retries:
+                    raise e
 
         logger.info(f'END TASK {task.__name__}')

@@ -97,11 +97,10 @@ class CommunityDetection(PipelineBase):
                 import infomap
 
                 im = infomap.Infomap('--two-level --directed --silent')
-                im_network = im.network()
 
                 # add edges and weights to network
                 for e in g.edges(data=True):
-                    im_network.addLink(e[0], e[1], e[2]['weight'])
+                    im.addLink(e[0], e[1], e[2]['weight'])
 
                 im.run()
 

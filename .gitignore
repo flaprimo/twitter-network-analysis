@@ -2,6 +2,6 @@
 /__pycache__
 /.idea
 /.ipynb_checkpoints
-
+/.vscode
 /output/*
 !/input/sample_project/*

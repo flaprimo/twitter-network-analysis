@@ -10,8 +10,8 @@ class BipartiteGraph(PipelineBase):
     def __init__(self, datasources):
         files = [
             {
-                'stage_name': 'get_users_network',
-                'file_name': 'users_network',
+                'stage_name': 'get_user_network',
+                'file_name': 'user_network',
                 'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
@@ -25,16 +25,8 @@ class BipartiteGraph(PipelineBase):
                 }
             },
             {
-                'stage_name': 'get_users_network',
-                'file_name': 'graph',
-                'file_extension': 'gexf',
-                'r_kwargs': {
-                    'node_type': str
-                }
-            },
-            {
-                'stage_name': 'get_hashtags_network',
-                'file_name': 'hashtags_network',
+                'stage_name': 'get_hashtag_network',
+                'file_name': 'hashtag_network',
                 'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
@@ -48,16 +40,8 @@ class BipartiteGraph(PipelineBase):
                 }
             },
             {
-                'stage_name': 'get_hashtags_network',
-                'file_name': 'graph',
-                'file_extension': 'gexf',
-                'r_kwargs': {
-                    'node_type': str
-                }
-            },
-            {
-                'stage_name': 'get_hashtags_users_network',
-                'file_name': 'hashtags_users_network',
+                'stage_name': 'get_user_hashtag_network',
+                'file_name': 'user_hashtag_network',
                 'file_extension': 'csv',
                 'r_kwargs': {
                     'dtype': {
@@ -71,15 +55,7 @@ class BipartiteGraph(PipelineBase):
                 }
             },
             {
-                'stage_name': 'get_hashtags_users_network',
-                'file_name': 'graph',
-                'file_extension': 'gexf',
-                'r_kwargs': {
-                    'node_type': str
-                }
-            },
-            {
-                'stage_name': 'get_complete_hashtags_users_graph',
+                'stage_name': 'get_user_hashtag_graph',
                 'file_name': 'graph',
                 'file_extension': 'gexf',
                 'r_kwargs': {
@@ -87,13 +63,12 @@ class BipartiteGraph(PipelineBase):
                 }
             }
         ]
-        tasks = [[self.__get_users_network, self.__get_hashtags_network],
-                 self.__get_hashtags_users_network, self.__get_complete_hashtags_users_graph]
+        tasks = [[self.__get_user_network, self.__get_hashtag_network],
+                 self.__get_user_hashtag_network, self.__get_user_hashtag_graph]
         super(BipartiteGraph, self).__init__('bipartite_graph', files, tasks, datasources)
 
-    def __get_users_network(self):
-        if not self.datasources.files.exists('bipartite_graph', 'get_users_network', 'users_network', 'csv') or \
-                not self.datasources.files.exists('bipartite_graph', 'get_users_network', 'graph', 'gexf'):
+    def __get_user_network(self):
+        if not self.datasources.files.exists('bipartite_graph', 'get_user_network', 'user_network', 'csv'):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'mentions']]
 
@@ -109,13 +84,10 @@ class BipartiteGraph(PipelineBase):
             users_network = users_network.groupby(['from_username', 'to_username']).sum().reset_index()
 
             self.datasources.files.write(
-                users_network, 'bipartite_graph', 'get_users_network', 'users_network', 'csv')
-            self.datasources.files.write(
-                self.get_graph(users_network, True), 'bipartite_graph', 'get_users_network', 'graph', 'gexf')
+                users_network, 'bipartite_graph', 'get_user_network', 'user_network', 'csv')
 
-    def __get_hashtags_network(self):
-        if not self.datasources.files.exists('bipartite_graph', 'get_hashtags_network', 'hashtags_network', 'csv') or \
-                not self.datasources.files.exists('bipartite_graph', 'get_hashtags_network', 'graph', 'gexf'):
+    def __get_hashtag_network(self):
+        if not self.datasources.files.exists('bipartite_graph', 'get_hashtag_network', 'hashtag_network', 'csv'):
             hashtags_network = self.datasources.files.read(
                 'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')['hashtags']
 
@@ -136,14 +108,11 @@ class BipartiteGraph(PipelineBase):
             hashtags_network = hashtags_network.groupby(['from_hashtag', 'to_hashtag']).sum().reset_index()
 
             self.datasources.files.write(
-                hashtags_network, 'bipartite_graph', 'get_hashtags_network', 'hashtags_network', 'csv')
-            self.datasources.files.write(
-                self.get_graph(hashtags_network, True), 'bipartite_graph', 'get_hashtags_network', 'graph', 'gexf')
+                hashtags_network, 'bipartite_graph', 'get_hashtag_network', 'hashtag_network', 'csv')
 
-    def __get_hashtags_users_network(self):
+    def __get_user_hashtag_network(self):
         if not self.datasources.files.exists(
-                'bipartite_graph', 'get_hashtags_users_network', 'hashtags_users_network', 'csv') or \
-                not self.datasources.files.exists('bipartite_graph', 'get_hashtags_users_network', 'graph', 'gexf'):
+                'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv'):
             user_timelines = self.datasources.files.read(
                 'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'hashtags']]
 
@@ -161,19 +130,16 @@ class BipartiteGraph(PipelineBase):
 
             self.datasources.files.write(
                 hashtags_users_network,
-                'bipartite_graph', 'get_hashtags_users_network', 'hashtags_users_network', 'csv')
-            self.datasources.files.write(
-                self.get_graph(hashtags_users_network, False),
-                'bipartite_graph', 'get_hashtags_users_network', 'graph', 'gexf')
+                'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv')
 
-    def __get_complete_hashtags_users_graph(self):
-        if not self.datasources.files.exists('bipartite_graph', 'get_complete_hashtags_users_graph', 'graph', 'gexf'):
+    def __get_user_hashtag_graph(self):
+        if not self.datasources.files.exists('bipartite_graph', 'get_user_hashtag_graph', 'graph', 'gexf'):
             hashtags_users_network = self.datasources.files.read(
-                'bipartite_graph', 'get_hashtags_users_network', 'hashtags_users_network', 'csv')
+                'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv')
             users_network = self.datasources.files.read(
-                'bipartite_graph', 'get_users_network', 'users_network', 'csv')
+                'bipartite_graph', 'get_user_network', 'user_network', 'csv')
             hashtags_network = self.datasources.files.read(
-                'bipartite_graph', 'get_hashtags_network', 'hashtags_network', 'csv')
+                'bipartite_graph', 'get_hashtag_network', 'hashtag_network', 'csv')
 
             hashtags_users_network['pairs'] = \
                 list(zip(hashtags_users_network['user_name'], hashtags_users_network['hashtag']))
@@ -190,7 +156,7 @@ class BipartiteGraph(PipelineBase):
 
             # Add user-hashtag edges
             for weight, user_hashtag_pair in hashtags_users_count_pairs.items():
-                bipartite_graph.add_edges_from(user_hashtag_pair, weight=weight)
+                bipartite_graph.add_edges_from(user_hashtag_pair, weight=weight, relation_type='user_hashtag')
 
             filtered_users_network = \
                 users_network[users_network['from_username'].isin(user_nodes) &
@@ -203,23 +169,11 @@ class BipartiteGraph(PipelineBase):
             # Add user-user and hashtag-hashtag edges
             users_network_edges = filtered_users_network.to_records(index=False).tolist()
             hashtags_network_edges = filtered_hashtags_network.to_records(index=False).tolist()
-            bipartite_graph.add_weighted_edges_from(users_network_edges)
-            bipartite_graph.add_weighted_edges_from(hashtags_network_edges)
+            bipartite_graph.add_weighted_edges_from(users_network_edges, relation_type='user_user')
+            bipartite_graph.add_weighted_edges_from(hashtags_network_edges, relation_type='hashtag_hashtag')
+
+            # remove self loops
+            bipartite_graph.remove_edges_from(list(nx.selfloop_edges(bipartite_graph)))
 
             self.datasources.files.write(
-                bipartite_graph, 'bipartite_graph', 'get_complete_hashtags_users_graph', 'graph', 'gexf')
-
-    @staticmethod
-    def get_graph(network_df, is_directed):
-        graph = nx.DiGraph() if is_directed else nx.Graph()
-
-        # create nodes and edges
-        nodes = pd.concat([network_df[network_df.columns[0]], network_df[network_df.columns[1]]], axis=0) \
-            .drop_duplicates().tolist()
-        edges = network_df.to_records(index=False).tolist()
-
-        # add nodes and edges to graph
-        graph.add_nodes_from(nodes)
-        graph.add_weighted_edges_from(edges)
-
-        return graph
+                bipartite_graph, 'bipartite_graph', 'get_user_hashtag_graph', 'graph', 'gexf')

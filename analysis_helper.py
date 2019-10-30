@@ -224,10 +224,10 @@ class AnalysisHelper:
         return self.datasources.files.read('hashtags_vector', 'get_users_hashtags_bow', 'users_hashtags_bow', 'csv')
 
     def get_hashtags_network(self):
-        return self.datasources.files.read('bipartite_graph', 'get_hashtags_network', 'hashtags_network', 'csv')
+        return self.datasources.files.read('bipartite_graph', 'get_hashtag_network', 'hashtag_network', 'csv')
 
     def get_users_network(self):
-        return self.datasources.files.read('bipartite_graph', 'get_users_network', 'users_network', 'csv')
+        return self.datasources.files.read('bipartite_graph', 'get_user_network', 'user_network', 'csv')
 
     def get_user_timelines(self):
         return self.datasources.files.read('user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')

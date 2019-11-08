@@ -80,6 +80,9 @@ class ContextDetector(PipelineBase):
                         'start_date': str,
                         'end_date': str
                     },
+                    'converters': {
+                        'context_hashtags': str_to_list
+                    },
                     'parse_dates': ['start_date', 'end_date'],
                     'date_parser': lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S').date()
                 }

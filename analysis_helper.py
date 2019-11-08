@@ -205,6 +205,9 @@ class AnalysisHelper:
 
         return node_participations.set_index('context_name')
 
+    def get_all_nodes(self):
+        return self.__get_contexts_single('community_detection', 'add_communities_to_nodes', 'nodes', 'csv')
+
     def get_rank_1(self):
         return self.datasources.files.read('ranking', 'rank_1', 'rank_1', 'csv')
 
@@ -272,6 +275,67 @@ class AnalysisHelper:
             ax.set_ylabel('hashtag frequency')
             plt.xticks(ticks=timeline.index.values, rotation=90)
             plt.show()
+
+    # TABLES
+    # table 1 - context summaries
+    def get_table1(self):
+        table_1 = self.get_contexts()[['start_date', 'end_date', 'hashtags']] \
+            .merge(self.get_graphs(), left_index=True, right_index=True)
+        table_1.reset_index(inplace=True)
+
+        table_1['hashtags'] = table_1['hashtags'].apply(
+            lambda x: x[0].lower() if len(x) > 1 else x[0].lower() + ', ...')
+        table_1['name'] = table_1['name'].str.replace('-', ' ').str.capitalize()
+
+        # time period
+        is_same_year = table_1['start_date'].min() == table_1['start_date'].max()
+        time_period = table_1['start_date'].min().strftime('%Y') + \
+                      ('' if is_same_year else f'/{table_1["start_date"].max().strftime("%y")}')
+        time_period = f'period ({time_period})'
+
+        table_1[time_period] = table_1[['start_date', 'end_date']] \
+            .apply(lambda x: x['start_date'].strftime('%m-%d') + ' / ' + x['end_date'].strftime('%m-%d'), axis=1) \
+            if is_same_year else \
+            table_1[['start_date', 'end_date']] \
+                .apply(lambda x: x['start_date'].strftime('%y-%m-%d') + ' / ' + x['end_date'].strftime('%y-%m-%d'),
+                       axis=1)
+
+        # graph stats
+        table_1[['assortativity', 'avg_degree']] = table_1[['assortativity', 'avg_degree']].round(decimals=1)
+        table_1['density'] = table_1['density'].round(decimals=3)
+
+        table_1 = table_1[['name', time_period, 'no_nodes', 'no_edges', 'density', 'avg_degree', 'assortativity']]
+
+        table_1.rename(columns={'name': 'context name',
+                                'avg_degree': 'avg degree',
+                                'no_nodes': 'nodes',
+                                'no_edges': 'edges'}, inplace=True)
+        table_1.columns = [c.capitalize() for c in table_1.columns]
+
+        return table_1
+
+    # table 3 - top repeated users
+    def get_table3(self):
+        table_3 = self.get_common_nodes().reset_index()
+        table_3 = table_3.head(11).round(decimals=2).sort_values(by=['no_participations', 'follower_rank'],
+                                                                 ascending=False)
+        table_3.rename(columns={'index': 'username'}, inplace=True)
+        table_3.drop(columns=['url', 'bio', 'location'], inplace=True)
+        table_3.rename(columns={'follower_rank': 'follower rank',
+                                'no_participations': 'participations'}, inplace=True)
+        table_3.columns = [c.capitalize() for c in table_3.columns]
+
+        return table_3
+
+    # table 6 - ranks comparison
+    def get_table6(self):
+        ranks = {f'Rank {i}': self.datasources.files.read('ranking', f'rank_{i}', f'rank_{i}', 'csv')['user_name']
+            .head(100).reset_index(drop=True) for i in [1, 2, 3]}
+        ranks = pd.DataFrame(ranks)
+        ranks.index += 1
+        ranks.index.name = '#'
+
+        return ranks
 
     @staticmethod
     def print_full(x):

@@ -101,7 +101,7 @@ class Ranking(PipelineBase):
                                    .order_by(desc('rank'), User.user_name.asc()).statement,
                                    con=session.bind).round(decimals=3)
 
-            self.datasources.files.write(rank, 'ranking', 'rank_1', 'rank_1', 'csv')
+            self.datasources.files.write(rank.set_index('id', drop=True), 'ranking', 'rank_1', 'rank_1', 'csv')
 
     def __rank_2(self):
         if not self.datasources.files.exists('ranking', 'rank_2', 'rank_2', 'csv'):
@@ -132,7 +132,7 @@ class Ranking(PipelineBase):
                 .sort_values(by=['rank', 'user_name'], ascending=[False, True])
             rank.reset_index(drop=True, inplace=True)
 
-            self.datasources.files.write(rank, 'ranking', 'rank_2', 'rank_2', 'csv')
+            self.datasources.files.write(rank.set_index('id', drop=True), 'ranking', 'rank_2', 'rank_2', 'csv')
 
     def __rank_3(self):
         if not self.datasources.files.exists('ranking', 'rank_3', 'rank_3', 'csv'):
@@ -163,4 +163,4 @@ class Ranking(PipelineBase):
                 .sort_values(by=['rank', 'user_name'], ascending=[False, True])
             rank.reset_index(drop=True, inplace=True)
 
-            self.datasources.files.write(rank, 'ranking', 'rank_3', 'rank_3', 'csv')
+            self.datasources.files.write(rank.set_index('id', drop=True), 'ranking', 'rank_3', 'rank_3', 'csv')

@@ -103,6 +103,8 @@ class Files:
         # self.cache[file_model['path']] = file_content
 
     def output_file_models(self):
-        files_model_path = os.path.join(self.output_path, 'files_model.json')
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+        files_model_path = os.path.join(self.output_path, 'file_models.json')
         with open(files_model_path, 'w') as json_file:
             json.dump(self.model, json_file)

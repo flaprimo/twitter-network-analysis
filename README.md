@@ -11,7 +11,7 @@ For more info check out the [dedicated page](https://flavioprimo.xyz/blog/a-cust
 Analysis is performed in several sequential/parallel pipelines, which produce intermediate results in the output.
 
 ## Installation
-1. Intall required linux packages: `sudo apt install python3 python3-dev build-essential`
+1. Install required linux packages: `sudo apt install python3 python3-dev build-essential`
 2. Install python required modules `pip install -r requirements.txt`
 
 ## Sources

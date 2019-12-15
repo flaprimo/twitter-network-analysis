@@ -1,7 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import time
-import traceback
 
 logger = logging.getLogger(__name__)
 

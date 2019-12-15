@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 from cachetools import LRUCache
@@ -33,6 +34,7 @@ class Files:
     def add_file_models(self, file_model_list):
         for file_model in file_model_list:
             self.add_file_model(**file_model)
+        self.output_file_models()
 
     def add_file_model(self, pipeline_name, stage_name, file_name, file_extension,
                        file_prefix='', file_suffix='', r_kwargs=None, w_kwargs=None):
@@ -99,3 +101,8 @@ class Files:
 
         logger.debug(f'file written (file "{file_model["path"]}")\n' + str(file_preview))
         # self.cache[file_model['path']] = file_content
+
+    def output_file_models(self):
+        files_model_path = os.path.join(self.output_path, 'files_model.json')
+        with open(files_model_path, 'w') as json_file:
+            json.dump(self.model, json_file)

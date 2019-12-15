@@ -101,14 +101,6 @@ class TwApi:
         tw['text'] = re.sub(r'(\n|\r|\t| {2})+', ' ', tw['text'])
         tw['text'] = tw['text'].strip()
 
-        # tw_record['text'] = re.sub(r'^RT @\w+: ', '', tw_record['text'])
-        # tw_record['text'] = re.sub(r'https?:\/\/t.co\/\w+', '', tw_record['text'])
-        # tw_record['text'] = re.sub(r'(@|#)\w*', '', tw_record['text'])
-        # tw_record['text'] = re.sub(r'\n|\t|  +', ' ', tw_record['text'])
-        # tw_record['text'] = re.sub(r'(\w+…|…)$', '', tw_record['text'])
-        # tw_record['text'] = re.sub(r'  +', '', tw_record['text'])
-        # tw_record['text'] = tw_record['text'].strip()
-
         return tw
 
     def __get_tweets(self, pager, n, from_date=None, to_date=None, wait=5, parse=True):

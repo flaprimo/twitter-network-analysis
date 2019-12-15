@@ -13,4 +13,4 @@ class Datasources:
         self.contexts = Contexts(input_path)
         self.community_detection = CommunityDetection(input_path)
         self.context_detection = ContextDetection(input_path)
-        self.tw_api = None #TwApi(input_path, output_path)
+        self.tw_api = TwApi(input_path, output_path)

@@ -114,8 +114,8 @@ class AnalysisHelper:
         context_stats = context_stats.merge(communities, left_index=True, right_index=True)
 
         context_stats['is_degenerate'] = \
-            context_stats.apply(lambda x: x['no_communities'] == 1 and
-                                          x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
+            context_stats.apply(
+                lambda x: x['no_communities'] == 1 and x['no_nodes_greatest_community'] == x['no_all_nodes'], axis=1)
 
         # summarize each context
         good_contexts = context_stats[~context_stats['is_degenerate']]
@@ -289,16 +289,17 @@ class AnalysisHelper:
 
         # time period
         is_same_year = table_1['start_date'].min() == table_1['start_date'].max()
-        time_period = table_1['start_date'].min().strftime('%Y') + \
-                      ('' if is_same_year else f'/{table_1["start_date"].max().strftime("%y")}')
+        time_period = \
+            table_1['start_date'].min().strftime('%Y') + \
+            ('' if is_same_year else f'/{table_1["start_date"].max().strftime("%y")}')
         time_period = f'period ({time_period})'
 
         table_1[time_period] = table_1[['start_date', 'end_date']] \
             .apply(lambda x: x['start_date'].strftime('%m-%d') + ' / ' + x['end_date'].strftime('%m-%d'), axis=1) \
             if is_same_year else \
-            table_1[['start_date', 'end_date']] \
-                .apply(lambda x: x['start_date'].strftime('%y-%m-%d') + ' / ' + x['end_date'].strftime('%y-%m-%d'),
-                       axis=1)
+            table_1[['start_date', 'end_date']].apply(
+                lambda x: x['start_date'].strftime('%y-%m-%d') + ' / ' + x['end_date'].strftime('%y-%m-%d'),
+                axis=1)
 
         # graph stats
         table_1[['assortativity', 'avg_degree']] = table_1[['assortativity', 'avg_degree']].round(decimals=1)
@@ -329,8 +330,11 @@ class AnalysisHelper:
 
     # table 6 - ranks comparison
     def get_table6(self):
-        ranks = {f'Rank {i}': self.datasources.files.read('ranking', f'rank_{i}', f'rank_{i}', 'csv')['user_name']
-            .head(100).reset_index(drop=True) for i in [1, 2, 3]}
+        ranks = {
+            f'Rank {i}': self.datasources.files.read(
+                'ranking', f'rank_{i}', f'rank_{i}', 'csv')['user_name'].head(100).reset_index(drop=True)
+            for i in [1, 2, 3]
+        }
         ranks = pd.DataFrame(ranks)
         ranks.index += 1
         ranks.index.name = '#'

@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime
 from pipelines.pipeline_base import PipelineBase
 from pipelines.helper import str_to_list
 

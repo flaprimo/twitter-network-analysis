@@ -10,10 +10,8 @@ class AnalysisHelper:
         self.datasources = datasources
 
     def __get_contexts_multiple(self, *file_args):
-        df_list = []
-        for context_name in self.datasources.contexts.get_context_names():
-            df = self.datasources.files.read(*file_args, file_prefix=context_name)
-            df_list.append((context_name, df))
+        df_list = [(context_name, self.datasources.files.read(*file_args, file_prefix=context_name))
+                   for context_name in self.datasources.contexts.get_context_names()]
 
         return df_list
 
@@ -91,6 +89,7 @@ class AnalysisHelper:
         plt.ylabel('Number of nodes (normalized with z-score)')
         plt.legend()
         plt.tight_layout()
+        plt.savefig('foo.pdf', bbox_inches='tight')
         plt.show()
 
         return cumsum_deg_dist
@@ -233,7 +232,7 @@ class AnalysisHelper:
         return self.datasources.files.read('bipartite_graph', 'get_user_network', 'user_network', 'csv')
 
     def get_user_timelines(self):
-        return self.datasources.files.read('user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')
+        return self.datasources.files.read('user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
     def show_peaks(self, hashtag_list):
         hashtag_frequency = \
@@ -274,6 +273,7 @@ class AnalysisHelper:
             ax.set_xlabel('dates (d)')
             ax.set_ylabel('hashtag frequency')
             plt.xticks(ticks=timeline.index.values, rotation=90)
+            plt.savefig(f'peak-{hashtag}.pdf', bbox_inches='tight')
             plt.show()
 
     # TABLES
@@ -336,6 +336,38 @@ class AnalysisHelper:
         ranks.index.name = '#'
 
         return ranks
+
+    def plot_tweets_distribution(self):
+        cd_config = self.datasources.context_detection.get_config()
+        rank = self.datasources.files.read('ranking', cd_config['rank'], cd_config['rank'], 'csv')['user_name']
+        cd_config = self.datasources.context_detection.get_config()
+        user_timelines = self.datasources.files.read(
+            'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')['user_name']
+
+        print(f'Users selected for harvesting: '
+              f'{cd_config["top_no_users"]} (actual {user_timelines.nunique()})/ {rank.nunique()}\n'
+              f'Number of posted tweets: {len(user_timelines)}')
+
+        user_timelines = user_timelines[user_timelines.isin(rank.head(cd_config['top_no_users']))]
+        user_timelines = user_timelines.groupby(user_timelines).size().sort_values()
+
+        print(f'Users posted a min of {user_timelines.min()} and a max of {user_timelines.max()} tweets')
+
+        user_timelines_byuser_cumsum = user_timelines.cumsum().reset_index(drop=True)
+
+        fig, ax = plt.subplots(figsize=(15, 8))
+        ax.plot(user_timelines_byuser_cumsum)
+        ax.fill_between(user_timelines_byuser_cumsum.index.values, user_timelines_byuser_cumsum, alpha=0.4)
+
+        plt.xlabel('Number of users')
+        plt.ylabel('Number of tweets')
+        plt.title('Cumulative number of published tweets per user')
+        plt.ylim(ymin=0, ymax=user_timelines_byuser_cumsum.max())
+        plt.xlim(xmin=0, xmax=len(user_timelines_byuser_cumsum)-1)
+        plt.locator_params(axis='x', nbins=10)
+        plt.tight_layout()
+        plt.savefig('tweets-distribution.pdf', bbox_inches='tight')
+        plt.show()
 
     @staticmethod
     def print_full(x):

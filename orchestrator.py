@@ -35,7 +35,7 @@ class Orchestrator:
                 current_pipeline = p(self.datasources, context_name)
                 current_pipeline.execute()
 
-        pipeline_2 = [Ranking, UserTimelines, BipartiteGraph, BipartiteCommunityDetection, ContextDetector]  #, HashtagsVector] #, HashtagsNetwork]
+        pipeline_2 = [Ranking, UserTimelines, BipartiteGraph, BipartiteCommunityDetection, ContextDetector]
         for p in pipeline_2:
             current_pipeline = p(self.datasources)
             current_pipeline.execute()

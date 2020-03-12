@@ -70,7 +70,7 @@ class BipartiteGraph(PipelineBase):
     def __get_user_network(self):
         if not self.datasources.files.exists('bipartite_graph', 'get_user_network', 'user_network', 'csv'):
             user_timelines = self.datasources.files.read(
-                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'mentions']]
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')[['user_name', 'mentions']]
 
             # create user edges
             users_network = user_timelines[user_timelines['mentions'].map(lambda m: len(m) > 0)].explode('mentions') \
@@ -89,7 +89,7 @@ class BipartiteGraph(PipelineBase):
     def __get_hashtag_network(self):
         if not self.datasources.files.exists('bipartite_graph', 'get_hashtag_network', 'hashtag_network', 'csv'):
             hashtags_network = self.datasources.files.read(
-                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')['hashtags']
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')['hashtags']
 
             # pair co-occurred hashtags
             hashtags_network = hashtags_network \
@@ -114,7 +114,7 @@ class BipartiteGraph(PipelineBase):
         if not self.datasources.files.exists(
                 'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv'):
             user_timelines = self.datasources.files.read(
-                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['user_name', 'hashtags']]
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')[['user_name', 'hashtags']]
 
             # hashtag list per user_name
             hashtags_users_network = user_timelines.groupby('user_name').sum()

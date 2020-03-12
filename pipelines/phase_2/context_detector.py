@@ -97,10 +97,9 @@ class ContextDetector(PipelineBase):
         if not self.datasources.files.exists('context_detector', 'hashtags_frequency', 'hashtags_frequency', 'csv'):
             from scipy.stats import zscore
             tweets = self.datasources.files.read(
-                'user_timelines', 'filter_user_timelines', 'filtered_user_timelines', 'csv')[['date', 'hashtags']] \
+                'user_timelines', 'get_user_timelines', 'user_timelines', 'csv')[['date', 'hashtags']] \
                 .explode('hashtags').dropna().rename(columns={'hashtags': 'hashtag'})
-            tweets = tweets.groupby('hashtag').resample(
-                'D', on='date').size().to_frame('count').reset_index()
+            tweets = tweets.groupby('hashtag').resample('D', on='date').size().to_frame('count').reset_index()
 
             # subtract mean and retain only counts greater than 0
             tweets = tweets.loc[tweets['count'] > 0]
@@ -141,7 +140,7 @@ class ContextDetector(PipelineBase):
                     timeline, height=timeline[timeline > 0].quantile(.9))[0]
 
                 if peaks.size:
-                    tolerance = 2
+                    tolerance = 1
 
                     for p in peaks:
                         left_bound = get_bound(p, timeline, tolerance, 'l')
@@ -169,7 +168,10 @@ class ContextDetector(PipelineBase):
     def __get_ranked_users_with_hashtags(self):
         if not self.datasources.files.exists(
                 'context_detector', 'get_ranked_users_with_hashtags', 'ranked_users_hashtags', 'csv'):
-            rank_2 = self.datasources.files.read('ranking', 'rank_2', 'rank_2', 'csv')[['user_name', 'rank']]\
+            cd_config = self.datasources.context_detection.get_config()
+
+            rank = self.datasources.files.read(
+                'ranking', cd_config['rank'], cd_config['rank'], 'csv')[['user_name', 'rank']]\
                 .set_index('user_name', drop=True)
             user_hashtag_network = self.datasources.files.read(
                 'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv')
@@ -177,7 +179,7 @@ class ContextDetector(PipelineBase):
             user_hashtag_network = user_hashtag_network.groupby('user_name')['hashtag'].apply(list) \
                 .rename('hashtags').to_frame()
 
-            ranked_users_hashtags = user_hashtag_network.merge(rank_2, left_index=True, right_index=True) \
+            ranked_users_hashtags = user_hashtag_network.merge(rank, left_index=True, right_index=True) \
                 .sort_values(by='rank', ascending=False).reset_index()
 
             ranked_users_hashtags['weight'] = list(
@@ -195,10 +197,6 @@ class ContextDetector(PipelineBase):
                 'context_detector', 'find_peaks', 'hashtags_peaks', 'csv')
             ranked_users_hashtags = self.datasources.files.read(
                 'context_detector', 'get_ranked_users_with_hashtags', 'ranked_users_hashtags', 'csv')
-
-            pd.set_option('display.max_rows', 500)
-            pd.set_option('display.max_columns', 500)
-            pd.set_option('display.width', 1000)
 
             nx.set_node_attributes(graph, dict(nx.degree(graph)), 'degree')
 
@@ -230,7 +228,7 @@ class ContextDetector(PipelineBase):
             for name, group in hashtag_peaks.groupby('community_topic'):
                 g = group.set_index('hashtag', drop=True)['date_range']
                 corr = g.apply(lambda x: g.iloc[x.name:]
-                               .apply(lambda y: np.intersect1d(x, y).size / min(x.size, y.size)))\
+                               .apply(lambda y: np.intersect1d(x, y).size / min(x.size, y.size))) \
                     .apply(lambda x: x > .5)
                 corr = corr.drop_duplicates().T
                 corr = corr.apply(
@@ -244,12 +242,10 @@ class ContextDetector(PipelineBase):
             # add dates to contexts
             corr_groups['start_date'] = corr_groups['context_hashtags'].apply(
                 lambda h_list: min([hashtag_peaks[hashtag_peaks['hashtag'] == h]['start_date'].values
-                for h in h_list])[0])
+                                    for h in h_list])[0])
             corr_groups['end_date'] = corr_groups['context_hashtags'].apply(
                 lambda h_list: max([hashtag_peaks[hashtag_peaks['hashtag'] == h]['end_date'].values
-                for h in h_list])[0])
-            #corr_groups['start_date'] = corr_groups['start_date'].apply(lambda x: x.date())
-            #corr_groups['end_date'] = corr_groups['end_date'].apply(lambda x: x.date())
+                                    for h in h_list])[0])
 
             # rank candidate contexts
             ranked_users_hashtags = ranked_users_hashtags.explode('hashtags').rename(columns={'hashtags': 'hashtag'})
@@ -259,31 +255,25 @@ class ContextDetector(PipelineBase):
 
             corr_groups['hashtag_ranks'] = corr_groups['context_hashtags'].apply(
                 lambda h_list: [ranked_users_hashtags[ranked_users_hashtags['hashtag'] == h]['weight'].tolist()
-                for h in h_list])
-            
+                                for h in h_list])
+
             corr_groups['context_rank'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([sum(r) / len(r) for r in r_list]) / len(r_list))
             corr_groups.sort_values(by='context_rank', inplace=True, ascending=False)
-            print(corr_groups[['context_hashtags', 'context_rank']])
 
             corr_groups['context_rank_2'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([len(r) for r in r_list]) / len(r_list))
             corr_groups.sort_values(by='context_rank_2', inplace=True, ascending=False)
-            print(corr_groups[['context_hashtags', 'context_rank_2']])
 
             corr_groups['context_rank_3'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([max(r) for r in r_list]) / len(r_list))
             corr_groups.sort_values(by='context_rank_3', inplace=True, ascending=False)
-            print(corr_groups[['context_hashtags', 'context_rank_3']])
 
             corr_groups['context_rank_4'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: max([max(r) for r in r_list]))
             corr_groups.sort_values(by='context_rank_4', inplace=True, ascending=False)
-            print(corr_groups[['context_hashtags', 'context_rank_4']])
 
             corr_groups['context_rank_5'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([len(r) * max(r) for r in r_list]) / len(r_list))
-
-            print(hashtag_peaks[hashtag_peaks['community'] == 1])
 
             self.datasources.files.write(corr_groups, 'context_detector', 'get_new_contexts', 'new_contexts', 'csv')

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datasources.database import User, Profile, Context, Graph
@@ -85,11 +86,12 @@ class AnalysisHelper:
                 .set_title('Cumulative sum of degree distribution')
 
         ax.axhline(0, ls='--')
+        ax.set_xscale('log')
         plt.xlabel('Cumulative sum of degrees')
         plt.ylabel('Number of nodes (normalized with z-score)')
         plt.legend()
         plt.tight_layout()
-        plt.savefig('foo.pdf', bbox_inches='tight')
+        plt.savefig('cum-sum-deg-dist.pdf', bbox_inches='tight')
         plt.show()
 
         return cumsum_deg_dist
@@ -234,6 +236,9 @@ class AnalysisHelper:
     def get_user_timelines(self):
         return self.datasources.files.read('user_timelines', 'get_user_timelines', 'user_timelines', 'csv')
 
+    def get_new_contexts(self):
+        return self.datasources.files.read('context_detector', 'get_new_contexts', 'new_contexts', 'csv')
+
     def show_peaks(self, hashtag_list):
         hashtag_frequency = \
             self.datasources.files.read('context_detector', 'hashtags_frequency', 'hashtags_frequency', 'csv')
@@ -273,7 +278,7 @@ class AnalysisHelper:
             ax.set_xlabel('dates (d)')
             ax.set_ylabel('hashtag frequency')
             plt.xticks(ticks=timeline.index.values, rotation=90)
-            plt.savefig(f'peak-{hashtag}.pdf', bbox_inches='tight')
+            plt.savefig(f'tables/peak-{hashtag}.pdf', bbox_inches='tight')
             plt.show()
 
     # TABLES
@@ -359,27 +364,132 @@ class AnalysisHelper:
 
         user_timelines_byuser_cumsum = user_timelines.cumsum().reset_index(drop=True)
 
-        fig, ax = plt.subplots(figsize=(15, 8))
-        ax.plot(user_timelines_byuser_cumsum)
-        ax.fill_between(user_timelines_byuser_cumsum.index.values, user_timelines_byuser_cumsum, alpha=0.4)
+        self.plot_cum_sum(user_timelines_byuser_cumsum,
+                          xlabel='Number of users',
+                          ylabel='Number of tweets',
+                          title='Cumulative number of published tweets per user',
+                          nbins=10,
+                          savefig_path='tables/tweets-distribution.pdf')
 
-        plt.xlabel('Number of users')
-        plt.ylabel('Number of tweets')
-        plt.title('Cumulative number of published tweets per user')
-        plt.ylim(ymin=0, ymax=user_timelines_byuser_cumsum.max())
-        plt.xlim(xmin=0, xmax=len(user_timelines_byuser_cumsum)-1)
-        plt.locator_params(axis='x', nbins=10)
+    @staticmethod
+    def plot_cum_sum(cumsum_series, xlabel='', ylabel='', title='', nbins=10, savefig_path=None):
+        fig, ax = plt.subplots(figsize=(15, 8))
+        ax.plot(cumsum_series)
+        ax.fill_between(cumsum_series.index.values, cumsum_series, alpha=0.4)
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.ylim(ymin=0, ymax=cumsum_series.max())
+        plt.xlim(xmin=0, xmax=len(cumsum_series)-1)
+        plt.locator_params(axis='x', nbins=nbins)
         plt.tight_layout()
-        plt.savefig('tweets-distribution.pdf', bbox_inches='tight')
+        if savefig_path:
+            plt.savefig(savefig_path, bbox_inches='tight')
         plt.show()
+
+    def hashtags_stats(self):
+        return self.datasources.files.read('context_detector', 'find_peaks', 'hashtags_peaks', 'csv')
+
+    def communities_hashtags(self):
+        graph = self.datasources.files.read(
+            'bipartite_community_detection', 'find_communities', 'multiplex_graph', 'gexf')
+        hashtag_peaks = self.datasources.files.read(
+            'context_detector', 'find_peaks', 'hashtags_peaks', 'csv')
+
+        nx.set_node_attributes(graph, dict(nx.degree(graph)), 'degree')
+
+        hashtag_communities = pd.DataFrame(
+            [{'hashtag': attr['name'],
+              'community': attr['community'],
+              'degree': attr['degree']}
+             for i, attr in graph.nodes(data=True)
+             if attr['bipartite'] == 1]).set_index('hashtag', drop=True)
+
+        hashtag_peaks = hashtag_peaks.merge(
+            hashtag_communities, left_on='hashtag', right_index=True)
+
+        # get topic of community
+        # community_topic = hashtag_peaks.groupby('community') \
+        #     .apply(lambda x: x['hashtag'][x['degree'] == x['degree'].max()].values[0]) \
+        #     .rename('community_topic')
+        # hashtag_peaks = hashtag_peaks.merge(
+        #     community_topic, left_on='community', right_index=True)
+
+        return hashtag_peaks
+
+    def bigraph_stats(self):
+        graph = self.datasources.files.read(
+            'bipartite_community_detection', 'find_communities', 'multiplex_graph', 'gexf')
+
+        def assortativity(g):
+            try:
+                return nx.degree_assortativity_coefficient(g)
+            except Exception:
+                return None
+
+        summary_df = pd.DataFrame(data={
+            'no_nodes': graph.number_of_nodes(),
+            'no_edges': graph.number_of_edges(),
+            'avg_degree': sum([x[1] for x in graph.degree()]) / graph.number_of_nodes(),
+            'avg_weighted_degree': sum([x[1] for x in graph.degree(weight='weight')]) / graph.number_of_nodes(),
+            'density': nx.density(graph),
+            'avg_clustering': nx.average_clustering(graph),
+            'assortativity': assortativity(graph)
+        }, index=[0]).round(4)
+
+        return summary_df
+
+    def bigraph_stats_bycomm(self):
+        graph = self.datasources.files.read(
+            'bipartite_community_detection', 'find_communities', 'multiplex_graph', 'gexf')
+
+        nx.set_node_attributes(graph, dict(nx.degree(graph)), 'degree')
+
+        # create subgraphs
+        comms = set(nx.get_node_attributes(graph, 'community').values())
+        communities = {c: graph.subgraph([
+            node for node, data in graph.nodes(data=True)
+            if data.get('community') == c])
+            for c in comms}
+
+        # compute analyses for each community
+        def assortativity(g):
+            try:
+                return nx.degree_assortativity_coefficient(g)
+            except ValueError:
+                return None
+
+        community_stats = []
+        for c, subgraph in communities.items():
+
+            # get topic
+            hashtags_degrees = [(data.get('name'), data.get('degree'))
+                                for node, data in subgraph.nodes(data=True)
+                                if data.get('bipartite') == 1]
+
+            community_stats.append({
+                'topic': max(hashtags_degrees, key=lambda k: k[1])[0],
+                'community': c,
+                'no_nodes': subgraph.number_of_nodes(),
+                'no_edges': subgraph.number_of_edges(),
+                'avg_degree': sum([x[1] for x in subgraph.degree()]) / subgraph.number_of_nodes(),
+                'avg_weighted_degree': sum(
+                    [x[1] for x in subgraph.degree(weight='weight')]) / subgraph.number_of_nodes(),
+                'density': nx.density(subgraph),
+                'avg_clustering': nx.average_clustering(subgraph),
+                'assortativity': assortativity(subgraph)
+            })
+
+        return pd.DataFrame(community_stats)
 
     @staticmethod
     def print_full(x):
         pd.set_option('display.max_rows', len(x))
         pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', 2000)
+        pd.set_option('display.width', None)
         pd.set_option('display.float_format', '{:20,.2f}'.format)
-        pd.set_option('display.max_colwidth', -1)
+        pd.set_option('display.max_colwidth', None)
         print(x)
         pd.reset_option('display.max_rows')
         pd.reset_option('display.max_columns')

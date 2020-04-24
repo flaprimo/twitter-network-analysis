@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  twitter-network-analysis:
+    build: .
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10

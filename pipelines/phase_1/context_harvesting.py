@@ -87,10 +87,10 @@ class ContextHarvesting(PipelineBase):
             context = self.datasources.contexts.get_context(self.context_name)
             context_record = context.to_dict('records')[0]
 
-            stream = self.datasources.tw_api.premium_search(query=' OR '.join(context_record['hashtags']),
-                                                            since=context_record['start_date'],
-                                                            until=context_record['end_date'],
-                                                            n=200)
+            stream = self.datasources.tw_api.premium_search_auto(query=' OR '.join(context_record['hashtags']),
+                                                                 since=context_record['start_date'],
+                                                                 until=context_record['end_date'],
+                                                                 n=200)
             self.datasources.files.write(
                 stream, 'context_harvesting', 'harvest_context', 'stream', 'json', self.context_name)
 
@@ -116,9 +116,9 @@ class ContextHarvesting(PipelineBase):
                 if not tw_df_expansion.empty:
                     tw_df_expansion = tw_df_expansion[
                         tw_df_expansion['hashtags']
-                        .apply(lambda t: any(h in context_record['hashtags'] for h in t)) |
+                            .apply(lambda t: any(h in context_record['hashtags'] for h in t)) |
                         tw_df_expansion['retweeted_hashtags']
-                        .apply(lambda t: any(h in context_record['hashtags'] for h in t))]
+                            .apply(lambda t: any(h in context_record['hashtags'] for h in t))]
 
                 # merge results
                 tw_df = pd.concat([tw_df, tw_df_expansion])

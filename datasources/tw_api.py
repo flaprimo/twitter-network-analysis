@@ -128,7 +128,7 @@ class TwApi:
     # https://developer.twitter.com/en/docs/tweets/search/api-reference/premium-search
     # auto switch between "30day" and "fullarchive" APIs
     def premium_search_auto(self, since=None, **kwargs):
-        days = (datetime.now() - since).days
+        days = (datetime.now().date() - since).days
         product = '30day' if days <= 30 else 'fullarchive'
 
         logger.info(f'tw api auto search {days} days delta switch to product: {product}')

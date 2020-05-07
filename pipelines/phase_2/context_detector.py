@@ -171,7 +171,7 @@ class ContextDetector(PipelineBase):
             cd_config = self.datasources.context_detection.get_config()
 
             rank = self.datasources.files.read(
-                'ranking', cd_config['rank'], cd_config['rank'], 'csv')[['user_name', 'rank']]\
+                'ranking', cd_config['rank'], cd_config['rank'], 'csv')[['user_name', 'rank']] \
                 .set_index('user_name', drop=True)
             user_hashtag_network = self.datasources.files.read(
                 'bipartite_graph', 'get_user_hashtag_network', 'user_hashtag_network', 'csv')
@@ -239,15 +239,8 @@ class ContextDetector(PipelineBase):
                 corr_groups[name] = corr
             corr_groups = pd.Series(corr_groups).rename('context_hashtags').explode().to_frame()
 
-            # add dates to contexts
-            corr_groups['start_date'] = corr_groups['context_hashtags'].apply(
-                lambda h_list: min([hashtag_peaks[hashtag_peaks['hashtag'] == h]['start_date'].values
-                                    for h in h_list])[0])
-            corr_groups['end_date'] = corr_groups['context_hashtags'].apply(
-                lambda h_list: max([hashtag_peaks[hashtag_peaks['hashtag'] == h]['end_date'].values
-                                    for h in h_list])[0])
-
-            # rank candidate contexts
+            # rank & order hashtags
+            # rank hashtags
             ranked_users_hashtags = ranked_users_hashtags.explode('hashtags').rename(columns={'hashtags': 'hashtag'})
             ranked_users_hashtags['weight'] = \
                 (ranked_users_hashtags['weight'] - ranked_users_hashtags['weight'].min()) / \
@@ -257,23 +250,49 @@ class ContextDetector(PipelineBase):
                 lambda h_list: [ranked_users_hashtags[ranked_users_hashtags['hashtag'] == h]['weight'].tolist()
                                 for h in h_list])
 
+            # order hashtags
+            corr_groups['hashtag_pairs_name_ranks'] = corr_groups[['context_hashtags', 'hashtag_ranks']].apply(
+                lambda x: sorted(
+                    list(zip(x['context_hashtags'], x['hashtag_ranks'])),
+                    key=lambda y: sum(y[1]),
+                    reverse=True
+                )[:5], axis=1)
+            corr_groups['context_hashtags'] = corr_groups['hashtag_pairs_name_ranks']\
+                .apply(lambda pairs_list: [p[0] for p in pairs_list])
+            corr_groups['hashtag_ranks'] = corr_groups['hashtag_pairs_name_ranks']\
+                .apply(lambda pairs_list: [p[1] for p in pairs_list])
+
+            corr_groups['h_concat'] = corr_groups['context_hashtags'].apply(lambda x: ''.join(x))
+            print('before ' + str(corr_groups.shape[0]))
+            corr_groups.drop_duplicates('h_concat', inplace=True)
+            print('after ' + str(corr_groups.shape[0]))
+            corr_groups.drop(columns=['h_concat', 'hashtag_pairs_name_ranks'], inplace=True)
+
+            # add dates to contexts
+            corr_groups['start_date'] = corr_groups['context_hashtags'].apply(
+                lambda h_list: min([hashtag_peaks[hashtag_peaks['hashtag'] == h]['start_date'].values
+                                    for h in h_list])[0])
+            corr_groups['end_date'] = corr_groups['context_hashtags'].apply(
+                lambda h_list: max([hashtag_peaks[hashtag_peaks['hashtag'] == h]['end_date'].values
+                                    for h in h_list])[0])
+
+            # rank candidate contexts
             corr_groups['context_rank'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([sum(r) / len(r) for r in r_list]) / len(r_list))
-            corr_groups.sort_values(by='context_rank', inplace=True, ascending=False)
 
             corr_groups['context_rank_2'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([len(r) for r in r_list]) / len(r_list))
-            corr_groups.sort_values(by='context_rank_2', inplace=True, ascending=False)
 
             corr_groups['context_rank_3'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([max(r) for r in r_list]) / len(r_list))
-            corr_groups.sort_values(by='context_rank_3', inplace=True, ascending=False)
 
             corr_groups['context_rank_4'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: max([max(r) for r in r_list]))
-            corr_groups.sort_values(by='context_rank_4', inplace=True, ascending=False)
 
             corr_groups['context_rank_5'] = corr_groups['hashtag_ranks'].apply(
                 lambda r_list: sum([len(r) * max(r) for r in r_list]) / len(r_list))
+
+            # sort by rank 5
+            corr_groups.sort_values(by='context_rank_5', inplace=True, ascending=False)
 
             self.datasources.files.write(corr_groups, 'context_detector', 'get_new_contexts', 'new_contexts', 'csv')
